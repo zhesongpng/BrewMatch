@@ -1,0 +1,6 @@
+{
+  "global_mean": 6.618648248643315,
+  "val_std": 1.269476103072095,
+  "trained": true,
+  "backend": "sklearn"
+}

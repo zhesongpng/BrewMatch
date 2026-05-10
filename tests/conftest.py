@@ -9,6 +9,9 @@ import random
 
 import pytest
 
+# tests/sdk/ contains standalone scripts, not pytest tests
+collect_ignore = ["sdk"]
+
 from src.data_models import (
     BeanProfile,
     BrewMethod,

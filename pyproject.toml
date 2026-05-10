@@ -24,6 +24,7 @@ dependencies = [
     "shap>=0.45.0",
     "joblib>=1.4.0",
     "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,9 @@ include = ["src*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "regression: Regression tests guarding against re-introduction of fixed bugs",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]

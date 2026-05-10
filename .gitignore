@@ -80,3 +80,6 @@ data/*.db
 
 # Node modules (if any frontend tooling)
 node_modules/
+
+# Trained model binaries (regenerate with scripts/train_model.py)
+*.joblib

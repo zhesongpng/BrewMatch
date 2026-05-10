@@ -1,0 +1,17 @@
+{
+  "roast_x_temp": 0.070578,
+  "grind_x_time": 0.059332,
+  "total_time_s": 0.03812,
+  "water_temp_c": 0.03477,
+  "ratio": 0.024155,
+  "bloom_time_s": 0.01969,
+  "grind_x_temp": 0.010177,
+  "ratio_x_dose": 0.009507,
+  "origin_encoded": 0.004855,
+  "dose_g": 0.004453,
+  "altitude_mean": 0.003867,
+  "roast_x_grind": 0.003244,
+  "pour_count": 0.001185,
+  "cluster_count": 0.000899,
+  "cluster_spice": 0.000898
+}

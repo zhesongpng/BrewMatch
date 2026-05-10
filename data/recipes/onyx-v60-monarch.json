@@ -1,0 +1,57 @@
+{
+  "recipe_id": "onyx-v60-monarch",
+  "source": "Onyx Coffee Lab",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 255.0,
+  "ratio": 17.0,
+  "grind_setting": 4,
+  "water_temp_c": 94.0,
+  "bloom_time_s": 45,
+  "total_time_s": 225,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 45.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 45,
+      "water_g": 70.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 90,
+      "water_g": 70.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 135,
+      "water_g": 70.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Kenya",
+      "Panama"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Berry",
+      "Sweet"
+    ]
+  },
+  "instructions": "Onyx-style 4-pour for light roasts. Even pour structure for balanced extraction."
+}

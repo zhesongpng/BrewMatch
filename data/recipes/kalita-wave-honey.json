@@ -1,0 +1,52 @@
+{
+  "recipe_id": "kalita-wave-honey",
+  "source": "Kalita",
+  "method": "Kalita Wave",
+  "dose_g": 15.0,
+  "water_total_g": 248.0,
+  "ratio": 16.5,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 35,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 35,
+      "water_g": 99.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 80,
+      "water_g": 99.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Costa Rica",
+      "Honduras",
+      "El Salvador"
+    ],
+    "processes": [
+      "honey",
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Sweet",
+      "Tropical",
+      "Stone Fruit",
+      "Balanced"
+    ]
+  },
+  "instructions": "Optimized for honey processed coffees. Brings out inherent sweetness."
+}

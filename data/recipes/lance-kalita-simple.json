@@ -1,0 +1,56 @@
+{
+  "recipe_id": "lance-kalita-simple",
+  "source": "Lance Hedrick",
+  "method": "Kalita Wave",
+  "dose_g": 15.0,
+  "water_total_g": 240.0,
+  "ratio": 16.0,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 30,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 95.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 95.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium",
+      "medium-dark"
+    ],
+    "origins": [
+      "Colombia",
+      "Brazil",
+      "Ethiopia",
+      "Guatemala",
+      "Honduras"
+    ],
+    "processes": [
+      "washed",
+      "natural",
+      "honey"
+    ],
+    "flavor_profiles": [
+      "Balanced",
+      "Sweet",
+      "Chocolate",
+      "Citrus"
+    ]
+  },
+  "instructions": "Lance's simple Kalita. Very forgiving, great for dialing in new beans."
+}

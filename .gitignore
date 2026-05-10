@@ -62,7 +62,21 @@ secrets/
 # Internal docs (not for distribution)
 /docs/01-kailash-vibe-cc-internals/
 
-# Generated script outputs (sdk-users examples)
+# Generated script outputs
 **/scripts/data/
 **/scripts/outputs/
 **/scripts/*.log
+
+# BrewMatch generated data
+models/*.joblib
+models/*.pkl
+data/chroma/
+data/synthetic/*.csv
+data/synthetic/*.json
+!data/synthetic/.gitkeep
+
+# BrewMatch databases
+data/*.db
+
+# Node modules (if any frontend tooling)
+node_modules/

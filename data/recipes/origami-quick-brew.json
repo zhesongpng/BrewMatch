@@ -1,0 +1,50 @@
+{
+  "recipe_id": "origami-quick-brew",
+  "source": "Origami",
+  "method": "Origami",
+  "dose_g": 14.0,
+  "water_total_g": 210.0,
+  "ratio": 15.0,
+  "grind_setting": 6,
+  "water_temp_c": 90.0,
+  "bloom_time_s": 20,
+  "total_time_s": 150,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 42.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 20,
+      "water_g": 84.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 50,
+      "water_g": 84.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium",
+      "medium-dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Colombia"
+    ],
+    "processes": [
+      "natural",
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Quick brew Origami. Coarser grind, lower temp. Done in 2:30."
+}

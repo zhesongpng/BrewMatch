@@ -1,0 +1,52 @@
+{
+  "recipe_id": "onyx-origami-natural",
+  "source": "Onyx Coffee Lab",
+  "method": "Origami",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.67,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 40,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 40,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 85,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Brazil",
+      "Uganda"
+    ],
+    "processes": [
+      "natural",
+      "honey"
+    ],
+    "flavor_profiles": [
+      "Berry",
+      "Tropical",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Origami recipe optimized for natural processed coffees. Concentric pour circles."
+}

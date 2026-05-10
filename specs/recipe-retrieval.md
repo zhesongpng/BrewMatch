@@ -241,10 +241,18 @@ class RankedRecipe:
 
 ### Guarantees
 
-1. Always returns exactly 3 recipes (pad with relaxed-constraint results if needed).
+1. Always returns 1-3 recipes, up to 3 when available.
 2. `relevance_score` is in [0, 1] for every recipe.
 3. `match_reasons` contains at least one human-readable string per recipe.
 4. Recipes are ordered by `relevance_score` descending.
+
+### Fallback Tiers for Fewer Than 3 Results
+
+If fewer than 3 recipes match after all constraint relaxation stages:
+
+1. **Broad matches**: Fill remaining slots with the highest-relevance recipes for the same brew method, labeled as "broad match" in `match_reasons`.
+2. **General recommendations**: If zero recipes exist for the requested method, return the 3 highest-relevance recipes across all methods, labeled as "general recommendation."
+3. **Single result**: If only 1 recipe matches, return it alone. Do not duplicate it to fill 3 slots.
 
 ---
 

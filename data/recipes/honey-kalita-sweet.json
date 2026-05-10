@@ -1,0 +1,36 @@
+{
+  "recipe_id": "honey-kalita-sweet",
+  "source": "Onyx Coffee Lab",
+  "method": "Kalita Wave",
+  "dose_g": 16.0,
+  "water_total_g": 264.0,
+  "ratio": 16.5,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 35,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 54.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 35,
+      "water_g": 105.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 85,
+      "water_g": 105.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": ["medium", "medium-light"],
+    "origins": ["Costa Rica", "El Salvador", "Honduras"],
+    "processes": ["honey"],
+    "flavor_profiles": ["Sweet", "Stone Fruit", "Citrus"]
+  },
+  "instructions": "Kalita Wave recipe optimized for honey-process coffees. The flat-bottomed dripper provides the even, gentle extraction that honey-processed beans need to express their characteristic sweetness without muddiness. Medium-fine grind and 93C water balance extraction of the mucilage-derived sugars. Extended 35-second bloom ensures even saturation of the sticky honey-process bean structure. Two steady pours in concentric circles maintain consistent bed temperature. Produces a clean, honey-sweet cup with stone fruit acidity."
+}

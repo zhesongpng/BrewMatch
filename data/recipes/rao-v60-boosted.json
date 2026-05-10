@@ -1,0 +1,57 @@
+{
+  "recipe_id": "rao-v60-boosted",
+  "source": "Scott Rao",
+  "method": "V60",
+  "dose_g": 16.0,
+  "water_total_g": 256.0,
+  "ratio": 16.0,
+  "grind_setting": 4,
+  "water_temp_c": 95.0,
+  "bloom_time_s": 40,
+  "total_time_s": 225,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 48.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 40,
+      "water_g": 70.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 80,
+      "water_g": 69.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 120,
+      "water_g": 69.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Kenya",
+      "Colombia",
+      "Rwanda"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Berry",
+      "Citrus",
+      "Floral",
+      "Tropical"
+    ]
+  },
+  "instructions": "4-pour boosted extraction. Higher temp, finer grind for complex light roasts."
+}

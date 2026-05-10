@@ -125,7 +125,7 @@ The roast level determines how easily the coffee extracts. Darker roasts are mor
 
 | Roast Level  | Recommended Temp Range | Rationale                                  |
 | ------------ | ---------------------- | ------------------------------------------ |
-| Light        | 93-98C                 | Dense bean, needs high energy to extract   |
+| Light        | 92-98C                 | Dense bean, needs high energy to extract   |
 | Medium-Light | 92-96C                 | Moderate density                           |
 | Medium       | 91-95C                 | Balanced solubility                        |
 | Medium-Dark  | 89-94C                 | High solubility, avoid overextraction      |
@@ -238,7 +238,7 @@ The diagnosis engine uses the taste predictor (`specs/taste-prediction.md`) to r
 
 **Compound flags:** When multiple flags appear (e.g., `too_sour + too_weak`), collect candidates from both flags, deduplicate, then rank all candidates by predicted improvement. The top candidate addresses the combined signal. If the best candidates from each flag conflict (one says increase temp, other says decrease), the model's prediction surface resolves the conflict based on which direction improves the score more.
 
-### 7.2 Compound Diagnoses
+### 7.3 Compound Diagnoses
 
 When multiple flags appear together:
 

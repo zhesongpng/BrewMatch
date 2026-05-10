@@ -1,0 +1,54 @@
+{
+  "recipe_id": "onyx-kalita-thick",
+  "source": "Onyx Coffee Lab",
+  "method": "Kalita Wave",
+  "dose_g": 16.0,
+  "water_total_g": 256.0,
+  "ratio": 16.0,
+  "grind_setting": 5,
+  "water_temp_c": 92.0,
+  "bloom_time_s": 30,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 103.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 80,
+      "water_g": 103.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Colombia",
+      "Ethiopia",
+      "Costa Rica",
+      "Honduras"
+    ],
+    "processes": [
+      "washed",
+      "honey",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Sweet",
+      "Chocolate",
+      "Balanced",
+      "Citrus"
+    ]
+  },
+  "instructions": "Thicker body Kalita recipe from Onyx. Works well with their medium-light roasts."
+}

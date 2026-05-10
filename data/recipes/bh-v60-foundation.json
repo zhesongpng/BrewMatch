@@ -1,0 +1,54 @@
+{
+  "recipe_id": "bh-v60-foundation",
+  "source": "Barista Hustle",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.67,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 30,
+  "total_time_s": 200,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium",
+      "medium-dark"
+    ],
+    "origins": [
+      "Colombia",
+      "Brazil",
+      "Ethiopia",
+      "Guatemala"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Balanced",
+      "Sweet",
+      "Chocolate",
+      "Citrus"
+    ]
+  },
+  "instructions": "Foundation recipe. Simple 3-pour structure. Good starting point for dialing in."
+}

@@ -227,7 +227,7 @@ Since the demo is single-user, collaborative filtering is evaluated on the synth
 
 ### 6.6 Success Criteria
 
-- RMSE decreases monotonically with more brews (never increases).
+- Personalized predictions should show improvement over global predictions as brew count increases. Target: personalized RMSE < global RMSE for users with 10+ brews.
 - Phase transitions produce > 10% RMSE reduction.
 - Full hybrid RMSE < 1.3.
 - Personalization curve shows clear improvement pattern.

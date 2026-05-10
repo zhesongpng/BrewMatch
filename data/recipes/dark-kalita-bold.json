@@ -1,0 +1,36 @@
+{
+  "recipe_id": "dark-kalita-bold",
+  "source": "Matt Perger",
+  "method": "Kalita Wave",
+  "dose_g": 20.0,
+  "water_total_g": 320.0,
+  "ratio": 16.0,
+  "grind_setting": 6,
+  "water_temp_c": 91.0,
+  "bloom_time_s": 30,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 65.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 128.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 127.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": ["medium-dark", "dark"],
+    "origins": ["Brazil", "Ethiopia", "Colombia"],
+    "processes": ["natural"],
+    "flavor_profiles": ["Balanced", "Chocolate", "Nutty"]
+  },
+  "instructions": "Bold Kalita Wave recipe for natural-process dark roasts. The flat-bottomed dripper provides even extraction across the thicker bean structure of dark roasts. Medium-coarse grind prevents over-extraction of roasted notes. Keep water at 91C to preserve body while avoiding harshness. Bloom fully for 30 seconds, then pour in two slow, concentric circles. The Kalita's flat bed geometry gives a syrupy body with clean finish."
+}

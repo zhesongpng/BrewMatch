@@ -1,0 +1,51 @@
+{
+  "recipe_id": "bh-v60-chocolate-nut",
+  "source": "Barista Hustle",
+  "method": "V60",
+  "dose_g": 16.0,
+  "water_total_g": 256.0,
+  "ratio": 16.0,
+  "grind_setting": 6,
+  "water_temp_c": 90.0,
+  "bloom_time_s": 30,
+  "total_time_s": 180,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 103.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 70,
+      "water_g": 103.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium",
+      "medium-dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Colombia",
+      "Guatemala"
+    ],
+    "processes": [
+      "natural",
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Classic chocolate/nut profile. Lower temp, coarser grind. Quick brew."
+}

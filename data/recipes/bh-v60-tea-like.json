@@ -1,0 +1,55 @@
+{
+  "recipe_id": "bh-v60-tea-like",
+  "source": "Barista Hustle",
+  "method": "V60",
+  "dose_g": 13.0,
+  "water_total_g": 221.0,
+  "ratio": 17.0,
+  "grind_setting": 3,
+  "water_temp_c": 95.0,
+  "bloom_time_s": 60,
+  "total_time_s": 255,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 40.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 60,
+      "water_g": 61.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 105,
+      "water_g": 60.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 150,
+      "water_g": 60.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Kenya",
+      "Panama",
+      "Rwanda"
+    ],
+    "processes": [
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Tea-like",
+      "Citrus",
+      "Balanced"
+    ]
+  },
+  "instructions": "Tea-like light roast. Low dose, fine grind, high temp, slow 4-pour."
+}

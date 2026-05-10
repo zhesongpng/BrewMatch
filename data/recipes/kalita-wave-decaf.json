@@ -1,0 +1,51 @@
+{
+  "recipe_id": "kalita-wave-decaf",
+  "source": "Kalita",
+  "method": "Kalita Wave",
+  "dose_g": 16.0,
+  "water_total_g": 256.0,
+  "ratio": 16.0,
+  "grind_setting": 4,
+  "water_temp_c": 94.0,
+  "bloom_time_s": 40,
+  "total_time_s": 200,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 52.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 40,
+      "water_g": 102.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 85,
+      "water_g": 102.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Colombia",
+      "Brazil",
+      "Ethiopia"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Sweet",
+      "Nutty",
+      "Balanced"
+    ]
+  },
+  "instructions": "Decaf-optimized Kalita. Slightly finer grind to compensate for decaf bean structure."
+}

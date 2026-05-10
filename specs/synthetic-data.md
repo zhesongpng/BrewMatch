@@ -171,7 +171,7 @@ def generate_directional_flags(bean: BeanProfile, recipe: RecipeParams, rating: 
 
 def is_underextracted(bean, recipe):
     # Low temp for light roast, coarse grind with short time, low ratio
-    temp_too_low = (bean.roast_level in ("light", "medium-light") and recipe.water_temp_c < 91)
+    temp_too_low = (bean.roast_level in ("light", "medium-light") and recipe.water_temp_c < 92)
     grind_time_mismatch = (recipe.grind_setting >= 7 and recipe.total_time_s < 200)
     ratio_too_high = recipe.ratio >= 17.5
     return temp_too_low or grind_time_mismatch or ratio_too_high
@@ -365,7 +365,41 @@ Running the generation script with the same seed must produce identical data fil
 
 ---
 
-## 11. Dependencies
+## 11. Synthetic User Loading for Collaborative Filtering
+
+### 11.1 Purpose
+
+The personalization layer (`specs/personalization.md` Section 6) requires a population of synthetic user taste profiles for collaborative filtering (Phase 4, 10+ brews). These users are loaded at application startup and used by `find_similar_users(target_user, all_users)`.
+
+### 11.2 Synthetic User Schema
+
+```python
+@dataclass
+class SyntheticUser:
+    user_id: str                # "synth-001" through "synth-200"
+    roast_preference: str       # one of 5 roast levels
+    preferred_clusters: list[str]  # 2-4 flavor clusters
+    rating_bias: float          # Normal(0, 0.8)
+    acidity_tolerance: float    # Uniform(-1, 1)
+    body_preference: float      # Uniform(-1, 1)
+    sweetness_preference: float # Uniform(-1, 1)
+    experience_level: str       # "beginner", "intermediate", "advanced"
+```
+
+### 11.3 Loading Mechanism
+
+1. Synthetic users are generated alongside synthetic ratings during data generation (Section 5).
+2. Stored in `data/synthetic/users.json` (200 profiles).
+3. Loaded into SQLite at application startup via `scripts/seed_synthetic_users.py`.
+4. The collaborative filtering module queries SQLite for all synthetic users when computing similarity.
+
+### 11.4 Count
+
+200 synthetic users. This provides enough diversity for meaningful similarity computation while keeping the similarity search fast (linear scan over 200 profiles is <1ms).
+
+---
+
+## 12. Dependencies
 
 | Dependency                  | Purpose                                                   |
 | --------------------------- | --------------------------------------------------------- |

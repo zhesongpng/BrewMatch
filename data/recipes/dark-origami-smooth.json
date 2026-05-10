@@ -1,0 +1,36 @@
+{
+  "recipe_id": "dark-origami-smooth",
+  "source": "Tetsu Kasuya",
+  "method": "Origami",
+  "dose_g": 15.0,
+  "water_total_g": 240.0,
+  "ratio": 16.0,
+  "grind_setting": 7,
+  "water_temp_c": 89.0,
+  "bloom_time_s": 30,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 95.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 80,
+      "water_g": 95.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": ["medium-dark", "dark"],
+    "origins": ["Sumatra", "Sulawesi", "Papua New Guinea"],
+    "processes": ["wet-hulled"],
+    "flavor_profiles": ["Chocolate", "Spice", "Roasted"]
+  },
+  "instructions": "Origami cone-filter recipe tailored for wet-hulled Sumatra-style beans. Lower temperature (89C) prevents extracting harsh phenolic compounds common in wet-hulled processing. Coarser grind and slow pours bring out smooth chocolate and warm spice while minimizing earthy bitterness. Bloom with a gentle swirl to saturate the uneven cell structure of wet-hulled beans. Use a conical filter for faster drawdown suited to dark roast solubility."
+}

@@ -1,0 +1,52 @@
+{
+  "recipe_id": "lance-v60-april",
+  "source": "Lance Hedrick",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.67,
+  "grind_setting": 4,
+  "water_temp_c": 94.0,
+  "bloom_time_s": 45,
+  "total_time_s": 225,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 45,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 100,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Kenya",
+      "Guatemala"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Berry",
+      "Balanced"
+    ]
+  },
+  "instructions": "Lance's April-style V60. 3 pours with extended bloom. Aggressive swirl."
+}

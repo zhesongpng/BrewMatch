@@ -85,7 +85,7 @@ BrewMatch is a Streamlit web application — a coffee troubleshooting tool. The 
 
 ```
 +----------------------------------------------+
-|   Step 2 of 4: Pick up to 3 flavor profiles  |
+|   Step 2 of 4: Pick up to 5 flavor profiles  |
 |                                               |
 |   [Floral]  [Berry]  [Citrus]  [Stone Fruit]  |
 |   [Tropical] [Sweet] [Chocolate] [Nutty]      |
@@ -338,9 +338,11 @@ BrewMatch is a Streamlit web application — a coffee troubleshooting tool. The 
 **Behavior:**
 
 1. Load the most recent brew with directional flags.
-2. Map flags to extraction theory explanations from `coffee-science.md`.
-3. Suggest specific parameter adjustments based on the flag + current recipe parameters.
-4. "Try Again" pre-fills `/recommend` with the adjusted parameters.
+2. If the user has 0-2 prior brews: show rule-based diagnosis using bean profile + feedback flags (e.g., "Light-roast Ethiopian + too_sour typically indicates under-extraction. Try: finer grind or higher temperature."). No brew-history pattern analysis is attempted.
+3. If the user has 3+ prior brews: show pattern-based diagnosis from brew history, comparing current parameters against the user's highly-rated brews.
+4. Map flags to extraction theory explanations from `coffee-science.md`.
+5. Suggest specific parameter adjustments based on the flag + current recipe parameters.
+6. "Try Again" pre-fills `/recommend` with the adjusted parameters.
 
 ### 4.8 Demo Mode Page
 
@@ -390,10 +392,10 @@ Alex's 15 brew history is pre-generated from `specs/synthetic-data.md` and store
 
 **Behavior:**
 
-1. Load Alex's pre-seeded profile from SQLite.
+1. Load Alex's pre-seeded profile from an in-memory SQLite database (`:memory:`). Demo mode is activated by environment variable `BREWMATCH_DEMO_MODE=true`.
 2. All pages operate on Alex's profile (bean input, recommend, brew, history, diagnosis).
-3. New feedback during demo is appended to Alex's profile but does not persist across sessions (demo resets on reload).
-4. "Reset Demo" restores Alex's profile to the initial 15-brew state.
+3. New feedback during demo is appended to Alex's in-memory profile and is lost on reload (in-memory SQLite naturally resets).
+4. "Reset Demo" clears the in-memory database and re-seeds Alex's initial 15-brew state.
 
 ### 4.9 Evaluation Dashboard
 
@@ -494,12 +496,12 @@ Users can navigate freely via the sidebar, but the primary flow is sequential.
 
 ### 6.2 Persistence
 
-| Data          | Storage                     | Persistence            |
-| ------------- | --------------------------- | ---------------------- |
-| User profile  | SQLite (`data/users.db`)    | Across sessions        |
-| Brew history  | SQLite                      | Across sessions        |
-| Session state | `st.session_state`          | Within session only    |
-| Demo data     | SQLite (separate demo user) | Resets on "Reset Demo" |
+| Data          | Storage                                                   | Persistence         |
+| ------------- | --------------------------------------------------------- | ------------------- |
+| User profile  | SQLite (`data/users.db`)                                  | Across sessions     |
+| Brew history  | SQLite                                                    | Across sessions     |
+| Session state | `st.session_state`                                        | Within session only |
+| Demo data     | In-memory SQLite (`:memory:`, `BREWMATCH_DEMO_MODE=true`) | Resets on reload    |
 
 ---
 

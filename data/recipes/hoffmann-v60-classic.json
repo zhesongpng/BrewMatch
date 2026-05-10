@@ -1,0 +1,54 @@
+{
+  "recipe_id": "hoffmann-v60-classic",
+  "source": "James Hoffmann",
+  "source_url": "https://www.youtube.com/watch?v=AI4ynXzkdbo",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.67,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 45,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 45,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 90,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Kenya",
+      "Guatemala"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Berry",
+      "Balanced"
+    ]
+  },
+  "instructions": "Bloom with 3x dose water. Swirl gently. At 45s, pour to 150g in slow concentric circles. At 90s, pour remaining to 250g. Allow to draw down. Total time ~3:30."
+}

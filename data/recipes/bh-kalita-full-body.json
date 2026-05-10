@@ -1,0 +1,53 @@
+{
+  "recipe_id": "bh-kalita-full-body",
+  "source": "Barista Hustle",
+  "method": "Kalita Wave",
+  "dose_g": 18.0,
+  "water_total_g": 288.0,
+  "ratio": 16.0,
+  "grind_setting": 5,
+  "water_temp_c": 91.0,
+  "bloom_time_s": 30,
+  "total_time_s": 210,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 55.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 116.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 117.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium",
+      "medium-dark",
+      "dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Sumatra",
+      "India",
+      "Colombia"
+    ],
+    "processes": [
+      "natural",
+      "wet-hulled"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Spice",
+      "Syrupy"
+    ]
+  },
+  "instructions": "Full body Kalita recipe. Higher dose, moderate temp. Rich cup."
+}

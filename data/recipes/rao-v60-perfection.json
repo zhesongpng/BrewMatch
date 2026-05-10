@@ -1,0 +1,54 @@
+{
+  "recipe_id": "rao-v60-perfection",
+  "source": "Scott Rao",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.67,
+  "grind_setting": 4,
+  "water_temp_c": 94.0,
+  "bloom_time_s": 30,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Guatemala",
+      "Costa Rica"
+    ],
+    "processes": [
+      "washed",
+      "natural",
+      "honey"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Rao's approach: medium-fine grind, swirl bloom, two main pours. Keep total time under 3:15."
+}

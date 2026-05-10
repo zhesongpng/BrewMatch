@@ -1,0 +1,52 @@
+{
+  "recipe_id": "hoffmann-v60-strong",
+  "source": "James Hoffmann",
+  "method": "V60",
+  "dose_g": 18.0,
+  "water_total_g": 270.0,
+  "ratio": 15.0,
+  "grind_setting": 5,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 40,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 54.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 40,
+      "water_g": 108.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 80,
+      "water_g": 108.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium-light",
+      "medium",
+      "medium-dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Colombia",
+      "Guatemala"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Sweet",
+      "Syrupy"
+    ]
+  },
+  "instructions": "Higher dose for a stronger cup. Standard 3-pour technique."
+}

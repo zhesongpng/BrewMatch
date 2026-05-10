@@ -1,0 +1,36 @@
+{
+  "recipe_id": "natural-v60-fruity",
+  "source": "Lance Hedrick",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 250.0,
+  "ratio": 16.7,
+  "grind_setting": 4,
+  "water_temp_c": 95.0,
+  "bloom_time_s": 45,
+  "total_time_s": 240,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 45,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 90,
+      "water_g": 100.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": ["light", "medium-light"],
+    "origins": ["Ethiopia", "Burundi", "Yemen"],
+    "processes": ["natural"],
+    "flavor_profiles": ["Berry", "Tropical", "Fermented"]
+  },
+  "instructions": "High-extraction V60 recipe for natural-process beans. Extended 45-second bloom allows CO2 to fully escape from the uneven gas retention of natural-processed coffee. Finer grind and 95C water maximize extraction of complex fruit esters and fermented sweetness. Pour slowly in tight center circles to maintain even bed depth. The longer brew time coaxes out the deep berry and tropical notes natural processing is known for. Expect a juicy, wine-like cup."
+}

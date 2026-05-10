@@ -1,0 +1,36 @@
+{
+  "recipe_id": "wet-hulled-v60-rich",
+  "source": "Tim Wendelboe",
+  "method": "V60",
+  "dose_g": 17.0,
+  "water_total_g": 272.0,
+  "ratio": 16.0,
+  "grind_setting": 7,
+  "water_temp_c": 91.0,
+  "bloom_time_s": 30,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 55.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 108.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 109.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": ["medium-dark", "dark"],
+    "origins": ["Sumatra", "Sulawesi", "India"],
+    "processes": ["wet-hulled"],
+    "flavor_profiles": ["Chocolate", "Spice", "Roasted"]
+  },
+  "instructions": "V60 recipe for wet-hulled Indonesian coffees. Wet-hulled beans have lower density and higher solubility due to the unique Giling Basah process, so a coarser grind and moderate 91C water prevent over-extraction of harsh herbal compounds. The 30-second bloom with a gentle swirl ensures even wetting of the uneven bean surface typical of wet-hulled processing. Two structured center pours maintain a flat bed. Produces a rich, full-bodied cup with deep chocolate, warm spice, and a clean finish free of excess earthiness."
+}

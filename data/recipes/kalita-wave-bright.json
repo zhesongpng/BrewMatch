@@ -1,0 +1,49 @@
+{
+  "recipe_id": "kalita-wave-bright",
+  "source": "Kalita",
+  "method": "Kalita Wave",
+  "dose_g": 14.0,
+  "water_total_g": 238.0,
+  "ratio": 17.0,
+  "grind_setting": 4,
+  "water_temp_c": 95.0,
+  "bloom_time_s": 40,
+  "total_time_s": 225,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 45.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 40,
+      "water_g": 97.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 90,
+      "water_g": 96.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Kenya",
+      "Costa Rica"
+    ],
+    "processes": [
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Citrus",
+      "Floral",
+      "Berry",
+      "Balanced"
+    ]
+  },
+  "instructions": "Bright Kalita for light roasts. Higher temp, finer grind, longer extraction."
+}

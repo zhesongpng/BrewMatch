@@ -1,0 +1,61 @@
+{
+  "recipe_id": "kasuya-4-6-bold",
+  "source": "Tetsu Kasuya",
+  "method": "V60",
+  "dose_g": 22.0,
+  "water_total_g": 330.0,
+  "ratio": 15.0,
+  "grind_setting": 7,
+  "water_temp_c": 90.0,
+  "bloom_time_s": 15,
+  "total_time_s": 240,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 66.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 66.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 60,
+      "water_g": 66.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 95,
+      "water_g": 66.0
+    },
+    {
+      "step": 5,
+      "time_offset_s": 130,
+      "water_g": 66.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium-dark",
+      "dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Sumatra",
+      "India"
+    ],
+    "processes": [
+      "natural",
+      "wet-hulled"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Spice",
+      "Syrupy"
+    ]
+  },
+  "instructions": "Bold 4:6 for dark roasts. Max dose, lower temp. Equal 5-pour split."
+}

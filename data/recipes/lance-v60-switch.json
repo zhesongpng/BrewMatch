@@ -1,0 +1,60 @@
+{
+  "recipe_id": "lance-v60-switch",
+  "source": "Lance Hedrick",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 260.0,
+  "ratio": 17.33,
+  "grind_setting": 3,
+  "water_temp_c": 96.0,
+  "bloom_time_s": 60,
+  "total_time_s": 270,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 40.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 60,
+      "water_g": 55.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 105,
+      "water_g": 55.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 150,
+      "water_g": 55.0
+    },
+    {
+      "step": 5,
+      "time_offset_s": 195,
+      "water_g": 55.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Kenya",
+      "Panama",
+      "Rwanda"
+    ],
+    "processes": [
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Tea-like",
+      "Citrus",
+      "Stone Fruit"
+    ]
+  },
+  "instructions": "5-pour switch technique for maximum clarity. Very fine grind, many small pours."
+}

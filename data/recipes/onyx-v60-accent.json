@@ -1,0 +1,54 @@
+{
+  "recipe_id": "onyx-v60-accent",
+  "source": "Onyx Coffee Lab",
+  "method": "V60",
+  "dose_g": 15.0,
+  "water_total_g": 240.0,
+  "ratio": 16.0,
+  "grind_setting": 3,
+  "water_temp_c": 96.0,
+  "bloom_time_s": 50,
+  "total_time_s": 240,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 45.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 50,
+      "water_g": 65.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 100,
+      "water_g": 65.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 150,
+      "water_g": 65.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Kenya",
+      "Rwanda"
+    ],
+    "processes": [
+      "washed"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Stone Fruit",
+      "Tea-like"
+    ]
+  },
+  "instructions": "Accent recipe for washed Ethiopians and Kenyans. Fine grind, high temp, 4-pour."
+}

@@ -48,7 +48,7 @@ This is the supervised learning component of the ML pipeline, using LightGBM gra
 | `cluster_balanced`    | binary | `BeanProfile.flavor_clusters`           | Multi-hot                                         |
 | `altitude_mean`       | float  | `(altitude_min_m + altitude_max_m) / 2` | Mean of range, 0 if missing                       |
 
-**Total bean features**: 22
+**Total bean features**: 23
 
 ### 3.2 Recipe Parameter Features
 
@@ -82,13 +82,13 @@ This is the supervised learning component of the ML pipeline, using LightGBM gra
 
 **Directional flag mapping:**
 
-| Flag         | Bias Effect                                                              |
-| ------------ | ------------------------------------------------------------------------ |
-| "too_sour"   | Decrease `acidity_bias` (prefers less acidic)                            |
-| "too_bitter" | Decrease `body_bias` (prefers less body/harshness)                       |
-| "too_weak"   | Increase `body_bias` (prefers more body/strength)                        |
-| "too_harsh"  | Decrease `body_bias`, increase `acidity_bias` (harsh = overextracted)    |
-| "astringent" | Decrease `sweetness_bias` (astringent = underdeveloped or overextracted) |
+| Flag         | Bias Effect                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| "too_sour"   | Decrease `acidity_bias` (prefers less acidic)                                            |
+| "too_bitter" | Decrease `body_bias` (prefers less body/harshness)                                       |
+| "too_weak"   | Increase `body_bias` (prefers more body/strength)                                        |
+| "too_harsh"  | Decrease `acidity_bias`, decrease `body_bias` (harsh = overextracted, reduce extraction) |
+| "astringent" | Decrease `sweetness_bias` (astringent = underdeveloped or overextracted)                 |
 
 **Total user features**: 9 (all zero/null for cold-start users)
 
@@ -109,11 +109,11 @@ This is the supervised learning component of the ML pipeline, using LightGBM gra
 
 | Category          | Count  | Notes                                             |
 | ----------------- | ------ | ------------------------------------------------- |
-| Bean profile      | 22     | One-hot encoded clusters + ordinal roast          |
+| Bean profile      | 23     | One-hot encoded clusters + ordinal roast          |
 | Recipe parameters | 7      | Raw numeric values                                |
 | User history      | 9      | Zero for cold-start users                         |
 | Interactions      | 6      | Domain-informed cross-terms                       |
-| **Total**         | **44** | All numeric, no missing values (defaults applied) |
+| **Total**         | **45** | All numeric, no missing values (defaults applied) |
 
 ### 3.6 Missing Value Handling
 
@@ -129,6 +129,47 @@ This is the supervised learning component of the ML pipeline, using LightGBM gra
 ---
 
 ## 4. Model Architecture
+
+### 4.0 Feature Encoding Contract
+
+The `encode_features()` function bridges bean profile, recipe parameters, and user history into the 45-element feature vector expected by the LightGBM model. This function is used by both the taste predictor (for scoring) and the recipe optimizer (for the objective function).
+
+```python
+def encode_features(
+    bean_profile: BeanProfile,
+    recipe_params: RecipeParams,
+    user_history: UserHistory | None = None,
+) -> np.ndarray:
+    """
+    Returns a 45-element float array in the exact column order matching
+    the training data. Column ordering:
+
+    Bean features (0-22):
+      [0] origin_encoded, [1] process_washed, [2] process_natural,
+      [3] process_honey, [4] process_anaerobic, [5] process_other,
+      [6] roast_ordinal, [7-21] cluster binaries (15 clusters),
+      [22] altitude_mean
+
+    Recipe features (23-29):
+      [23] dose_g, [24] ratio, [25] grind_setting, [26] water_temp_c,
+      [27] bloom_time_s, [28] total_time_s, [29] pour_count
+
+    User features (30-38):
+      [30] user_avg_rating, [31] user_rating_count,
+      [32] user_roast_pref_encoded, [33] user_temp_pref,
+      [34] user_grind_pref, [35] user_ratio_pref,
+      [36] user_acidity_bias, [37] user_body_bias,
+      [38] user_sweetness_bias
+
+    Interaction features (39-44):
+      [39] roast_x_temp, [40] grind_x_time, [41] grind_x_temp,
+      [42] ratio_x_dose, [43] roast_x_grind, [44] cluster_count
+
+    Missing value defaults per Section 3.6.
+    """
+```
+
+The feature encoder is serialized alongside the model in `models/feature_encoder.joblib`.
 
 ### 4.1 Global Model (LightGBM)
 

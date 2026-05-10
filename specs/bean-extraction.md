@@ -237,7 +237,10 @@ class ExtractionResult:
 
 | Metric                                  | Target                                |
 | --------------------------------------- | ------------------------------------- |
-| Extraction latency (LLM call)           | < 3 seconds                           |
+| LLM call timeout                        | 8 seconds                             |
+| Retry timeout                           | 5 seconds                             |
+| Total maximum wait before fallback      | 13 seconds                            |
+| Extraction latency (LLM call, nominal)  | < 3 seconds                           |
 | End-to-end including validation         | < 5 seconds                           |
 | Field accuracy (origin, roast, process) | > 90% on typical roaster descriptions |
 | Flavor cluster recall                   | > 80% of human-assigned clusters      |
@@ -257,10 +260,10 @@ class ExtractionResult:
 
 ## 9. Error Handling Summary
 
-| Error                    | Response                               | User-Facing Message                                                                       |
-| ------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Source text < 5 chars    | Validation error                       | "Please enter a longer description from the coffee bag label."                            |
-| LLM API timeout          | Retry once, then manual entry fallback | "Could not analyze the description. Please enter the details manually."                   |
-| LLM returns invalid JSON | Retry once, then manual entry fallback | Same as above                                                                             |
-| All fields "unknown"     | Offer manual entry                     | "Could not extract bean details. Please enter them manually."                             |
-| Confidence < 0.4         | Offer manual entry                     | "The description was too vague to extract reliable details. Please fill in what you can." |
+| Error                    | Response                                                                                                             | User-Facing Message                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Source text < 5 chars    | Validation error                                                                                                     | "Please enter a longer description from the coffee bag label."                            |
+| LLM API timeout          | Retry once (5s timeout), then manual entry fallback. Display progress indicator after 3 seconds. Total max wait: 13s | "Could not analyze the description. Please enter the details manually."                   |
+| LLM returns invalid JSON | Retry once, then manual entry fallback                                                                               | Same as above                                                                             |
+| All fields "unknown"     | Offer manual entry                                                                                                   | "Could not extract bean details. Please enter them manually."                             |
+| Confidence < 0.4         | Offer manual entry                                                                                                   | "The description was too vague to extract reliable details. Please fill in what you can." |

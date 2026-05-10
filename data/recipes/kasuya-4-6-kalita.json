@@ -1,0 +1,64 @@
+{
+  "recipe_id": "kasuya-4-6-kalita",
+  "source": "Tetsu Kasuya",
+  "method": "Kalita Wave",
+  "dose_g": 20.0,
+  "water_total_g": 300.0,
+  "ratio": 15.0,
+  "grind_setting": 6,
+  "water_temp_c": 92.0,
+  "bloom_time_s": 15,
+  "total_time_s": 225,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 60.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 60.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 60,
+      "water_g": 60.0
+    },
+    {
+      "step": 4,
+      "time_offset_s": 95,
+      "water_g": 60.0
+    },
+    {
+      "step": 5,
+      "time_offset_s": 130,
+      "water_g": 60.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Ethiopia",
+      "Colombia",
+      "Costa Rica",
+      "Kenya"
+    ],
+    "processes": [
+      "washed",
+      "natural",
+      "honey"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Sweet",
+      "Citrus",
+      "Balanced"
+    ]
+  },
+  "instructions": "4:6 method adapted for Kalita Wave flat bottom. Slightly finer grind than V60 version."
+}

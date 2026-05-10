@@ -1,0 +1,51 @@
+{
+  "recipe_id": "hoffmann-v60-dark-roast",
+  "source": "James Hoffmann",
+  "method": "V60",
+  "dose_g": 16.0,
+  "water_total_g": 256.0,
+  "ratio": 16.0,
+  "grind_setting": 6,
+  "water_temp_c": 88.0,
+  "bloom_time_s": 30,
+  "total_time_s": 180,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 103.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 70,
+      "water_g": 103.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "medium-dark",
+      "dark"
+    ],
+    "origins": [
+      "Brazil",
+      "Sumatra",
+      "Colombia"
+    ],
+    "processes": [
+      "natural",
+      "wet-hulled"
+    ],
+    "flavor_profiles": [
+      "Chocolate",
+      "Nutty",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Lower temp for dark roast. Quick bloom, two even pours. Do not over-extract."
+}

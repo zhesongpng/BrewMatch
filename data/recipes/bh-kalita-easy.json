@@ -1,0 +1,53 @@
+{
+  "recipe_id": "bh-kalita-easy",
+  "source": "Barista Hustle",
+  "method": "Kalita Wave",
+  "dose_g": 15.0,
+  "water_total_g": 255.0,
+  "ratio": 17.0,
+  "grind_setting": 6,
+  "water_temp_c": 93.0,
+  "bloom_time_s": 30,
+  "total_time_s": 195,
+  "pours": [
+    {
+      "step": 1,
+      "time_offset_s": 0,
+      "water_g": 50.0
+    },
+    {
+      "step": 2,
+      "time_offset_s": 30,
+      "water_g": 100.0
+    },
+    {
+      "step": 3,
+      "time_offset_s": 75,
+      "water_g": 105.0
+    }
+  ],
+  "suitable_for": {
+    "roast_levels": [
+      "light",
+      "medium-light",
+      "medium"
+    ],
+    "origins": [
+      "Colombia",
+      "Ethiopia",
+      "Kenya",
+      "Costa Rica"
+    ],
+    "processes": [
+      "washed",
+      "natural"
+    ],
+    "flavor_profiles": [
+      "Floral",
+      "Citrus",
+      "Sweet",
+      "Balanced"
+    ]
+  },
+  "instructions": "Easy Kalita recipe with forgiving extraction. Great for beginners."
+}

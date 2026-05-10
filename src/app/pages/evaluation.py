@@ -112,7 +112,10 @@ def _render_recipe_retrieval(data: dict):
         p_at_3 = section.get("precision_at_3")
         mrr = section.get("mrr")
 
-        col1, col2 = st.columns(2)
+        ndcg = section.get("ndcg_at_10")
+        recall = section.get("recall_at_10")
+
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             if p_at_3 is not None:
                 st.metric("Precision@3", f"{p_at_3 * 100:.1f}%")
@@ -123,16 +126,34 @@ def _render_recipe_retrieval(data: dict):
                 st.metric("MRR", f"{mrr:.3f}")
             else:
                 st.metric("MRR", "N/A")
+        with col3:
+            if ndcg is not None:
+                st.metric("NDCG@10", f"{ndcg:.3f}")
+            else:
+                st.metric("NDCG@10", "N/A")
+        with col4:
+            if recall is not None:
+                st.metric("Recall@10", f"{recall * 100:.1f}%")
+            else:
+                st.metric("Recall@10", "N/A")
 
-        # Retrieval quality bar chart.
-        if p_at_3 is not None and mrr is not None and _try_altair() and _try_pandas():
+        metrics_to_chart = {}
+        if p_at_3 is not None:
+            metrics_to_chart["Precision@3"] = p_at_3
+        if mrr is not None:
+            metrics_to_chart["MRR"] = mrr
+        if ndcg is not None:
+            metrics_to_chart["NDCG@10"] = ndcg
+        if recall is not None:
+            metrics_to_chart["Recall@10"] = recall
+
+        if metrics_to_chart and _try_altair() and _try_pandas():
             import altair as alt
             import pandas as pd
 
-            df = pd.DataFrame({
-                "Metric": ["Precision@3", "MRR"],
-                "Value": [p_at_3, mrr],
-            })
+            df = pd.DataFrame([
+                {"Metric": k, "Value": v} for k, v in metrics_to_chart.items()
+            ])
             chart = (
                 alt.Chart(df)
                 .mark_bar()
@@ -142,7 +163,7 @@ def _render_recipe_retrieval(data: dict):
                              title="Score"),
                     color=alt.value("#42A5F5"),
                 )
-                .properties(title="Retrieval Quality", width=300, height=250)
+                .properties(title="Retrieval Quality", width=400, height=250)
             )
             st.altair_chart(chart, use_container_width=True)
 
@@ -229,6 +250,34 @@ def _render_taste_prediction(data: dict):
             )
             st.altair_chart(chart, use_container_width=True)
 
+        # Learning curve chart.
+        learning_path = Path("models/learning_curves.json")
+        if learning_path.is_file() and _try_altair() and _try_pandas():
+            import altair as alt
+            import pandas as pd
+
+            try:
+                lc_data = json.loads(learning_path.read_text(encoding="utf-8"))
+                if lc_data and isinstance(lc_data, list):
+                    df = pd.DataFrame(lc_data)
+                    if "fraction" in df.columns and "rmse" in df.columns:
+                        chart = (
+                            alt.Chart(df)
+                            .mark_line(point=True)
+                            .encode(
+                                x=alt.X("fraction:Q", title="Training Data Fraction",
+                                         axis=alt.Axis(format="%")),
+                                y=alt.Y("rmse:Q", title="RMSE"),
+                            )
+                            .properties(
+                                title="Learning Curve",
+                                width=500, height=300,
+                            )
+                        )
+                        st.altair_chart(chart, use_container_width=True)
+            except (json.JSONDecodeError, OSError):
+                pass
+
 
 def _render_recipe_optimization(data: dict):
     """Render Recipe Optimization metrics section."""
@@ -311,7 +360,6 @@ def _render_personalization(data: dict):
             import pandas as pd
 
             df = pd.DataFrame(rmse_by_ratings)
-            # Expect list of dicts with 'num_ratings' and 'rmse' keys.
             if "num_ratings" in df.columns and "rmse" in df.columns:
                 chart = (
                     alt.Chart(df)
@@ -327,6 +375,30 @@ def _render_personalization(data: dict):
                     )
                 )
                 st.altair_chart(chart, use_container_width=True)
+
+        # Phase convergence chart.
+        phase_convergence = section.get("phase_convergence")
+        if phase_convergence and _try_altair() and _try_pandas():
+            import altair as alt
+            import pandas as pd
+
+            rows = [{"Phase": k, "Convergence": v} for k, v in phase_convergence.items()]
+            df = pd.DataFrame(rows)
+            phase_order = ["bean_aware", "directional", "content_based", "full_hybrid"]
+            df["Phase"] = pd.Categorical(df["Phase"], categories=phase_order, ordered=True)
+            df = df.sort_values("Phase")
+            chart = (
+                alt.Chart(df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Phase:N", title="Phase", sort=phase_order),
+                    y=alt.Y("Convergence:Q", title="Feature Convergence",
+                             scale=alt.Scale(domain=(0, 1))),
+                    color=alt.value("#AB47BC"),
+                )
+                .properties(title="Feature-Space Convergence by Phase", width=400, height=250)
+            )
+            st.altair_chart(chart, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------

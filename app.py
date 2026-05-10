@@ -1,5 +1,5 @@
-import streamlit as st
+"""Launch BrewMatch Streamlit application."""
+from src.app.app import main
 
-st.set_page_config(page_title="BrewMatch", layout="wide")
-st.title("BrewMatch")
-st.write("Coffee troubleshooting tool — coming soon")
+if __name__ == "__main__":
+    main()

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -237,6 +238,35 @@ Rules:
 - Origin country is REQUIRED. If no origin is identifiable, set origin_country to "unknown"."""
 
 
+# --- Prompt-injection sanitization ---
+
+_MAX_SOURCE_LENGTH = 2000
+
+_INJECTION_PATTERNS = re.compile(
+    r"(?i)"
+    r"(ignore\s+(previous|above|all|prior)\s*(instructions|prompts|rules|directions))"
+    r"|(forget\s+(everything|all|previous|prior))"
+    r"|(you\s+are\s+now\b)"
+    r"|(new\s+instructions?\s*:)"
+    r"|(system\s*:\s*)"
+    r"|(\[INST\])"
+    r"|(<\|.*?\|>)"
+    r"|(###\s*(system|instruction|user|assistant))",
+)
+
+
+def _sanitize_source(source_text: str) -> str:
+    """Sanitize user-supplied text before LLM prompt interpolation.
+
+    Strips common prompt-injection patterns, bounds length, and removes
+    control characters to prevent manipulation of the extraction prompt.
+    """
+    text = source_text[:_MAX_SOURCE_LENGTH]
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    text = _INJECTION_PATTERNS.sub("[redacted]", text)
+    return text
+
+
 # --- Data Classes ---
 
 
@@ -335,6 +365,9 @@ class BeanExtractor:
                 "Please enter a longer description from the coffee bag label."
             )
 
+        if len(source_text) > _MAX_SOURCE_LENGTH:
+            source_text = source_text[:_MAX_SOURCE_LENGTH]
+
         logger.info("extractor.extract.start text_length=%d", len(source_text))
 
         raw = self._call_llm(source_text)
@@ -423,7 +456,7 @@ class BeanExtractor:
                 "Set LLM_API_KEY in .env or pass api_key to BeanExtractor()."
             )
 
-        prompt = PROMPT_TEMPLATE.format(source_text=source_text)
+        prompt = PROMPT_TEMPLATE.format(source_text=_sanitize_source(source_text))
 
         for attempt, timeout in enumerate([LLM_TIMEOUT_FIRST, LLM_TIMEOUT_RETRY]):
             try:

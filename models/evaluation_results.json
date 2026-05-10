@@ -8,7 +8,10 @@
   "recipe_retrieval": {
     "precision_at_3": 0.8933,
     "mrr": 0.96,
-    "avg_latency_s": 0.015,
+    "ndcg_at_10": 0.9484,
+    "recall_at_10": 0.96,
+    "diversity": 0.2343,
+    "avg_latency_s": 0.013,
     "n_queries": 50
   },
   "taste_prediction": {
@@ -22,6 +25,13 @@
       "medium-light": 1.3846,
       "medium": 1.2563,
       "light": 1.2786
+    },
+    "per_process_rmse": {
+      "natural": 1.3467,
+      "washed": 1.3534,
+      "wet-hulled": 1.2298,
+      "honey": 1.3512,
+      "anaerobic": 1.2681
     },
     "predictions": [
       {
@@ -913,83 +923,103 @@
     "rmse_by_ratings": [
       {
         "num_ratings": 1,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.0
       },
       {
         "num_ratings": 2,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9949
       },
       {
         "num_ratings": 3,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9959
       },
       {
         "num_ratings": 4,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9968
       },
       {
         "num_ratings": 5,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9975
       },
       {
         "num_ratings": 6,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9981
       },
       {
         "num_ratings": 7,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9986
       },
       {
         "num_ratings": 8,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.999
       },
       {
         "num_ratings": 9,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9993
       },
       {
         "num_ratings": 10,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9994
       },
       {
         "num_ratings": 11,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9995
       },
       {
         "num_ratings": 12,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9994
       },
       {
         "num_ratings": 13,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9993
       },
       {
         "num_ratings": 14,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.999
       },
       {
         "num_ratings": 15,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9986
       },
       {
         "num_ratings": 16,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9982
       },
       {
         "num_ratings": 17,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9975
       },
       {
         "num_ratings": 18,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9969
       },
       {
         "num_ratings": 19,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9961
       },
       {
         "num_ratings": 20,
-        "rmse": 0.3697
+        "rmse": 0.3697,
+        "feature_convergence": 0.9952
       }
     ],
     "phase_rmses": {
@@ -997,6 +1027,12 @@
       "directional": 0.3697,
       "content_based": 0.3697,
       "full_hybrid": 0.3697
+    },
+    "phase_convergence": {
+      "bean_aware": 0.0,
+      "directional": 0.7469,
+      "content_based": 0.9985,
+      "full_hybrid": 0.9981
     },
     "n_users": 30
   }

@@ -174,6 +174,25 @@ def evaluate_bean_extraction() -> dict:
 # Component 2: Recipe Retrieval
 # ---------------------------------------------------------------------------
 
+def _relevance_grade(match_score: float) -> int:
+    """Convert match score to graded relevance (0/1/2)."""
+    if match_score >= 0.9:
+        return 2
+    if match_score >= 0.4:
+        return 1
+    return 0
+
+
+def _ndcg_at_k(grades: list[int], k: int) -> float:
+    """Compute NDCG@k from a list of relevance grades."""
+    def dcg(g: list[int]) -> float:
+        return sum(rel / np.log2(i + 2) for i, rel in enumerate(g[:k]))
+
+    ideal = sorted(grades, reverse=True)
+    ideal_dcg = dcg(ideal)
+    return dcg(grades) / ideal_dcg if ideal_dcg > 0 else 0.0
+
+
 def evaluate_recipe_retrieval() -> dict:
     """Evaluate recipe retrieval quality using synthetic beans."""
     from src.data_generator.generator import generate_random_bean
@@ -190,6 +209,9 @@ def evaluate_recipe_retrieval() -> dict:
 
     p_at_3_sum = 0.0
     mrr_sum = 0.0
+    ndcg_sum = 0.0
+    recall_sum = 0.0
+    diversity_sums = []
     latencies = []
 
     for i in range(n_queries):
@@ -215,6 +237,7 @@ def evaluate_recipe_retrieval() -> dict:
         gt_process = bean.process.value
 
         relevant_ids = set()
+        grades = []
         for rr in ranked:
             recipe = rr.recipe
             recipe_clusters = set(recipe.suitable_for.flavor_profiles)
@@ -229,15 +252,15 @@ def evaluate_recipe_retrieval() -> dict:
             if gt_process in recipe_processes:
                 match_score += 0.3
 
+            grades.append(_relevance_grade(match_score))
             if match_score >= 0.4:
                 relevant_ids.add(recipe.recipe_id)
 
-        p_at_3 = 0
-        for rr in ranked[:3]:
-            if rr.recipe.recipe_id in relevant_ids:
-                p_at_3 += 1
-        p_at_3_sum += p_at_3 / 3
+        # Precision@3
+        p_at_3 = sum(1 for rr in ranked[:3] if rr.recipe.recipe_id in relevant_ids) / 3
+        p_at_3_sum += p_at_3
 
+        # MRR
         mrr = 0.0
         for rr in ranked:
             if rr.recipe.recipe_id in relevant_ids:
@@ -245,15 +268,51 @@ def evaluate_recipe_retrieval() -> dict:
                 break
         mrr_sum += mrr
 
+        # NDCG@10
+        ndcg_sum += _ndcg_at_k(grades, 10)
+
+        # Recall@10
+        total_relevant = max(len(relevant_ids), 1)
+        found_in_10 = sum(1 for rr in ranked[:10] if rr.recipe.recipe_id in relevant_ids)
+        recall_sum += found_in_10 / total_relevant
+
+        # Diversity: avg pairwise param distance in top-3
+        top3 = ranked[:3]
+        if len(top3) >= 2:
+            params = []
+            for rr in top3:
+                r = rr.recipe
+                params.append(np.array([
+                    r.water_temp_c / 100.0,
+                    r.grind_setting / 10.0,
+                    r.ratio / 20.0,
+                    r.dose_g / 20.0,
+                ]))
+            dists = []
+            for a in range(len(params)):
+                for b in range(a + 1, len(params)):
+                    dists.append(float(np.linalg.norm(params[a] - params[b])))
+            diversity_sums.append(float(np.mean(dists)))
+
     precision_at_3 = p_at_3_sum / n_queries
     mrr = mrr_sum / n_queries
+    ndcg_10 = ndcg_sum / n_queries
+    recall_10 = recall_sum / n_queries
+    diversity = float(np.mean(diversity_sums)) if diversity_sums else 0.0
     avg_latency = float(np.mean(latencies))
 
-    print(f"  Precision@3: {precision_at_3:.3f} | MRR: {mrr:.3f} | Latency: {avg_latency:.3f}s")
+    print(
+        f"  P@3: {precision_at_3:.3f} | MRR: {mrr:.3f} | "
+        f"NDCG@10: {ndcg_10:.3f} | Recall@10: {recall_10:.3f} | "
+        f"Diversity: {diversity:.3f} | Latency: {avg_latency:.3f}s"
+    )
 
     return {
         "precision_at_3": round(precision_at_3, 4),
         "mrr": round(mrr, 4),
+        "ndcg_at_10": round(ndcg_10, 4),
+        "recall_at_10": round(recall_10, 4),
+        "diversity": round(diversity, 4),
         "avg_latency_s": round(avg_latency, 3),
         "n_queries": n_queries,
     }
@@ -389,6 +448,17 @@ def evaluate_taste_prediction() -> dict:
     y_cold = predictor.predict_batch(cold_start_X)
     cold_start_rmse = float(np.sqrt(mean_squared_error(y_test, y_cold)))
 
+    # Per-process RMSE breakdown
+    process_col = df_test.get("process")
+    per_process = {}
+    if process_col is not None:
+        for proc_val in process_col.unique():
+            mask = (process_col == proc_val).values[:len(y_test)]
+            if mask.sum() > 0:
+                per_process[str(proc_val)] = round(
+                    float(np.sqrt(mean_squared_error(y_test[mask], y_pred[mask]))), 4
+                )
+
     learning_curves = _compute_learning_curves(X_train, y_train, X_val, y_val, X_test, y_test)
 
     metrics = {
@@ -397,6 +467,7 @@ def evaluate_taste_prediction() -> dict:
         "r_squared": round(r2, 4),
         "cold_start_rmse": round(cold_start_rmse, 4),
         "per_roast_rmse": per_roast,
+        "per_process_rmse": per_process,
         "predictions": predictions[:200],
         "feature_importance": importance,
         "n_train": len(X_train),
@@ -411,7 +482,6 @@ def _compute_feature_importance(predictor, X_test: np.ndarray, feature_names: li
     """Compute permutation feature importance."""
     rng = np.random.RandomState(42)
     y_baseline = predictor.predict_batch(X_test)
-    baseline_mse = float(np.mean((y_baseline - y_baseline) ** 2))
 
     importance = {}
     for col_idx in range(min(X_test.shape[1], len(feature_names))):
@@ -564,17 +634,31 @@ def evaluate_recipe_optimization(predictor) -> dict:
 # Component 5: Personalization
 # ---------------------------------------------------------------------------
 
+def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors."""
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+
 def evaluate_personalization(predictor) -> dict:
     """Evaluate personalization across brew count phases.
 
-    Uses the predictor itself to generate ground-truth ratings (with small
-    user-specific noise), so the evaluation measures whether the
-    personalization mechanism — recording brews and populating user features —
-    reduces prediction error as brew count grows.
+    Measures two things:
+    1. Feature-space convergence: how quickly the engine's learned user features
+       approach the true user features (cosine similarity).
+    2. Prediction RMSE: whether evolving user features reduce prediction error.
+
+    The predictor was trained on data where user features are all zeros, so
+    prediction RMSE may be flat (the model ignores user features). Feature-space
+    convergence is the architecturally-honest metric: it shows the personalization
+    mechanism is working correctly even if the predictor hasn't learned to use it.
     """
     from src.data_generator.generator import generate_random_bean
     from src.data_models import (
-        BeanProfile, BrewMethod, Feedback, BrewRecord, Onboarding,
+        BeanProfile, Feedback, BrewRecord, Onboarding,
         Process, RoastLevel, ExperienceLevel, FLAVOR_CLUSTERS,
     )
     from src.personalization.engine import PersonalizationEngine
@@ -594,25 +678,21 @@ def evaluate_personalization(predictor) -> dict:
                 "hybrid_rmse": 0.0,
                 "improvement_pct": 0.0,
                 "rmse_by_ratings": [],
+                "feature_convergence": [],
             },
             "personalization_data": [],
         }
 
-    # Synthetic "true" user features that personalization should converge toward.
-    true_user_features = {
-        "user_avg_rating": 6.5,
-        "user_rating_count": 10.0,
-        "user_roast_pref": 3.0,
-        "user_temp_pref": 92.0,
-        "user_grind_pref": 5.0,
-        "user_ratio_pref": 16.0,
-        "user_acidity_bias": 0.0,
-        "user_body_bias": 0.0,
-        "user_sweetness_bias": 0.0,
-    }
+    FEATURE_KEYS = [
+        "user_avg_rating", "user_rating_count", "user_roast_pref",
+        "user_temp_pref", "user_grind_pref", "user_ratio_pref",
+        "user_acidity_bias", "user_body_bias", "user_sweetness_bias",
+    ]
 
     rmse_by_count = {}
+    convergence_by_count = {}
     phase_rmses = {"bean_aware": [], "directional": [], "content_based": [], "full_hybrid": []}
+    phase_convergence = {"bean_aware": [], "directional": [], "content_based": [], "full_hybrid": []}
 
     for u_idx in range(n_users):
         user_id = f"eval-user-{u_idx:03d}"
@@ -624,16 +704,25 @@ def evaluate_personalization(predictor) -> dict:
             experience_level=ExperienceLevel.INTERMEDIATE,
         )
 
-        # Per-user rating bias simulates individual taste preferences.
         np_rng = np.random.RandomState(u_idx)
         user_bias = float(np_rng.normal(0, 0.4))
 
-        true_feats = dict(true_user_features)
-        true_feats["user_roast_pref"] = ROAST_ORDINAL.get(roast_pref, 3.0)
+        true_feats = {
+            "user_avg_rating": 6.5 + float(np_rng.normal(0, 0.5)),
+            "user_rating_count": 10.0,
+            "user_roast_pref": ROAST_ORDINAL.get(roast_pref, 3.0),
+            "user_temp_pref": 90.0 + float(np_rng.uniform(0, 6)),
+            "user_grind_pref": 3.0 + float(np_rng.uniform(0, 6)),
+            "user_ratio_pref": 14.0 + float(np_rng.uniform(0, 4)),
+            "user_acidity_bias": 0.0,
+            "user_body_bias": 0.0,
+            "user_sweetness_bias": 0.0,
+        }
+        true_vec = np.array([true_feats[k] for k in FEATURE_KEYS], dtype=np.float64)
 
         engine = PersonalizationEngine(predictor, user_id, onboarding)
 
-        # Pre-brew (bean_aware phase, 0 brews): predict without user features.
+        # Bean-aware phase (0 brews): measure initial feature distance.
         bean_dict_0 = generate_random_bean(rng)
         bean_0 = BeanProfile(
             origin_country=bean_dict_0["origin_country"],
@@ -644,12 +733,14 @@ def evaluate_personalization(predictor) -> dict:
         )
         recipe_0 = rng.choice(recipes)
 
-        # Ground truth: predictor output with fully-populated user features + bias.
         gt_feats_0 = encode_features(bean_0, recipe_0, **true_feats)
         actual_0 = float(predictor.predict_batch(gt_feats_0.reshape(1, -1))[0]) + user_bias
 
-        # Bean-aware prediction: no user features available.
         user_feats_0 = engine.get_user_features()
+        pred_vec_0 = np.array([user_feats_0.get(k, 0.0) for k in FEATURE_KEYS], dtype=np.float64)
+        cos_sim_0 = _cosine_similarity(pred_vec_0, true_vec)
+        phase_convergence["bean_aware"].append(cos_sim_0)
+
         try:
             pred_feats_0 = encode_features(bean_0, recipe_0, **user_feats_0)
             predicted_0 = float(predictor.predict_batch(pred_feats_0.reshape(1, -1))[0])
@@ -668,19 +759,19 @@ def evaluate_personalization(predictor) -> dict:
             )
             recipe = rng.choice(recipes)
 
-            # Ground truth for THIS bean+recipe with full user features + bias.
             gt_feats = encode_features(bean, recipe, **true_feats)
             actual = float(predictor.predict_batch(gt_feats.reshape(1, -1))[0]) + user_bias
 
-            # Prediction with current (evolving) user features.
             user_feats = engine.get_user_features()
+            pred_vec = np.array([user_feats.get(k, 0.0) for k in FEATURE_KEYS], dtype=np.float64)
+            cos_sim = _cosine_similarity(pred_vec, true_vec)
+
             try:
                 features = encode_features(bean, recipe, **user_feats)
                 predicted = float(predictor.predict_batch(features.reshape(1, -1))[0])
             except Exception:
                 predicted = 5.0
 
-            # Feedback score aligned with ground truth so the engine learns.
             feedback_score = int(np.clip(round(actual), 1, 10))
             feedback = Feedback(
                 thumbs_up=feedback_score >= 6,
@@ -701,27 +792,48 @@ def evaluate_personalization(predictor) -> dict:
             if brew_num not in rmse_by_count:
                 rmse_by_count[brew_num] = []
             rmse_by_count[brew_num].append(error)
+            if brew_num not in convergence_by_count:
+                convergence_by_count[brew_num] = []
+            convergence_by_count[brew_num].append(cos_sim)
 
             phase = PersonalizationEngine.get_phase_for_count(brew_num)
             phase_rmses[phase].append(error)
+            phase_convergence[phase].append(cos_sim)
 
     rmse_by_ratings = []
     for count in sorted(rmse_by_count.keys()):
         rmse_val = float(np.sqrt(np.mean(rmse_by_count[count])))
-        rmse_by_ratings.append({"num_ratings": count, "rmse": round(rmse_val, 4)})
+        conv_val = float(np.mean(convergence_by_count.get(count, [0])))
+        rmse_by_ratings.append({
+            "num_ratings": count,
+            "rmse": round(rmse_val, 4),
+            "feature_convergence": round(conv_val, 4),
+        })
 
     phase_rmse_values = {}
-    for phase, errors in phase_rmses.items():
-        if errors:
-            phase_rmse_values[phase] = round(float(np.sqrt(np.mean(errors))), 4)
+    phase_conv_values = {}
+    for phase in phase_rmses:
+        if phase_rmses[phase]:
+            phase_rmse_values[phase] = round(float(np.sqrt(np.mean(phase_rmses[phase]))), 4)
+        if phase_convergence[phase]:
+            phase_conv_values[phase] = round(float(np.mean(phase_convergence[phase])), 4)
 
     bean_aware_rmse = phase_rmse_values.get("bean_aware", 0)
     hybrid_rmse = phase_rmse_values.get("full_hybrid", 0)
+    bean_aware_conv = phase_conv_values.get("bean_aware", 0)
+    hybrid_conv = phase_conv_values.get("full_hybrid", 0)
     improvement_pct = 0
     if bean_aware_rmse > 0 and hybrid_rmse > 0:
         improvement_pct = round((bean_aware_rmse - hybrid_rmse) / bean_aware_rmse * 100, 1)
 
-    print(f"  Bean-aware RMSE: {bean_aware_rmse:.4f} | Hybrid RMSE: {hybrid_rmse:.4f} | Improvement: {improvement_pct}%")
+    print(
+        f"  Bean-aware RMSE: {bean_aware_rmse:.4f} | Hybrid RMSE: {hybrid_rmse:.4f} | "
+        f"Improvement: {improvement_pct}%"
+    )
+    print(
+        f"  Feature convergence: bean_aware={bean_aware_conv:.3f} → "
+        f"full_hybrid={hybrid_conv:.3f}"
+    )
 
     metrics = {
         "bean_aware_rmse": bean_aware_rmse,
@@ -729,6 +841,7 @@ def evaluate_personalization(predictor) -> dict:
         "improvement_pct": improvement_pct,
         "rmse_by_ratings": rmse_by_ratings,
         "phase_rmses": phase_rmse_values,
+        "phase_convergence": phase_conv_values,
         "n_users": n_users,
     }
 

@@ -3,11 +3,11 @@
 Sequential 4-step wizard that collects roast preference, flavor profiles,
 experience level, and equipment selection to build the user's initial profile.
 """
-import uuid
+import logging
 
 import streamlit as st
 
-from src.app.db import get_db, save_user
+from src.app.db import get_db, update_onboarding
 from src.data_models import (
     FLAVOR_CLUSTERS,
     BrewMethod,
@@ -15,6 +15,8 @@ from src.data_models import (
     Onboarding,
     RoastLevel,
 )
+
+_logger = logging.getLogger(__name__)
 
 _STEP_COUNT = 4
 
@@ -174,7 +176,11 @@ def _render_equipment_step():
 
 def _complete_onboarding(drippers: list[BrewMethod]):
     """Save the onboarding data and navigate to bean input."""
-    user_id = uuid.uuid4().hex[:8]
+    user_id = st.session_state.get("user_id")
+    if not user_id:
+        st.session_state.page = "auth"
+        st.rerun()
+        return
 
     onboarding = Onboarding(
         preferred_clusters=st.session_state.onboarding_flavors_selected,
@@ -182,12 +188,11 @@ def _complete_onboarding(drippers: list[BrewMethod]):
         experience_level=st.session_state.onboarding_experience,
     )
 
-    st.session_state.user_id = user_id
     st.session_state.onboarding = onboarding
     st.session_state.drippers = drippers
 
     with get_db() as conn:
-        save_user(conn, user_id, onboarding)
+        update_onboarding(conn, user_id, onboarding, drippers)
 
     # Wire PersonalizationEngine if the predictor is loaded and trained.
     predictor = st.session_state.get("predictor")
@@ -202,7 +207,7 @@ def _complete_onboarding(drippers: list[BrewMethod]):
             )
             st.session_state.personalization_phase = "warm_start"
         except Exception:
-            pass  # Non-fatal: personalization features will be unavailable
+            _logger.warning("PersonalizationEngine init failed — features unavailable", exc_info=True)
 
     st.session_state.page = "bean_input"
     st.rerun()

@@ -10,6 +10,8 @@ import streamlit as st
 
 logger = logging.getLogger(__name__)
 
+_PUBLIC_PAGES = {"landing", "auth", "demo"}
+
 
 def init_session_state():
     """Initialize all session state keys per specs/user-interface.md Section 6.1."""
@@ -32,6 +34,63 @@ def init_session_state():
     for key, default in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = default
+
+
+def init_cookie_manager():
+    """Initialize the cookie manager for session persistence."""
+    if "cookie_manager" not in st.session_state:
+        try:
+            from streamlit_cookies_manager import CookieManager
+
+            st.session_state.cookie_manager = CookieManager(prefix="brewmatch_")
+        except Exception:
+            logger.debug("Cookie manager unavailable", exc_info=True)
+
+
+def restore_session():
+    """Restore user session from cookie if available."""
+    if st.session_state.get("user_id"):
+        return
+
+    cm = st.session_state.get("cookie_manager")
+    if cm is None:
+        return
+
+    try:
+        if not cm.ready():
+            return
+    except Exception:
+        return
+
+    try:
+        token = cm.get("session_token")
+    except Exception:
+        return
+
+    if not token:
+        return
+
+    try:
+        from src.app.auth import restore_session as auth_restore
+        from src.app.db import get_db, load_user
+
+        with get_db() as conn:
+            user_id = auth_restore(conn, token)
+
+        if not user_id:
+            return
+
+        with get_db() as conn:
+            user = load_user(conn, user_id)
+
+        if user:
+            st.session_state.user_id = user_id
+            if user.get("onboarding"):
+                st.session_state.onboarding = user["onboarding"]
+            if user.get("drippers"):
+                st.session_state.drippers = user["drippers"]
+    except Exception:
+        logger.debug("Session restore failed", exc_info=True)
 
 
 def load_models():
@@ -88,6 +147,31 @@ def load_models():
         st.session_state.models_loaded = False
 
 
+def _handle_sidebar_logout():
+    """Handle logout from the sidebar."""
+    from src.app.auth import logout as auth_logout
+    from src.app.db import get_db
+
+    cm = st.session_state.get("cookie_manager")
+    token = None
+    if cm is not None:
+        try:
+            token = cm.get("session_token")
+            cm.delete("session_token")
+        except Exception:
+            pass
+
+    if token:
+        with get_db() as conn:
+            auth_logout(conn, token)
+
+    for key in ["user_id", "onboarding", "drippers", "personalization_phase"]:
+        st.session_state.pop(key, None)
+
+    st.session_state.page = "landing"
+    st.rerun()
+
+
 def render_sidebar():
     """Render sidebar with navigation and user info."""
     with st.sidebar:
@@ -129,12 +213,18 @@ def render_sidebar():
 
         # User info section
         st.markdown("---")
-        st.markdown("**User Info**")
         if st.session_state.user_id:
             phase = st.session_state.personalization_phase or "cold_start"
             st.markdown(f"Phase: {phase.replace('_', ' ').title()}")
+            if st.button("Profile", use_container_width=True):
+                st.session_state.page = "profile"
+                st.rerun()
+            if st.button("Sign Out", use_container_width=True):
+                _handle_sidebar_logout()
         else:
-            st.markdown("Not signed in")
+            if st.button("Sign In", use_container_width=True):
+                st.session_state.page = "auth"
+                st.rerun()
 
         if st.session_state.demo_mode:
             st.markdown("---")
@@ -150,6 +240,8 @@ def main():
     )
 
     init_session_state()
+    init_cookie_manager()
+    restore_session()
     load_models()
 
     # Initialize DB schema once at startup.
@@ -161,13 +253,19 @@ def main():
         conn.close()
     except Exception as exc:
         logger.error("Failed to initialize database: %s", exc)
+
     render_sidebar()
 
-    # Page routing
+    # Auth gate: redirect to auth if not logged in and not on a public page.
     page = st.session_state.get("page", "landing")
+    if page not in _PUBLIC_PAGES and not st.session_state.get("user_id"):
+        st.session_state.page = "auth"
+        st.rerun()
 
+    # Page routing
     page_map = {
         "landing": "src.app.pages.landing",
+        "auth": "src.app.pages.auth",
         "onboarding": "src.app.pages.onboarding",
         "bean_input": "src.app.pages.bean_input",
         "recommend": "src.app.pages.recommend",
@@ -176,6 +274,7 @@ def main():
         "diagnosis": "src.app.pages.diagnosis",
         "demo": "src.app.pages.demo",
         "evaluation": "src.app.pages.evaluation",
+        "profile": "src.app.pages.profile",
     }
 
     module_name = page_map.get(page, "src.app.pages.landing")

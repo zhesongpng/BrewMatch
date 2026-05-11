@@ -66,7 +66,9 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     path = db_path if db_path is not None else get_db_path()
     is_uri = path.startswith("file:")
     if not is_uri and path != ":memory:":
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        parent = Path(path).parent
+        parent.mkdir(parents=True, exist_ok=True)
+        parent.chmod(0o700)
     conn = sqlite3.connect(path, timeout=10, uri=is_uri)
     conn.row_factory = sqlite3.Row
     return conn
@@ -106,8 +108,12 @@ def get_db():
 _CREATE_USERS = """
 CREATE TABLE IF NOT EXISTS users (
     user_id TEXT PRIMARY KEY,
+    email TEXT UNIQUE,
+    display_name TEXT,
+    password_hash TEXT,
     onboarding_json TEXT NOT NULL,
     preferences_json TEXT,
+    drippers_json TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -125,11 +131,43 @@ CREATE TABLE IF NOT EXISTS brew_history (
 );
 """
 
+_CREATE_SESSIONS = """
+CREATE TABLE IF NOT EXISTS sessions (
+    session_token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+"""
+
+_MIGRATIONS = [
+    "ALTER TABLE users ADD COLUMN email TEXT",
+    "ALTER TABLE users ADD COLUMN display_name TEXT",
+    "ALTER TABLE users ADD COLUMN password_hash TEXT",
+    "ALTER TABLE users ADD COLUMN drippers_json TEXT",
+]
+
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create tables if they do not already exist."""
+    """Create tables and run migrations if they do not already exist."""
     conn.execute(_CREATE_USERS)
     conn.execute(_CREATE_BREW_HISTORY)
+    conn.execute(_CREATE_SESSIONS)
+
+    # Indexes for session lookups and cleanup.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+
+    # Run idempotent migrations for existing databases.
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    for sql in _MIGRATIONS:
+        col_name = sql.split()[-1].strip('"')
+        if col_name not in existing:
+            try:
+                conn.execute(sql)
+            except sqlite3.OperationalError:
+                pass  # Column already exists
     conn.commit()
 
 
@@ -207,15 +245,26 @@ from src.data_models import PourStep  # noqa: E402
 # CRUD: users
 # ---------------------------------------------------------------------------
 
-def save_user(conn: sqlite3.Connection, user_id: str, onboarding: Onboarding) -> None:
-    """INSERT OR REPLACE a user row."""
+def save_user(
+    conn: sqlite3.Connection,
+    user_id: str,
+    onboarding: Onboarding,
+    drippers: Optional[list[BrewMethod]] = None,
+) -> None:
+    """UPSERT onboarding/drippers for a user, preserving auth columns."""
     now = datetime.now(timezone.utc).isoformat()
+    drippers_json = json.dumps([d.value for d in drippers]) if drippers else None
     conn.execute(
         """
-        INSERT OR REPLACE INTO users (user_id, onboarding_json, preferences_json, created_at, updated_at)
-        VALUES (?, ?, NULL, ?, ?)
+        INSERT INTO users
+            (user_id, onboarding_json, preferences_json, drippers_json, created_at, updated_at)
+        VALUES (?, ?, NULL, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            onboarding_json = excluded.onboarding_json,
+            drippers_json = excluded.drippers_json,
+            updated_at = excluded.updated_at
         """,
-        (user_id, _serialize_onboarding(onboarding), now, now),
+        (user_id, _serialize_onboarding(onboarding), drippers_json, now, now),
     )
     conn.commit()
 
@@ -223,19 +272,29 @@ def save_user(conn: sqlite3.Connection, user_id: str, onboarding: Onboarding) ->
 def load_user(conn: sqlite3.Connection, user_id: str) -> Optional[dict]:
     """Return a user dict or ``None`` if the user does not exist."""
     row = conn.execute(
-        "SELECT user_id, onboarding_json, preferences_json FROM users WHERE user_id = ?",
+        """
+        SELECT user_id, email, display_name, password_hash,
+               onboarding_json, preferences_json, drippers_json
+        FROM users WHERE user_id = ?
+        """,
         (user_id,),
     ).fetchone()
     if row is None:
         return None
     result: dict = {
         "user_id": row["user_id"],
+        "email": row["email"],
+        "display_name": row["display_name"],
         "onboarding": _deserialize_onboarding(row["onboarding_json"]),
     }
     if row["preferences_json"] is not None:
         result["preferences"] = _deserialize_preferences(row["preferences_json"])
     else:
         result["preferences"] = None
+    if row["drippers_json"] is not None:
+        result["drippers"] = [BrewMethod(v) for v in json.loads(row["drippers_json"])]
+    else:
+        result["drippers"] = None
     return result
 
 
@@ -248,6 +307,129 @@ def update_preferences(
         "UPDATE users SET preferences_json = ?, updated_at = ? WHERE user_id = ?",
         (_serialize_preferences(prefs), now, user_id),
     )
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Auth: registration, authentication, sessions
+# ---------------------------------------------------------------------------
+
+
+def register_user(
+    conn: sqlite3.Connection,
+    email: str,
+    display_name: str,
+    password_hash: str,
+) -> str:
+    """Create a user row with auth fields. Returns the new user_id."""
+    import secrets
+
+    user_id = secrets.token_hex(16)
+    now = datetime.now(timezone.utc).isoformat()
+    # Create a minimal onboarding for the DB NOT NULL constraint.
+    # Will be overwritten when the user completes the onboarding wizard.
+    default_onboarding = json.dumps({
+        "preferred_clusters": [],
+        "roast_preference": "medium-light",
+        "experience_level": "beginner",
+    })
+    conn.execute(
+        """
+        INSERT INTO users
+            (user_id, email, display_name, password_hash, onboarding_json,
+             preferences_json, drippers_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+        """,
+        (user_id, email, display_name, password_hash, default_onboarding, now, now),
+    )
+    conn.commit()
+    return user_id
+
+
+def authenticate_user(conn: sqlite3.Connection, email: str) -> Optional[dict]:
+    """Look up a user by email. Returns dict with user_id and password_hash, or None."""
+    row = conn.execute(
+        "SELECT user_id, password_hash FROM users WHERE email = ?",
+        (email,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {"user_id": row["user_id"], "password_hash": row["password_hash"]}
+
+
+def update_user_password(conn: sqlite3.Connection, user_id: str, new_hash: str) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE users SET password_hash = ?, updated_at = ? WHERE user_id = ?",
+        (new_hash, now, user_id),
+    )
+    conn.commit()
+
+
+def update_user_display_name(conn: sqlite3.Connection, user_id: str, display_name: str) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE users SET display_name = ?, updated_at = ? WHERE user_id = ?",
+        (display_name, now, user_id),
+    )
+    conn.commit()
+
+
+def update_user_drippers(conn: sqlite3.Connection, user_id: str, drippers: list[BrewMethod]) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    drippers_json = json.dumps([d.value for d in drippers])
+    conn.execute(
+        "UPDATE users SET drippers_json = ?, updated_at = ? WHERE user_id = ?",
+        (drippers_json, now, user_id),
+    )
+    conn.commit()
+
+
+def update_onboarding(
+    conn: sqlite3.Connection,
+    user_id: str,
+    onboarding: Onboarding,
+    drippers: Optional[list[BrewMethod]] = None,
+) -> None:
+    """UPDATE onboarding and drippers for an existing user (auth columns untouched)."""
+    now = datetime.now(timezone.utc).isoformat()
+    drippers_json = json.dumps([d.value for d in drippers]) if drippers else None
+    conn.execute(
+        "UPDATE users SET onboarding_json = ?, drippers_json = ?, updated_at = ? WHERE user_id = ?",
+        (_serialize_onboarding(onboarding), drippers_json, now, user_id),
+    )
+    conn.commit()
+
+
+def create_session(conn: sqlite3.Connection, token: str, user_id: str, expires_at: str) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "INSERT INTO sessions (session_token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+        (token, user_id, now, expires_at),
+    )
+    conn.commit()
+
+
+def get_session_user(conn: sqlite3.Connection, session_token: str) -> Optional[str]:
+    """Return user_id for a valid, non-expired session, or None."""
+    row = conn.execute(
+        "SELECT user_id, expires_at FROM sessions WHERE session_token = ?",
+        (session_token,),
+    ).fetchone()
+    if row is None:
+        return None
+    expires = datetime.fromisoformat(row["expires_at"])
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < datetime.now(timezone.utc):
+        conn.execute("DELETE FROM sessions WHERE session_token = ?", (session_token,))
+        conn.commit()
+        return None
+    return row["user_id"]
+
+
+def delete_session(conn: sqlite3.Connection, session_token: str) -> None:
+    conn.execute("DELETE FROM sessions WHERE session_token = ?", (session_token,))
     conn.commit()
 
 

@@ -45,7 +45,7 @@ _DRIPPER_OPTIONS = {
 def render():
     """Render the onboarding wizard page."""
     st.title("Welcome to BrewMatch")
-    st.caption("Let's set up your profile in a few quick steps.")
+    st.caption("A few quick questions so we can tailor recipes to your taste.")
 
     current_step = st.session_state.get("onboarding_step", 0)
     progress = (current_step + 1) / _STEP_COUNT

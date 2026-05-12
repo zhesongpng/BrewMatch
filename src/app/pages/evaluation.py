@@ -409,6 +409,7 @@ def _render_personalization(data: dict):
 def render():
     """Render the Evaluation Dashboard page."""
     st.title("ML Pipeline Evaluation")
+    st.caption("Metrics from the evaluation pipeline. Expand each section for details.")
     st.markdown("---")
 
     data = _load_evaluation_data()
@@ -425,12 +426,6 @@ def render():
             "```"
         )
         return
-
-    st.markdown(
-        "ML pipeline metrics generated from the evaluation pipeline. "
-        "Expand each section for detailed charts."
-    )
-    st.markdown("---")
 
     _render_bean_extraction(data)
     _render_recipe_retrieval(data)

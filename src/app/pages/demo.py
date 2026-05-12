@@ -182,7 +182,8 @@ def render():
     if os.environ.get("BREWMATCH_DEMO_MODE", "").lower() == "true":
         st.session_state.demo_mode = True
 
-    st.title("Demo Mode: Meet Alex")
+    st.title("Demo: Meet Alex")
+    st.caption("Explore a pre-built profile with 15 brews of personalization history.")
     st.markdown("---")
 
     # --- Intro card ---

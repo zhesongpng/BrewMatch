@@ -47,9 +47,10 @@ def render():
         st.error("Could not load your profile.")
         return
 
-    st.title("Profile")
+    name = _sanitize_name(user.get("display_name") or "Brewer")
+    st.title(f"Hello, {name}")
+    st.caption("Manage your profile, equipment, and account settings.")
 
-    _render_header(user)
     st.markdown("---")
 
     _render_display_name(user_id, user)
@@ -65,14 +66,6 @@ def render():
     st.markdown("---")
 
     _render_logout()
-
-
-def _render_header(user):
-    name = _sanitize_name(user.get("display_name") or "Brewer")
-    email = user.get("email") or ""
-    st.subheader(f"Hello, {name}")
-    if email:
-        st.caption(email)
 
 
 def _render_display_name(user_id, user):

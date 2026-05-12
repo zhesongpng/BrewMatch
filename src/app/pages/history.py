@@ -21,7 +21,8 @@ def render():
             st.rerun()
         return
 
-    st.title("Your Brewing History")
+    st.title("Brew History")
+    st.caption("Your journey to a better cup, one brew at a time.")
 
     _render_stats(user_id)
     _render_taste_preferences()

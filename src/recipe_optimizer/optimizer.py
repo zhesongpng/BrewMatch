@@ -228,13 +228,16 @@ class RecipeOptimizer:
                 convergence_reached = True
                 study.stop()
 
-        # Enqueue warm start from base recipe
+        # Enqueue warm start from base recipe (snap to step grid)
         try:
+            warm_ratio = max(14.0, min(18.0, round(base_recipe.ratio / 0.25) * 0.25))
+            warm_dose = max(12.0, min(22.0, round(base_recipe.dose_g / 0.5) * 0.5))
+            warm_temp = max(85.0, min(100.0, round(base_recipe.water_temp_c / 0.5) * 0.5))
             study.enqueue_trial({
-                "grind_setting": base_recipe.grind_setting,
-                "water_temp_c": base_recipe.water_temp_c,
-                "dose_g": base_recipe.dose_g,
-                "ratio": base_recipe.ratio,
+                "grind_setting": max(1, min(10, base_recipe.grind_setting)),
+                "water_temp_c": warm_temp,
+                "dose_g": warm_dose,
+                "ratio": warm_ratio,
             })
         except Exception:
             pass  # If enqueue fails, proceed without warm start

@@ -41,8 +41,8 @@ _PROCESS_LABELS = {
 
 def render():
     """Render the bean input page."""
-    st.title("Tell Us About Your Beans")
-    st.caption("Describe your coffee or enter the details manually.")
+    st.title("Describe Your Beans")
+    st.caption("Paste the label from your coffee bag, or fill in the details manually.")
 
     tab_text, tab_manual = st.tabs(["Text Description", "Manual Entry"])
 

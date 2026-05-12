@@ -98,6 +98,7 @@ def render():
     flags = brew.feedback.directional_flags or []
 
     st.title("Brew Diagnosis")
+    st.caption("Here's what likely went wrong and how to fix it.")
     _render_brew_summary(brew, flags)
 
     # Try ML-based diagnosis, fall back to rule-based.
@@ -183,21 +184,24 @@ def _render_ml_diagnosis(diagnosis_engine, bean, recipe, flags):
         st.write(result.overall_assessment)
 
         if result.suggestions:
-            st.subheader("Suggestions")
+            st.subheader("Suggested Adjustments")
             for suggestion in result.suggestions:
-                with st.container():
-                    col_param, col_current, col_suggested = st.columns(3)
+                param = suggestion.parameter.replace("_", " ").title()
+                with st.container(border=True):
+                    col_param, col_arrow, col_val = st.columns([2, 1, 2])
                     with col_param:
-                        st.markdown(f"**{suggestion.parameter.replace('_', ' ').title()}**")
-                    with col_current:
-                        st.markdown(f"Current: `{suggestion.current_value}`")
-                    with col_suggested:
-                        st.markdown(f"Try: `{suggestion.suggested_value}`")
-                    st.caption(suggestion.reason)
+                        st.markdown(f"**{param}**")
+                        st.caption(suggestion.reason)
+                    with col_arrow:
+                        st.markdown(":arrow_right:")
+                    with col_val:
+                        st.markdown(
+                            f"`{suggestion.current_value}` :arrow_right: "
+                            f"`{suggestion.suggested_value}`"
+                        )
                     if suggestion.confidence > 0:
                         st.progress(min(suggestion.confidence, 1.0),
                                     text=f"Confidence: {suggestion.confidence:.0%}")
-                    st.markdown("---")
         else:
             st.info("No specific parameter changes suggested. Your recipe looks reasonable.")
 

@@ -29,6 +29,7 @@ _GRIND_LABELS = {
 def render():
     """Render the recipe recommendation page."""
     st.title("Recommended Recipes")
+    st.caption("Recipes ranked by predicted taste score for your beans and palate.")
 
     bean_dict = st.session_state.get("current_bean")
     if bean_dict is None:
@@ -70,9 +71,9 @@ def render():
         )
         return
 
-    st.markdown(f"**Found {len(retrieval_result.recipes)} recipe"
-                f"{'s' if len(retrieval_result.recipes) != 1 else ''} "
-                f"for your {brew_methods[0] if brew_methods else 'pour-over'}**")
+    count = len(retrieval_result.recipes)
+    method = brew_methods[0] if brew_methods else "pour-over"
+    st.success(f"Found {count} recipe{'s' if count != 1 else ''} for your {method}")
 
     predictor = st.session_state.get("predictor")
 
@@ -137,18 +138,22 @@ def _render_recipe_card(
     bean_profile: BeanProfile,
 ):
     """Render a single recipe card with details and action buttons."""
+    rank_labels = {0: "Best Match", 1: "Runner Up", 2: "Alternative"}
+    rank = rank_labels.get(idx, f"Recipe {idx + 1}")
+
     with st.container(border=True):
         header_col, score_col = st.columns([3, 1])
         with header_col:
-            st.subheader(recipe.recipe_id.replace("-", " ").replace("_", " ").title())
-            st.caption(f"via {recipe.source} | {recipe.method.value}")
+            name = recipe.recipe_id.replace("-", " ").replace("_", " ").title()
+            st.subheader(f"#{idx + 1} {name}")
+            st.caption(f"{rank} via {recipe.source} | {recipe.method.value}")
         with score_col:
             if predicted_score is not None:
                 st.metric("Predicted Score", f"{predicted_score:.1f}/10")
 
         param_col1, param_col2, param_col3, param_col4 = st.columns(4)
         with param_col1:
-            st.markdown(f"**Dose:** {recipe.dose_g:.1f}g")
+            st.markdown(f"**Dose:** {recipe.dose_g:.1f} g")
             st.markdown(f"**Ratio:** 1:{recipe.ratio:.1f}")
         with param_col2:
             grind_label = _GRIND_LABELS.get(recipe.grind_setting, str(recipe.grind_setting))
@@ -159,13 +164,15 @@ def _render_recipe_card(
             st.markdown(f"**Total:** {recipe.total_time_s}s")
         with param_col4:
             st.markdown(f"**Pours:** {len(recipe.pours)}")
-            st.markdown(f"**Water:** {recipe.water_total_g:.0f}g")
+            st.markdown(f"**Water:** {recipe.water_total_g:.0f} g")
 
-        with st.expander("View Full Instructions"):
+        with st.expander("View Step-by-Step Instructions"):
             for pour in recipe.pours:
+                minutes = pour.time_offset_s // 60
+                seconds = pour.time_offset_s % 60
                 st.markdown(
-                    f"- **Pour {pour.step}:** {pour.water_g:.0f}g "
-                    f"at {pour.time_offset_s}s"
+                    f"**Pour {pour.step}:** {pour.water_g:.0f} g "
+                    f"at {minutes}:{seconds:02d}"
                 )
             st.markdown("---")
             st.markdown(escape_markdown(recipe.instructions))
@@ -174,8 +181,9 @@ def _render_recipe_card(
 
         with action_col1:
             if st.button(
-                f"Start Brewing with Recipe {idx + 1}",
+                "Start Brewing",
                 key=f"brew_{idx}",
+                type="primary",
                 use_container_width=True,
             ):
                 recipe_dict = recipe_to_dict(recipe)
@@ -191,14 +199,14 @@ def _render_recipe_card(
             predictor = st.session_state.get("predictor")
             if predictor is not None and predictor.is_trained:
                 if st.button(
-                    f"Optimize for My Taste",
+                    "Optimize for My Taste",
                     key=f"optimize_{idx}",
                     use_container_width=True,
                 ):
                     _run_optimization(idx, recipe, bean_profile, predictor)
             else:
                 st.button(
-                    f"Optimize for My Taste",
+                    "Optimize for My Taste",
                     key=f"optimize_{idx}",
                     disabled=True,
                     use_container_width=True,

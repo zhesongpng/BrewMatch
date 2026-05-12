@@ -34,7 +34,7 @@ def render():
     recipe_raw = st.session_state.get("selected_recipe")
     if recipe_raw is None:
         st.warning("No recipe selected. Please choose a recipe first.")
-        if st.button("Go to Recommendations"):
+        if st.button("Go to Recipes"):
             st.session_state.page = "recommend"
             st.rerun()
         return
@@ -50,15 +50,17 @@ def render():
     if st.session_state.get("brew_completed", False):
         _render_feedback_section(recipe)
     else:
-        if st.button("Mark Complete", type="primary", use_container_width=True):
+        st.markdown("---")
+        if st.button("Mark Brew Complete", type="primary", use_container_width=True):
             st.session_state.brew_completed = True
             st.rerun()
 
 
 def _render_recipe_header(recipe: Recipe):
-    st.title(recipe.recipe_id.replace("-", " ").title())
+    name = recipe.recipe_id.replace("-", " ").title()
+    st.title(name)
     st.caption(
-        f"Method: {recipe.method.value}  |  Source: {recipe.source}"
+        f"{recipe.method.value} via {recipe.source}"
     )
 
 
@@ -69,9 +71,8 @@ def _render_pour_steps(recipe: Recipe):
         seconds = pour.time_offset_s % 60
         time_label = f"{minutes}:{seconds:02d}"
         st.markdown(
-            f"**Step {pour.step}**  "
-            f"| Time: {time_label}  "
-            f"| Water: {pour.water_g:.0f} g"
+            f"**Pour {pour.step}** — "
+            f"Add {pour.water_g:.0f} g at {time_label}"
         )
     if recipe.instructions:
         st.info(escape_markdown(recipe.instructions))
@@ -109,7 +110,7 @@ def _render_feedback_section(recipe: Recipe):
     col_thumbs1, col_thumbs2 = st.columns(2)
     with col_thumbs1:
         if st.button(
-            "Thumbs Up",
+            "Tasty!",
             type="primary" if st.session_state.feedback_thumbs_up else "secondary",
             use_container_width=True,
         ):
@@ -117,7 +118,7 @@ def _render_feedback_section(recipe: Recipe):
             st.rerun()
     with col_thumbs2:
         if st.button(
-            "Thumbs Down",
+            "Not Great",
             type="primary" if not st.session_state.feedback_thumbs_up else "secondary",
             use_container_width=True,
         ):
@@ -125,11 +126,11 @@ def _render_feedback_section(recipe: Recipe):
             st.rerun()
 
     # Optional rating slider (1-10).
-    score = st.slider("Rating (optional)", min_value=1, max_value=10, value=7,
-                       help="Rate your brew from 1 to 10. Skip if you prefer not to rate.")
+    score = st.slider("Rating", min_value=1, max_value=10, value=7,
+                       help="Rate your brew from 1 to 10.")
 
     # Directional flags.
-    st.markdown("**Did you notice any of these issues?**")
+    st.markdown("**Did you notice any of these issues?** (select all that apply)")
     selected_flags = []
     flag_cols = st.columns(len(DIRECTIONAL_FLAGS))
     for idx, flag_key in enumerate(DIRECTIONAL_FLAGS):
@@ -138,7 +139,8 @@ def _render_feedback_section(recipe: Recipe):
                 selected_flags.append(flag_key)
 
     # Optional notes.
-    notes = st.text_area("Notes (optional)", placeholder="Any observations about this brew...")
+    notes = st.text_area("Notes", placeholder="Any observations about this brew...",
+                         height=80)
 
     # Submit.
     if st.button("Submit Feedback", type="primary", use_container_width=True):

@@ -175,7 +175,7 @@ def _handle_sidebar_logout():
 def render_sidebar():
     """Render sidebar with navigation and user info."""
     with st.sidebar:
-        st.markdown("### BrewMatch")
+        st.markdown("### :coffee: BrewMatch")
         st.markdown("---")
 
         # Navigation
@@ -183,18 +183,19 @@ def render_sidebar():
             st.session_state.page = "landing"
             st.rerun()
 
-        st.markdown("**New Brew**")
-        if st.button("Bean Input", use_container_width=True):
+        st.caption("Brew")
+        if st.button("Describe Beans", use_container_width=True):
             st.session_state.page = "bean_input"
             st.rerun()
-        if st.button("Recommend", use_container_width=True):
+        if st.button("Recipes", use_container_width=True):
             st.session_state.page = "recommend"
             st.rerun()
-        if st.button("Brew", use_container_width=True):
+        if st.button("Brew Session", use_container_width=True):
             st.session_state.page = "brew_session"
             st.rerun()
 
         st.markdown("---")
+        st.caption("Insights")
         if st.button("History", use_container_width=True):
             st.session_state.page = "history"
             st.rerun()
@@ -203,6 +204,7 @@ def render_sidebar():
             st.rerun()
 
         st.markdown("---")
+        st.caption("More")
         if st.button("Demo Mode", use_container_width=True):
             st.session_state.demo_mode = True
             st.session_state.page = "demo"
@@ -215,7 +217,8 @@ def render_sidebar():
         st.markdown("---")
         if st.session_state.user_id:
             phase = st.session_state.personalization_phase or "cold_start"
-            st.markdown(f"Phase: {phase.replace('_', ' ').title()}")
+            phase_label = phase.replace("_", " ").title()
+            st.markdown(f"**Phase:** {phase_label}")
             if st.button("Profile", use_container_width=True):
                 st.session_state.page = "profile"
                 st.rerun()

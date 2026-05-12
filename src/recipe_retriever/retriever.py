@@ -414,7 +414,9 @@ class RecipeRetriever:
         if self._model is None:
             from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(self._embedding_model_name)
+            self._model = SentenceTransformer(
+                self._embedding_model_name, device="cpu",
+            )
         return self._model
 
     def _get_collection(self):

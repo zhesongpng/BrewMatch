@@ -98,6 +98,9 @@ def load_models():
     if st.session_state.models_loaded:
         return
 
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent.parent
+
     try:
         from src.taste_predictor.encoder import FeatureEncoder
         from src.taste_predictor.model import TastePredictor
@@ -122,10 +125,10 @@ def load_models():
             from src.recipe_retriever.retriever import RecipeRetriever
 
             retriever = RecipeRetriever(
-                chroma_persist_dir="data/chroma",
+                chroma_persist_dir=str(repo_root / "data" / "chroma"),
             )
             try:
-                retriever.index_recipes("data/recipes")
+                retriever.index_recipes(str(repo_root / "data" / "recipes"))
             except FileNotFoundError:
                 logger.warning("Recipe directory not found — retriever has no recipes")
             except Exception as idx_exc:

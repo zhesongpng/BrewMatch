@@ -37,7 +37,7 @@ from src.data_models import (
 # Path / connection helpers
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_DIR = Path("data")
+_DEFAULT_DB_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 _DB_FILENAME = "users.db"
 _DEMO_DB_URI = "file:brewmatch_demo?mode=memory&cache=shared"
 

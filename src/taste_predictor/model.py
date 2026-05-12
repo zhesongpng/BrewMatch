@@ -32,7 +32,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from src.taste_predictor.encoder import FeatureEncoder, encode_features
 from src.data_models import BeanProfile, Recipe
 
-MODELS_DIR = Path("models")
+MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
 
 
 def _sha256_file(path: Path) -> str:

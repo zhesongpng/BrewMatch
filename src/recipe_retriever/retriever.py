@@ -412,6 +412,9 @@ class RecipeRetriever:
     def _get_model(self):
         """Lazily load the sentence-transformers model."""
         if self._model is None:
+            import os
+            os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+            os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
             from sentence_transformers import SentenceTransformer
 
             self._model = SentenceTransformer(

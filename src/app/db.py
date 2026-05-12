@@ -40,6 +40,7 @@ from src.data_models import (
 _DEFAULT_DB_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 _DB_FILENAME = "users.db"
 _DEMO_DB_URI = "file:brewmatch_demo?mode=memory&cache=shared"
+_CLOUD_DB_URI = "file:brewmatch_cloud?mode=memory&cache=shared"
 
 
 def get_db_path() -> str:
@@ -47,13 +48,29 @@ def get_db_path() -> str:
 
     Returns a URI-style shared-cache in-memory path when
     ``BREWMATCH_DEMO_MODE`` is set to ``true``, otherwise returns
-    ``data/users.db`` (relative to CWD).  The shared-cache URI ensures all
-    connections see the same data (plain ``:memory:`` creates a separate
-    database per connection).
+    ``data/users.db`` (relative to repo root). Falls back to an in-memory
+    shared-cache URI when the file-based path is not writable (e.g. on
+    Streamlit Community Cloud).
     """
     if os.environ.get("BREWMATCH_DEMO_MODE", "").lower() == "true":
         return _DEMO_DB_URI
-    return str(_DEFAULT_DB_DIR / _DB_FILENAME)
+
+    file_path = _DEFAULT_DB_DIR / _DB_FILENAME
+    # If the database file already exists and is writable, use it.
+    if file_path.exists():
+        return str(file_path)
+
+    # Try to create the directory and a test file to check writability.
+    try:
+        _DEFAULT_DB_DIR.mkdir(parents=True, exist_ok=True)
+        test_file = _DEFAULT_DB_DIR / ".write_test"
+        test_file.write_text("ok")
+        test_file.unlink()
+        return str(file_path)
+    except (OSError, PermissionError):
+        # Read-only filesystem (Streamlit Cloud) — use in-memory DB.
+        logger.info("data/ not writable, using in-memory database")
+        return _CLOUD_DB_URI
 
 
 def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:

@@ -5,6 +5,17 @@ get a specific fix. Gets better with every brew.
 """
 import logging
 import os
+import sys
+from pathlib import Path
+
+# Ensure repo root is on sys.path so `from src.*` works on Streamlit Cloud.
+_repo_root = str(Path(__file__).resolve().parent.parent.parent)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+# Force CPU-only for torch/sentence-transformers on cloud environments.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import streamlit as st
 

@@ -343,12 +343,13 @@ def register_user(
 
     user_id = secrets.token_hex(16)
     now = datetime.now(timezone.utc).isoformat()
-    # Create a minimal onboarding for the DB NOT NULL constraint.
+    # Create a placeholder onboarding for the DB NOT NULL constraint.
     # Will be overwritten when the user completes the onboarding wizard.
     default_onboarding = json.dumps({
-        "preferred_clusters": [],
+        "preferred_clusters": ["Balanced"],
         "roast_preference": "medium-light",
         "experience_level": "beginner",
+        "grinder_id": None,
     })
     conn.execute(
         """

@@ -17,6 +17,12 @@ def render():
     st.title("Welcome to BrewMatch")
     st.caption("Sign in to save your brew history and get personalized recommendations.")
 
+    # Demo account hint
+    st.info(
+        "Want to try it out? Sign in with **demo@brewmatch.com** / **brewmatch** "
+        "to explore a pre-built profile with 15 brews of history."
+    )
+
     tab_login, tab_register = st.tabs(["Sign In", "Create Account"])
 
     with tab_login:

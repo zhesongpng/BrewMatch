@@ -204,46 +204,21 @@ def render():
     st.markdown("---")
 
     # --- Action buttons ---
-    col_a, col_b, col_c = st.columns(3)
+    col_a, col_b = st.columns(2)
 
     with col_a:
         if st.button("Explore Alex's Profile", use_container_width=True):
             st.session_state.show_alex_profile = True
 
     with col_b:
-        if st.button("Brew as Alex", use_container_width=True):
-            st.session_state.user_id = ALEX_USER_ID
-            st.session_state.demo_mode = True
-            st.session_state.personalization_phase = "full_hybrid"
-            st.session_state.onboarding = ALEX_ONBOARDING
-
-            # Seed demo data if Alex has no brew history yet
-            try:
-                from src.app.db import get_db, load_brew_history
-
-                with get_db() as conn:
-                    existing = load_brew_history(conn, ALEX_USER_ID)
-                    if not existing:
-                        from scripts.seed_demo import seed_demo_data
-
-                        seed_demo_data(conn)
-            except Exception:
-                logger.debug("Could not seed demo data", exc_info=True)
-
+        if st.button("Start Brewing", use_container_width=True):
             st.session_state.page = "bean_input"
-            st.rerun()
-
-    with col_c:
-        if st.button("Reset Demo", use_container_width=True):
-            _clear_demo_session()
-            st.session_state.show_alex_profile = False
             st.rerun()
 
     # --- Exit demo mode ---
     st.markdown("---")
-    if st.button("Exit Demo Mode", use_container_width=True):
+    if st.button("Sign Out of Demo", use_container_width=True):
         _clear_demo_session()
-        st.session_state.demo_mode = False
         st.session_state.show_alex_profile = False
         st.session_state.page = "landing"
         st.rerun()

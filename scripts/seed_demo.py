@@ -523,6 +523,54 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
         save_brew(conn, ALEX_USER_ID, brew)
 
 
+def seed_demo_data_for_user(
+    conn: sqlite3.Connection,
+    user_id: str,
+    onboarding: Onboarding | None = None,
+    preferences: LearnedPreferences | None = None,
+) -> None:
+    """Seed demo brew data for an arbitrary user_id.
+
+    Used by the demo account auto-provisioning in app.py.
+    """
+    onboarding = onboarding or ALEX_ONBOARDING
+    preferences = preferences or ALEX_PREFERENCES
+
+    save_user(conn, user_id, onboarding)
+    update_preferences(conn, user_id, preferences)
+
+    now = datetime.now(timezone.utc)
+    base_date = now - timedelta(days=28)
+
+    for i in range(15):
+        brew_date = base_date + timedelta(days=2 * i)
+        hour = 7 + (i % 5)
+        minute = (i * 13) % 60
+        brew_ts = brew_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+        bean_data = _BEANS[_BREW_BEAN_INDICES[i]]
+        bean = BeanProfile(**bean_data)
+        recipe = _RECIPES[i]()
+
+        outcome = _BREW_OUTCOMES[i]
+        feedback = Feedback(
+            thumbs_up=outcome["thumbs_up"],
+            score=outcome["score"],
+            directional_flags=outcome["directional_flags"],
+            notes=outcome["notes"],
+        )
+
+        brew = BrewRecord(
+            brew_id=_uuid_for_index(i),
+            timestamp=brew_ts.isoformat(),
+            bean_profile=bean,
+            recipe_used=recipe,
+            feedback=feedback,
+        )
+
+        save_brew(conn, user_id, brew)
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------

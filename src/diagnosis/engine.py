@@ -39,6 +39,26 @@ PERTURBATION_CONFIG: dict[str, tuple[float, float]] = {
     "ratio": (2.0, 0.25),
 }
 
+# --- Expected direction per (param, flag) based on coffee science ---
+# "increase" = template says raise the value; "decrease" = template says lower it
+_EXPECTED_DIRECTION: dict[tuple[str, str], str] = {
+    ("water_temp_c", "too_sour"): "increase",
+    ("water_temp_c", "too_bitter"): "decrease",
+    ("water_temp_c", "too_weak"): "increase",
+    ("water_temp_c", "too_harsh"): "decrease",
+    ("water_temp_c", "astringent"): "decrease",
+    ("grind_setting", "too_sour"): "decrease",   # finer = lower number
+    ("grind_setting", "too_bitter"): "increase",  # coarser = higher number
+    ("grind_setting", "too_weak"): "decrease",
+    ("grind_setting", "too_harsh"): "increase",
+    ("dose_g", "too_sour"): "increase",
+    ("dose_g", "too_bitter"): "decrease",
+    ("dose_g", "too_weak"): "increase",
+    ("ratio", "too_weak"): "decrease",            # lower ratio = more concentrated
+    ("ratio", "too_sour"): "decrease",
+    ("ratio", "too_bitter"): "increase",
+}
+
 # --- Directional flag knowledge ---
 FLAG_ROOT_CAUSES: dict[str, str] = {
     "too_sour": "under-extraction",
@@ -322,9 +342,37 @@ class DiagnosisEngine:
         flags: list[str],
     ) -> str:
         """Generate human-readable explanation for a suggestion."""
-        templates = EXPLANATION_TEMPLATES.get(param_name, {})
+        delta = suggested - current
+        is_neutral = abs(delta) < 1e-6
 
-        # Pick the most relevant flag for the explanation
+        # If the model suggests no change, use a neutral message
+        if is_neutral:
+            return "The current setting looks reasonable for this parameter."
+
+        # Check if the model's direction matches coffee-science expectations
+        direction_mismatch = False
+        for flag in flags:
+            expected = _EXPECTED_DIRECTION.get((param_name, flag))
+            if expected is None:
+                continue
+            actual = "increase" if delta > 0 else "decrease"
+            if actual != expected:
+                direction_mismatch = True
+                break
+
+        # When direction contradicts coffee science, use a model-based explanation
+        if direction_mismatch:
+            param_display = param_name.replace("_", " ")
+            direction_word = "increasing" if delta > 0 else "decreasing"
+            return (
+                f"Based on your bean profile and brewing history, {direction_word} "
+                f"the {param_display} is predicted to improve your next cup. "
+                f"The model found this adjustment works better than the typical "
+                f"recommendation for this issue."
+            )
+
+        # Direction matches — use the coffee-science explanation template
+        templates = EXPLANATION_TEMPLATES.get(param_name, {})
         template = None
         for flag in flags:
             if flag in templates:
@@ -334,10 +382,9 @@ class DiagnosisEngine:
         if template is None:
             template = templates.get("default", "Adjusting this parameter may improve your brew.")
 
-        # Append magnitude note based on how big the change is
-        delta = abs(suggested - current)
+        # Append magnitude note
         step = PERTURBATION_CONFIG.get(param_name, (1.0, 1.0))[1]
-        if delta > 2 * step:
+        if abs(delta) > 2 * step:
             template += " Consider making this change gradually over multiple brews."
         else:
             template += " This is a small adjustment that should be safe to try."

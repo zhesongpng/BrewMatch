@@ -900,14 +900,14 @@ class TestM15ExplanationMagnitude:
         )
         assert "small adjustment" in explanation.lower()
 
-    def test_zero_delta_includes_small_adjustment(self):
-        """No change should include 'small adjustment' in explanation."""
+    def test_zero_delta_returns_reasonable_message(self):
+        """No change should return a 'looks reasonable' message."""
         predictor = _make_mock_predictor()
         engine = DiagnosisEngine(predictor)
         explanation = engine._generate_explanation(
             "water_temp_c", 93.0, 93.0, ["too_bitter"]
         )
-        assert "small adjustment" in explanation.lower()
+        assert "reasonable" in explanation.lower()
 
     def test_large_temp_delta_includes_gradually(self):
         """Large temperature change should include 'gradually'."""

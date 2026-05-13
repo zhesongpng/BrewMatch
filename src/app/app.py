@@ -248,6 +248,40 @@ def render_sidebar():
             st.markdown(":orange[Demonstration Mode]")
 
 
+_DEMO_EMAIL = "demo@brewmatch.com"
+_DEMO_PASSWORD = "brewmatch"
+_DEMO_DISPLAY_NAME = "Alex (Demo)"
+
+
+def _ensure_demo_account():
+    """Create the demo account and seed Alex's data if it doesn't exist. Idempotent."""
+    try:
+        from src.app.auth import hash_password
+        from src.app.db import authenticate_user, get_connection, register_user
+
+        conn = get_connection()
+        existing = authenticate_user(conn, _DEMO_EMAIL)
+        if existing is not None:
+            conn.close()
+            return
+
+        pw_hash = hash_password(_DEMO_PASSWORD)
+        user_id = register_user(conn, _DEMO_EMAIL, _DEMO_DISPLAY_NAME, pw_hash)
+
+        # Seed Alex's onboarding, preferences, and brew history
+        try:
+            from scripts.seed_demo import seed_demo_data_for_user
+
+            seed_demo_data_for_user(conn, user_id)
+        except Exception:
+            logger.debug("Could not seed demo data for %s", user_id, exc_info=True)
+
+        conn.close()
+        logger.info("Demo account created: %s (user_id=%s)", _DEMO_EMAIL, user_id)
+    except Exception:
+        logger.debug("Could not create demo account", exc_info=True)
+
+
 def main():
     st.set_page_config(
         page_title="BrewMatch",
@@ -270,6 +304,9 @@ def main():
         conn.close()
     except Exception as exc:
         logger.error("Failed to initialize database: %s", exc)
+
+    # Ensure the demo account exists.
+    _ensure_demo_account()
 
     render_sidebar()
 

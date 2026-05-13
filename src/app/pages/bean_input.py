@@ -1,16 +1,15 @@
 """Page: Bean Input. See specs/user-interface.md Section 4.3.
 
-Two-mode bean profile entry: LLM-based text extraction or manual form entry.
-The extracted or manually-entered profile is stored in session state for the
-recommendation page.
+Manual bean profile entry with guided dropdowns for origin, process,
+roast level, and flavor profiles. The profile is stored in session state
+for the recommendation page.
 """
 import logging
-import os
 
 import streamlit as st
 
-from src.app.utils import bean_to_dict, escape_markdown
-from src.bean_extractor.extractor import BeanExtractor, create_manual_profile
+from src.app.utils import bean_to_dict
+from src.bean_extractor.extractor import create_manual_profile
 from src.data_models import (
     FLAVOR_CLUSTERS,
     Process,
@@ -19,7 +18,6 @@ from src.data_models import (
 
 logger = logging.getLogger(__name__)
 
-# Roast level display order and labels
 _ROAST_LABELS = {
     "Light": RoastLevel.LIGHT,
     "Medium-Light": RoastLevel.MEDIUM_LIGHT,
@@ -38,135 +36,38 @@ _PROCESS_LABELS = {
     "Unknown": Process.UNKNOWN,
 }
 
+_COMMON_ORIGINS = [
+    "Ethiopia", "Colombia", "Kenya", "Guatemala", "Brazil",
+    "Costa Rica", "Panama", "Indonesia", "Rwanda", "Honduras",
+    "Mexico", "Peru", "Uganda", "Tanzania", "Other",
+]
+
 
 def render():
     """Render the bean input page."""
     st.title("Describe Your Beans")
-    st.caption("Paste the label from your coffee bag, or fill in the details manually.")
-
-    tab_text, tab_manual = st.tabs(["Text Description", "Manual Entry"])
-
-    with tab_text:
-        _render_text_mode()
-
-    with tab_manual:
-        _render_manual_mode()
-
-
-def _render_text_mode():
-    """LLM-based text extraction mode."""
-    st.markdown(
-        "Paste the description from your coffee bag label below, "
-        "and we will extract the key details automatically."
-    )
-
-    source_text = st.text_area(
-        "Bean description",
-        placeholder="e.g., Ethiopian Yirgacheffe, washed process, light roast, "
-        "with notes of jasmine, lemon, and black tea...",
-        height=150,
-        max_chars=2000,
-        key="bean_source_text",
-    )
-
-    extracting = st.session_state.get("extracting_beans", False)
-    if st.button(
-        "Analyze Beans",
-        use_container_width=True,
-        key="analyze_btn",
-        disabled=extracting,
-    ):
-        if not source_text or len(source_text.strip()) < 5:
-            st.warning("Please enter at least a short description of your beans.")
-            return
-
-        _run_extraction(source_text.strip())
-
-
-def _run_extraction(source_text: str):
-    """Attempt LLM extraction with graceful fallback on error."""
-    st.session_state.extracting_beans = True
-
-    with st.spinner("Analyzing your bean description..."):
-        try:
-            api_key = os.environ.get("LLM_API_KEY", "")
-            if not api_key:
-                raise ValueError(
-                    "No API key configured. Set LLM_API_KEY in your .env file "
-                    "or enter the bean details manually."
-                )
-
-            extractor = BeanExtractor()
-            result = extractor.extract(source_text)
-
-            _display_extraction_result(result, source_text)
-
-        except (ValueError, RuntimeError) as exc:
-            st.error(
-                "Could not analyze your description. "
-                "Please try entering details manually using the Manual Entry tab."
-            )
-            logger.debug("Bean extraction failed", exc_info=True)
-        except Exception as exc:
-            st.error(
-                "Could not analyze your description. "
-                "Please try entering details manually using the Manual Entry tab."
-            )
-            logger.debug("Bean extraction failed unexpectedly", exc_info=True)
-        finally:
-            st.session_state.extracting_beans = False
-
-
-def _display_extraction_result(result, source_text: str):
-    """Display the extraction result with confidence indicator and confirmation."""
-    profile = result.bean_profile
-    tier = result.confidence_tier
-
-    tier_colors = {"HIGH": "green", "MEDIUM": "orange", "LOW": "red"}
-    color = tier_colors.get(tier, "gray")
-
-    st.markdown(f"**Extraction confidence:** :{color}[{tier}] ({result.confidence:.0%})")
-
-    if result.missing_fields:
-        st.caption(
-            "Missing or uncertain fields: " + ", ".join(result.missing_fields)
-        )
-
-    with st.container(border=True):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown(f"**Origin:** {escape_markdown(profile.origin_country)}")
-            region = profile.origin_region or "Not specified"
-            st.markdown(f"**Region:** {escape_markdown(region)}")
-            st.markdown(f"**Process:** {profile.process.value}")
-        with col_b:
-            st.markdown(f"**Roast:** {profile.roast_level.value}")
-            variety = profile.variety or "Not specified"
-            st.markdown(f"**Variety:** {escape_markdown(variety)}")
-            clusters = ", ".join(profile.flavor_clusters)
-            st.markdown(f"**Flavor clusters:** {escape_markdown(clusters)}")
-
-    if st.button("Looks Good - Find Recipes", use_container_width=True, key="confirm_extraction"):
-        bean_dict = bean_to_dict(profile)
-        bean_dict["source_text"] = source_text
-        st.session_state.current_bean = bean_dict
-        st.session_state.page = "recommend"
-        st.rerun()
+    st.caption("Enter the details from your coffee bag label.")
+    _render_manual_mode()
 
 
 def _render_manual_mode():
     """Manual form entry mode."""
-    st.markdown("Enter the details from your coffee bag label.")
-
     with st.form("manual_bean_form"):
         col_left, col_right = st.columns(2)
 
         with col_left:
-            origin = st.text_input(
+            origin_selection = st.selectbox(
                 "Origin Country *",
-                placeholder="e.g., Ethiopia, Colombia",
-                key="manual_origin",
+                options=_COMMON_ORIGINS,
+                key="manual_origin_select",
             )
+            custom_origin = ""
+            if origin_selection == "Other":
+                custom_origin = st.text_input(
+                    "Specify Origin *",
+                    placeholder="e.g., Yemen, Burundi, Nicaragua",
+                    key="manual_origin_custom",
+                )
             region = st.text_input(
                 "Region",
                 placeholder="e.g., Yirgacheffe, Huila",
@@ -204,6 +105,7 @@ def _render_manual_mode():
         submitted = st.form_submit_button("Save Bean Profile", use_container_width=True)
 
     if submitted:
+        origin = custom_origin.strip() if origin_selection == "Other" else origin_selection
         errors = _validate_manual_input(origin, process_label, roast_label, flavor_selected)
         if errors:
             for error in errors:
@@ -213,7 +115,7 @@ def _render_manual_mode():
         altitude_min, altitude_max = _parse_altitude(altitude)
 
         result = create_manual_profile(
-            origin_country=origin.strip(),
+            origin_country=origin,
             process=_PROCESS_LABELS[process_label].value,
             roast_level=_ROAST_LABELS[roast_label].value,
             flavor_clusters=flavor_selected,
@@ -253,11 +155,7 @@ def _validate_manual_input(
 
 
 def _parse_altitude(altitude_str: str) -> tuple[int | None, int | None]:
-    """Parse altitude string into (min, max) tuple.
-
-    Accepts single values like '1800' or ranges like '1500-2000'.
-    Returns (None, None) for empty or invalid input.
-    """
+    """Parse altitude string into (min, max) tuple."""
     if not altitude_str or not altitude_str.strip():
         return None, None
 

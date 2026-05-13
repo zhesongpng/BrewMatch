@@ -64,11 +64,6 @@ def render():
             if st.button("Start Brewing", type="primary", use_container_width=True):
                 st.session_state.page = "bean_input"
                 st.rerun()
-        with col3:
-            if st.button("Try Demo", use_container_width=True):
-                st.session_state.demo_mode = True
-                st.session_state.page = "demo"
-                st.rerun()
     else:
         col1, col2, col3 = st.columns([2, 1, 2])
         with col1:
@@ -76,10 +71,13 @@ def render():
                 st.session_state.page = "auth"
                 st.rerun()
         with col3:
-            if st.button("Try Demo", use_container_width=True):
-                st.session_state.demo_mode = True
-                st.session_state.page = "demo"
+            if st.button("Try Demo Account", use_container_width=True):
+                st.session_state.page = "auth"
                 st.rerun()
+        st.caption(
+            "Want to explore first? Sign in with "
+            "**demo@brewmatch.com** / **brewmatch** to try a pre-built profile."
+        )
 
     st.markdown("---")
 

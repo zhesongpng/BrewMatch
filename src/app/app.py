@@ -21,7 +21,7 @@ import streamlit as st
 
 logger = logging.getLogger(__name__)
 
-_PUBLIC_PAGES = {"landing", "auth", "demo"}
+_PUBLIC_PAGES = {"landing", "auth"}
 
 
 def init_session_state():
@@ -33,7 +33,7 @@ def init_session_state():
         "selected_recipe": None,
         "optimized_params": None,
         "personalization_phase": "cold_start",
-        "demo_mode": os.environ.get("BREWMATCH_DEMO_MODE", "false").lower() == "true",
+        "demo_mode": False,
         "page": "landing",
         "models_loaded": False,
         "predictor": None,
@@ -219,10 +219,6 @@ def render_sidebar():
 
         st.markdown("---")
         st.caption("More")
-        if st.button("Demo Mode", use_container_width=True):
-            st.session_state.demo_mode = True
-            st.session_state.page = "demo"
-            st.rerun()
         if st.button("Evaluation", use_container_width=True):
             st.session_state.page = "evaluation"
             st.rerun()
@@ -242,10 +238,6 @@ def render_sidebar():
             if st.button("Sign In", use_container_width=True):
                 st.session_state.page = "auth"
                 st.rerun()
-
-        if st.session_state.demo_mode:
-            st.markdown("---")
-            st.markdown(":orange[Demonstration Mode]")
 
 
 _DEMO_EMAIL = "demo@brewmatch.com"
@@ -326,7 +318,6 @@ def main():
         "brew_session": "src.app.pages.brew_session",
         "history": "src.app.pages.history",
         "diagnosis": "src.app.pages.diagnosis",
-        "demo": "src.app.pages.demo",
         "evaluation": "src.app.pages.evaluation",
         "profile": "src.app.pages.profile",
     }

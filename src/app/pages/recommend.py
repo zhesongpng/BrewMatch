@@ -8,6 +8,7 @@ import logging
 import streamlit as st
 
 from src.app.utils import dict_to_bean_profile, escape_markdown, recipe_to_dict
+from src.grinder_catalog import get_grinder_display
 from src.data_models import (
     BeanProfile,
     BrewMethod,
@@ -157,7 +158,12 @@ def _render_recipe_card(
             st.markdown(f"**Ratio:** 1:{recipe.ratio:.1f}")
         with param_col2:
             grind_label = _GRIND_LABELS.get(recipe.grind_setting, str(recipe.grind_setting))
-            st.markdown(f"**Grind:** {grind_label} ({recipe.grind_setting}/10)")
+            grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+            grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
+            if grinder_display:
+                st.markdown(f"**Grind:** {grind_label} ({recipe.grind_setting}/10) — {grinder_display}")
+            else:
+                st.markdown(f"**Grind:** {grind_label} ({recipe.grind_setting}/10)")
             st.markdown(f"**Temp:** {recipe.water_temp_c:.0f} C")
         with param_col3:
             st.markdown(f"**Bloom:** {recipe.bloom_time_s}s")

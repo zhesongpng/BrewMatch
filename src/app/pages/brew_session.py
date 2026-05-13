@@ -10,6 +10,7 @@ import streamlit as st
 
 from src.app.db import save_brew
 from src.app.utils import dict_to_bean_profile, dict_to_recipe, escape_markdown
+from src.grinder_catalog import get_grinder_display
 from src.data_models import (
     DIRECTIONAL_FLAGS,
     BeanProfile,
@@ -120,7 +121,12 @@ def _render_summary_bar(recipe: Recipe):
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Dose", f"{recipe.dose_g:.1f} g")
-        st.metric("Grind", f"{recipe.grind_setting}")
+        grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+        grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
+        if grinder_display:
+            st.metric("Grind", f"{recipe.grind_setting}/10", delta=grinder_display)
+        else:
+            st.metric("Grind", f"{recipe.grind_setting}/10")
     with col2:
         st.metric("Ratio", f"1:{recipe.ratio:.1f}")
         st.metric("Bloom", f"{recipe.bloom_time_s} s")

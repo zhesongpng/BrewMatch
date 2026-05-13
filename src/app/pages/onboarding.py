@@ -15,10 +15,11 @@ from src.data_models import (
     Onboarding,
     RoastLevel,
 )
+from src.grinder_catalog import get_grinder_options
 
 _logger = logging.getLogger(__name__)
 
-_STEP_COUNT = 4
+_STEP_COUNT = 5
 
 # Step 1 option labels mapped to RoastLevel enum values
 _ROAST_OPTIONS = {
@@ -58,6 +59,8 @@ def render():
     elif current_step == 2:
         _render_experience_step()
     elif current_step == 3:
+        _render_grinder_step()
+    elif current_step == 4:
         _render_equipment_step()
     else:
         current_step = 0
@@ -151,6 +154,44 @@ def _render_experience_step():
             st.rerun()
 
 
+def _render_grinder_step():
+    """Step 4: Grinder selection."""
+    st.subheader("What grinder do you use?")
+
+    options = get_grinder_options()
+    labels = [label for _, label in options]
+    selected_label = st.selectbox(
+        "Choose your grinder:",
+        options=labels,
+        index=None,
+        placeholder="Select your grinder...",
+        key="onboarding_grinder_label",
+    )
+
+    if selected_label and selected_label != "Other / not listed":
+        grinder_id = [gid for gid, lbl in options if lbl == selected_label][0]
+        st.caption(
+            f"We'll show grind recommendations specific to your "
+            f"{selected_label.split('(')[0].strip()}."
+        )
+    else:
+        grinder_id = "other"
+
+    col_back, col_next = st.columns([1, 3])
+    with col_back:
+        if st.button("Back", use_container_width=True):
+            st.session_state.onboarding_step = 2
+            st.rerun()
+    with col_next:
+        if st.button("Next", use_container_width=True):
+            if selected_label is None:
+                st.warning("Please select your grinder to continue.")
+                return
+            st.session_state.onboarding_grinder = grinder_id
+            st.session_state.onboarding_step = 4
+            st.rerun()
+
+
 def _render_equipment_step():
     """Step 4: Equipment selection and onboarding completion."""
     st.subheader("What drippers do you own?")
@@ -163,7 +204,7 @@ def _render_equipment_step():
     col_back, col_next = st.columns([1, 3])
     with col_back:
         if st.button("Back", use_container_width=True):
-            st.session_state.onboarding_step = 2
+            st.session_state.onboarding_step = 3
             st.rerun()
     with col_next:
         if st.button("Get Started", use_container_width=True):
@@ -186,6 +227,7 @@ def _complete_onboarding(drippers: list[BrewMethod]):
         preferred_clusters=st.session_state.onboarding_flavors_selected,
         roast_preference=st.session_state.onboarding_roast,
         experience_level=st.session_state.onboarding_experience,
+        grinder_id=st.session_state.get("onboarding_grinder"),
     )
 
     st.session_state.onboarding = onboarding

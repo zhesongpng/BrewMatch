@@ -253,6 +253,7 @@ class Onboarding:
     preferred_clusters: list[str]
     roast_preference: RoastLevel
     experience_level: ExperienceLevel
+    grinder_id: Optional[str] = None
 
     def __post_init__(self):
         if not (1 <= len(self.preferred_clusters) <= 5):

@@ -49,6 +49,7 @@ ALEX_ONBOARDING = Onboarding(
     preferred_clusters=["Berry", "Citrus", "Floral"],
     roast_preference=RoastLevel.LIGHT,
     experience_level=ExperienceLevel.INTERMEDIATE,
+    grinder_id="comandante-c40",
 )
 
 ALEX_PREFERENCES = LearnedPreferences(

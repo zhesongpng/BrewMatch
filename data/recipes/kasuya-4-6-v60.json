@@ -8,7 +8,7 @@
   "ratio": 15.0,
   "grind_setting": 7,
   "water_temp_c": 93.0,
-  "bloom_time_s": 15,
+  "bloom_time_s": 30,
   "total_time_s": 210,
   "pours": [
     {
@@ -38,25 +38,10 @@
     }
   ],
   "suitable_for": {
-    "roast_levels": [
-      "medium",
-      "medium-dark"
-    ],
-    "origins": [
-      "Brazil",
-      "Colombia",
-      "Honduras"
-    ],
-    "processes": [
-      "natural",
-      "washed"
-    ],
-    "flavor_profiles": [
-      "Sweet",
-      "Chocolate",
-      "Balanced",
-      "Nutty"
-    ]
+    "roast_levels": ["medium", "medium-dark"],
+    "origins": ["Brazil", "Colombia", "Honduras"],
+    "processes": ["natural", "washed"],
+    "flavor_profiles": ["Sweet", "Chocolate", "Balanced", "Nutty"]
   },
   "instructions": "4:6 method: first 40% controls balance (sweetness/acidity), last 60% controls strength. Coarse grind. 5 pours total."
 }

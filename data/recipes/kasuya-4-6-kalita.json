@@ -7,7 +7,7 @@
   "ratio": 15.0,
   "grind_setting": 6,
   "water_temp_c": 92.0,
-  "bloom_time_s": 15,
+  "bloom_time_s": 30,
   "total_time_s": 225,
   "pours": [
     {
@@ -37,28 +37,10 @@
     }
   ],
   "suitable_for": {
-    "roast_levels": [
-      "light",
-      "medium-light",
-      "medium"
-    ],
-    "origins": [
-      "Ethiopia",
-      "Colombia",
-      "Costa Rica",
-      "Kenya"
-    ],
-    "processes": [
-      "washed",
-      "natural",
-      "honey"
-    ],
-    "flavor_profiles": [
-      "Floral",
-      "Sweet",
-      "Citrus",
-      "Balanced"
-    ]
+    "roast_levels": ["light", "medium-light", "medium"],
+    "origins": ["Ethiopia", "Colombia", "Costa Rica", "Kenya"],
+    "processes": ["washed", "natural", "honey"],
+    "flavor_profiles": ["Floral", "Sweet", "Citrus", "Balanced"]
   },
   "instructions": "4:6 method adapted for Kalita Wave flat bottom. Slightly finer grind than V60 version."
 }

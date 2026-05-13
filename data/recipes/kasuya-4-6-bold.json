@@ -7,7 +7,7 @@
   "ratio": 15.0,
   "grind_setting": 7,
   "water_temp_c": 90.0,
-  "bloom_time_s": 15,
+  "bloom_time_s": 30,
   "total_time_s": 240,
   "pours": [
     {
@@ -37,25 +37,10 @@
     }
   ],
   "suitable_for": {
-    "roast_levels": [
-      "medium-dark",
-      "dark"
-    ],
-    "origins": [
-      "Brazil",
-      "Sumatra",
-      "India"
-    ],
-    "processes": [
-      "natural",
-      "wet-hulled"
-    ],
-    "flavor_profiles": [
-      "Chocolate",
-      "Nutty",
-      "Spice",
-      "Syrupy"
-    ]
+    "roast_levels": ["medium-dark", "dark"],
+    "origins": ["Brazil", "Sumatra", "India"],
+    "processes": ["natural", "wet-hulled"],
+    "flavor_profiles": ["Chocolate", "Nutty", "Spice", "Syrupy"]
   },
   "instructions": "Bold 4:6 for dark roasts. Max dose, lower temp. Equal 5-pour split."
 }

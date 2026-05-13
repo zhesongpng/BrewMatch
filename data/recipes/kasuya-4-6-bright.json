@@ -7,7 +7,7 @@
   "ratio": 15.0,
   "grind_setting": 7,
   "water_temp_c": 95.0,
-  "bloom_time_s": 15,
+  "bloom_time_s": 30,
   "total_time_s": 210,
   "pours": [
     {
@@ -37,25 +37,10 @@
     }
   ],
   "suitable_for": {
-    "roast_levels": [
-      "light",
-      "medium-light"
-    ],
-    "origins": [
-      "Ethiopia",
-      "Kenya",
-      "Panama"
-    ],
-    "processes": [
-      "washed",
-      "natural"
-    ],
-    "flavor_profiles": [
-      "Citrus",
-      "Berry",
-      "Floral",
-      "Balanced"
-    ]
+    "roast_levels": ["light", "medium-light"],
+    "origins": ["Ethiopia", "Kenya", "Panama"],
+    "processes": ["washed", "natural"],
+    "flavor_profiles": ["Citrus", "Berry", "Floral", "Balanced"]
   },
   "instructions": "Adjusted 4:6 for brighter cups: first pour split to emphasize acidity. Higher temp."
 }

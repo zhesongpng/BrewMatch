@@ -65,15 +65,52 @@ def _render_recipe_header(recipe: Recipe):
 
 
 def _render_pour_steps(recipe: Recipe):
-    st.subheader("Pour Steps")
+    st.subheader("Brew Guide")
+    cumulative = 0.0
+    prev_time = 0
+
     for pour in recipe.pours:
-        minutes = pour.time_offset_s // 60
-        seconds = pour.time_offset_s % 60
-        time_label = f"{minutes}:{seconds:02d}"
+        cumulative += pour.water_g
+        wait_s = pour.time_offset_s - prev_time
+
+        with st.container(border=True):
+            col_step, col_detail = st.columns([1, 3])
+            with col_step:
+                if pour.step == 1:
+                    st.markdown(f"### :material-water_drop: Pour {pour.step}")
+                else:
+                    st.markdown(f"### :material_water_drop: Pour {pour.step}")
+            with col_detail:
+                if pour.step == 1:
+                    st.markdown(
+                        f"**Pour {pour.water_g:.0f} g** of water over the coffee grounds."
+                    )
+                    if recipe.bloom_time_s and recipe.bloom_time_s > 0:
+                        st.caption(
+                            f"Let it bloom for {recipe.bloom_time_s} seconds "
+                            f"(total water so far: {cumulative:.0f} g)"
+                        )
+                    else:
+                        st.caption(f"Total water so far: {cumulative:.0f} g")
+                else:
+                    st.markdown(
+                        f"Wait **{_format_seconds(wait_s)}**, then **pour {pour.water_g:.0f} g**."
+                    )
+                    st.caption(
+                        f"Timer reads {_format_seconds(pour.time_offset_s)} "
+                        f"(total water so far: {cumulative:.0f} g)"
+                    )
+
+        prev_time = pour.time_offset_s
+
+    # Final drain note
+    remaining = recipe.total_time_s - prev_time
+    if remaining > 0:
         st.markdown(
-            f"**Pour {pour.step}** — "
-            f"Add {pour.water_g:.0f} g at {time_label}"
+            f"**Wait {_format_seconds(remaining)}** for the water to drain through. "
+            f"Your brew is done at **{_format_seconds(recipe.total_time_s)}**!"
         )
+
     if recipe.instructions:
         st.info(escape_markdown(recipe.instructions))
 

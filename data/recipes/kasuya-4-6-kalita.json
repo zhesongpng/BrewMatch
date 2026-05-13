@@ -7,7 +7,7 @@
   "ratio": 15.0,
   "grind_setting": 6,
   "water_temp_c": 92.0,
-  "bloom_time_s": 30,
+  "bloom_time_s": 45,
   "total_time_s": 225,
   "pours": [
     {
@@ -17,22 +17,22 @@
     },
     {
       "step": 2,
-      "time_offset_s": 30,
+      "time_offset_s": 45,
       "water_g": 60.0
     },
     {
       "step": 3,
-      "time_offset_s": 60,
+      "time_offset_s": 90,
       "water_g": 60.0
     },
     {
       "step": 4,
-      "time_offset_s": 95,
+      "time_offset_s": 135,
       "water_g": 60.0
     },
     {
       "step": 5,
-      "time_offset_s": 130,
+      "time_offset_s": 180,
       "water_g": 60.0
     }
   ],
@@ -42,5 +42,5 @@
     "processes": ["washed", "natural", "honey"],
     "flavor_profiles": ["Floral", "Sweet", "Citrus", "Balanced"]
   },
-  "instructions": "4:6 method adapted for Kalita Wave flat bottom. Slightly finer grind than V60 version."
+  "instructions": "4:6 method adapted for Kalita Wave flat bottom. Slightly finer grind than V60 version. 45-second intervals."
 }

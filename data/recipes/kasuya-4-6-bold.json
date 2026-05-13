@@ -7,7 +7,7 @@
   "ratio": 15.0,
   "grind_setting": 7,
   "water_temp_c": 90.0,
-  "bloom_time_s": 30,
+  "bloom_time_s": 45,
   "total_time_s": 240,
   "pours": [
     {
@@ -17,22 +17,22 @@
     },
     {
       "step": 2,
-      "time_offset_s": 30,
+      "time_offset_s": 45,
       "water_g": 66.0
     },
     {
       "step": 3,
-      "time_offset_s": 60,
+      "time_offset_s": 90,
       "water_g": 66.0
     },
     {
       "step": 4,
-      "time_offset_s": 95,
+      "time_offset_s": 135,
       "water_g": 66.0
     },
     {
       "step": 5,
-      "time_offset_s": 130,
+      "time_offset_s": 180,
       "water_g": 66.0
     }
   ],
@@ -42,5 +42,5 @@
     "processes": ["natural", "wet-hulled"],
     "flavor_profiles": ["Chocolate", "Nutty", "Spice", "Syrupy"]
   },
-  "instructions": "Bold 4:6 for dark roasts. Max dose, lower temp. Equal 5-pour split."
+  "instructions": "Bold 4:6 for dark roasts. Max dose, lower temp. Equal 5-pour split at 45-second intervals."
 }

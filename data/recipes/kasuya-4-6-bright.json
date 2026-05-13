@@ -7,8 +7,8 @@
   "ratio": 15.0,
   "grind_setting": 7,
   "water_temp_c": 95.0,
-  "bloom_time_s": 30,
-  "total_time_s": 210,
+  "bloom_time_s": 45,
+  "total_time_s": 225,
   "pours": [
     {
       "step": 1,
@@ -17,22 +17,22 @@
     },
     {
       "step": 2,
-      "time_offset_s": 30,
+      "time_offset_s": 45,
       "water_g": 75.0
     },
     {
       "step": 3,
-      "time_offset_s": 60,
-      "water_g": 60.0
-    },
-    {
-      "step": 4,
       "time_offset_s": 90,
       "water_g": 60.0
     },
     {
+      "step": 4,
+      "time_offset_s": 135,
+      "water_g": 60.0
+    },
+    {
       "step": 5,
-      "time_offset_s": 120,
+      "time_offset_s": 180,
       "water_g": 60.0
     }
   ],
@@ -42,5 +42,5 @@
     "processes": ["washed", "natural"],
     "flavor_profiles": ["Citrus", "Berry", "Floral", "Balanced"]
   },
-  "instructions": "Adjusted 4:6 for brighter cups: first pour split to emphasize acidity. Higher temp."
+  "instructions": "Adjusted 4:6 for brighter cups: first pour split to emphasize acidity. Higher temp. 45-second intervals."
 }

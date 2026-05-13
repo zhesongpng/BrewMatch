@@ -3,10 +3,13 @@
 Step-by-step brewing instructions with timer, feedback collection,
 and brew record persistence.
 """
+import logging
 import uuid
 from datetime import datetime, timezone
 
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 from src.app.db import save_brew
 from src.app.utils import dict_to_bean_profile, dict_to_recipe, escape_markdown

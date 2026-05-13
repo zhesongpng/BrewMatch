@@ -38,7 +38,8 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 **In scope**:
 
 - Pour-over (V60, Kalita Wave, Origami)
-- Bean profile input via manual text entry (paste roaster description)
+- Bean profile input via manual entry (origin dropdown with common origins + "Other", process, roast, flavor, variety, altitude)
+- Grinder brand selection during onboarding (9 hand/electric grinders with specific grind settings, or "Other")
 - Starting recipe recommendation based on bean profile
 - Post-brew feedback: thumbs up/down + directional flags (too sour / too bitter / too weak / too harsh / astringent)
 - Diagnosis: specific parameter adjustments based on what went wrong
@@ -49,14 +50,15 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 
 ## 5. Core User Flow
 
-1. User adds beans (paste roaster description)
-2. User selects dripper (V60 / Kalita Wave / Origami)
-3. System recommends starting recipe (dose, ratio, grind, water temp, bloom, pour schedule, total time)
-4. User brews
-5. User reports result: thumbs up/down + directional flag if something's off (too sour / too bitter / too weak / too harsh / astringent)
-6. System diagnoses the issue using ML: the taste predictor evaluates candidate parameter adjustments and prescribes the one with the highest predicted improvement ("for your light-roast Ethiopian, increasing temperature from 91C to 93C improves the predicted score by 1.2 points — the biggest gain across all options")
-7. User adjusts, brews again, gets better coffee
-8. Over time, starting recipes improve as the system learns from accumulated diagnosis history
+1. User adds beans (manual entry: origin, process, roast, flavor profile)
+2. User selects grinder (brand-specific grind recommendations, e.g. "~30 clicks on Comandante C40")
+3. User selects dripper (V60 / Kalita Wave / Origami)
+4. System recommends starting recipe (dose, ratio, grind with grinder-specific setting, water temp, bloom, pour schedule, total time)
+5. User brews with step-by-step guide showing wait times and cumulative water totals
+6. User reports result: thumbs up/down + directional flag if something's off (too sour / too bitter / too weak / too harsh / astringent)
+7. System diagnoses the issue using ML: the taste predictor evaluates candidate parameter adjustments and prescribes the one with the highest predicted improvement ("for your light-roast Ethiopian, increasing temperature from 91C to 93C improves the predicted score by 1.2 points — the biggest gain across all options")
+8. User adjusts, brews again, gets better coffee
+9. Over time, starting recipes improve as the system learns from accumulated diagnosis history
 
 ## 6. ML / AI Architecture
 
@@ -67,11 +69,10 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 - Embedding-based retrieval given a query bean profile
 - LLM layer generates natural-language brewing instructions
 
-### 6.2 Bean Profile Feature Extraction (NLP/LLM)
+### 6.2 Bean Profile Input
 
-- Input: free-text roaster description ("Ethiopia Yirgacheffe, washed, light roast, notes of blueberry, jasmine, bergamot")
-- Output: structured feature vector (origin region, process, roast level, flavor cluster)
-- LLM-based extraction with manual entry fallback
+- Input: manual entry form (origin country dropdown, process, roast level, flavor clusters, variety, altitude)
+- Structured feature vector captured directly — no NLP extraction needed
 
 ### 6.3 Taste Score Prediction (Supervised)
 

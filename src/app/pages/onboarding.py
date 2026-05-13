@@ -1,7 +1,7 @@
 """Page: Onboarding. See specs/user-interface.md Section 4.2.
 
-Sequential 4-step wizard that collects roast preference, flavor profiles,
-experience level, and equipment selection to build the user's initial profile.
+Sequential 5-step wizard that collects roast preference, flavor profiles,
+experience level, grinder brand, and equipment selection to build the user's initial profile.
 """
 import logging
 
@@ -35,7 +35,7 @@ _EXPERIENCE_OPTIONS = {
     "I experiment with parameters and recipes": ExperienceLevel.ADVANCED,
 }
 
-# Step 4 dripper labels mapped to BrewMethod enum values
+# Step 5 dripper labels mapped to BrewMethod enum values
 _DRIPPER_OPTIONS = {
     "V60": BrewMethod.V60,
     "Kalita Wave": BrewMethod.KALITA_WAVE,
@@ -193,7 +193,7 @@ def _render_grinder_step():
 
 
 def _render_equipment_step():
-    """Step 4: Equipment selection and onboarding completion."""
+    """Step 5: Equipment selection and onboarding completion."""
     st.subheader("What drippers do you own?")
 
     selected_drippers = []

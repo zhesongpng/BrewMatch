@@ -410,11 +410,24 @@ class RecipeRetriever:
     # -------------------------------------------------------------------
 
     def _get_model(self):
-        """Lazily load the sentence-transformers model."""
+        """Lazily load the sentence-transformers model.
+
+        On Streamlit Cloud, torch may be imported before CUDA_VISIBLE_DEVICES
+        takes effect, causing meta-tensor errors. We force CPU mode and
+        disable CUDA detection before loading.
+        """
         if self._model is None:
             import os
-            os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-            os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+            import torch
+            # Force torch to believe CUDA is unavailable — prevents meta tensor
+            # issues on cloud environments where torch was loaded with CUDA init.
+            torch.cuda.is_available = lambda: False
+            if hasattr(torch.cuda, "is_bf16_supported"):
+                torch.cuda.is_bf16_supported = lambda: False
+
             from sentence_transformers import SentenceTransformer
 
             self._model = SentenceTransformer(

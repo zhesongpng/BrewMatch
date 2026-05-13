@@ -108,7 +108,8 @@ def _on_auth_success(user_id: str, session_token: str, redirect_page: str):
     cm = st.session_state.get("cookie_manager")
     if cm is not None:
         try:
-            cm.set("session_token", session_token)
+            cm["session_token"] = session_token
+            cm.save()
         except Exception:
             _logger.warning("Failed to set session cookie — session may not persist", exc_info=True)
 

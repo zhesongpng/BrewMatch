@@ -223,6 +223,13 @@ def render_sidebar():
             st.session_state.page = "evaluation"
             st.rerun()
 
+        # Admin section — only visible to the hardcoded admin email.
+        from src.app.pages.admin import is_admin
+        if is_admin():
+            if st.button("Admin", use_container_width=True):
+                st.session_state.page = "admin"
+                st.rerun()
+
         # User info section
         st.markdown("---")
         if st.session_state.user_id:
@@ -320,6 +327,7 @@ def main():
         "diagnosis": "src.app.pages.diagnosis",
         "evaluation": "src.app.pages.evaluation",
         "profile": "src.app.pages.profile",
+        "admin": "src.app.pages.admin",
     }
 
     module_name = page_map.get(page, "src.app.pages.landing")

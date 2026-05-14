@@ -69,7 +69,7 @@ def get_db_path() -> str:
         return str(file_path)
     except (OSError, PermissionError):
         # Read-only filesystem (Streamlit Cloud) — use in-memory DB.
-        logger.info("data/ not writable, using in-memory database")
+        _logger.info("data/ not writable, using in-memory database")
         return _CLOUD_DB_URI
 
 
@@ -576,3 +576,58 @@ def delete_user_data(conn: sqlite3.Connection, user_id: str) -> None:
     conn.execute("DELETE FROM brew_history WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
+
+
+def list_all_users(conn: sqlite3.Connection) -> list[dict]:
+    """Return all registered users with their brew count. Admin only."""
+    rows = conn.execute(
+        """
+        SELECT u.user_id, u.email, u.display_name, u.created_at,
+               COUNT(b.brew_id) AS brew_count
+        FROM users u
+        LEFT JOIN brew_history b ON u.user_id = b.user_id
+        GROUP BY u.user_id
+        ORDER BY u.created_at DESC
+        """
+    ).fetchall()
+    return [
+        {
+            "user_id": r["user_id"],
+            "email": r["email"],
+            "display_name": r["display_name"],
+            "created_at": r["created_at"],
+            "brew_count": r["brew_count"],
+        }
+        for r in rows
+    ]
+
+
+def list_all_brews(conn: sqlite3.Connection, limit: int = 100) -> list[dict]:
+    """Return recent brews across all users. Admin only."""
+    rows = conn.execute(
+        """
+        SELECT b.brew_id, b.user_id, b.timestamp,
+               u.email, u.display_name,
+               b.bean_json, b.recipe_json, b.feedback_json
+        FROM brew_history b
+        JOIN users u ON b.user_id = u.user_id
+        ORDER BY b.timestamp DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    results: list[dict] = []
+    for r in rows:
+        results.append(
+            {
+                "brew_id": r["brew_id"],
+                "user_id": r["user_id"],
+                "email": r["email"],
+                "display_name": r["display_name"],
+                "timestamp": r["timestamp"],
+                "bean_profile": _deserialize_bean(r["bean_json"]),
+                "recipe_used": _deserialize_recipe(r["recipe_json"]),
+                "feedback": _deserialize_feedback(r["feedback_json"]),
+            }
+        )
+    return results

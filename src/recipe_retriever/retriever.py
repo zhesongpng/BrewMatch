@@ -440,7 +440,12 @@ class RecipeRetriever:
         if self._collection is None:
             import chromadb
 
-            self._chroma_client = chromadb.PersistentClient(path=self._chroma_persist_dir)
+            try:
+                self._chroma_client = chromadb.PersistentClient(path=self._chroma_persist_dir)
+            except Exception:
+                # Read-only filesystem or RustBindingsAPI issue (Streamlit Cloud).
+                logger.warning("ChromaDB PersistentClient failed, falling back to in-memory")
+                self._chroma_client = chromadb.Client()
             self._collection = self._chroma_client.get_or_create_collection(
                 name="brewmatch_recipes",
                 metadata={"hnsw:space": "cosine"},

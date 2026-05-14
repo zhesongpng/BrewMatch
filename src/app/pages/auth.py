@@ -113,5 +113,8 @@ def _on_auth_success(user_id: str, session_token: str, redirect_page: str):
         except Exception:
             _logger.warning("Failed to set session cookie — session may not persist", exc_info=True)
 
+    if redirect_page == "onboarding":
+        st.session_state.show_welcome = True
+
     st.session_state.page = redirect_page
     st.rerun()

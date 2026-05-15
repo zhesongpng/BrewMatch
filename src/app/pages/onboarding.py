@@ -39,7 +39,6 @@ _DRIPPER_OPTIONS = {
 def render():
     """Render the onboarding wizard page."""
     if st.session_state.pop("show_welcome", False):
-        st.balloons()
         st.success("Account created! Let's set up your profile.")
         st.caption("A few quick questions so we can tailor recipes to your taste.")
     else:

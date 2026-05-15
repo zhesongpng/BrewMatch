@@ -1,7 +1,7 @@
 """Page: Onboarding. See specs/user-interface.md Section 4.2.
 
-Sequential 5-step wizard that collects roast preference, flavor profiles,
-experience level, grinder brand, and equipment selection to build the user's initial profile.
+Sequential 3-step wizard that collects roast preference, flavor profiles,
+grinder brand, and equipment selection to build the user's initial profile.
 """
 import logging
 
@@ -19,7 +19,7 @@ from src.grinder_catalog import get_grinder_options
 
 _logger = logging.getLogger(__name__)
 
-_STEP_COUNT = 5
+_STEP_COUNT = 3
 
 # Step 1 option labels mapped to RoastLevel enum values
 _ROAST_OPTIONS = {
@@ -28,14 +28,7 @@ _ROAST_OPTIONS = {
     "Bold, rich, full-bodied": RoastLevel.MEDIUM_DARK,
 }
 
-# Step 3 option labels mapped to ExperienceLevel enum values
-_EXPERIENCE_OPTIONS = {
-    "I'm new to specialty coffee": ExperienceLevel.BEGINNER,
-    "I brew regularly and know the basics": ExperienceLevel.INTERMEDIATE,
-    "I experiment with parameters and recipes": ExperienceLevel.ADVANCED,
-}
-
-# Step 5 dripper labels mapped to BrewMethod enum values
+# Step 3 dripper labels mapped to BrewMethod enum values
 _DRIPPER_OPTIONS = {
     "V60": BrewMethod.V60,
     "Kalita Wave": BrewMethod.KALITA_WAVE,
@@ -62,10 +55,6 @@ def render():
     elif current_step == 1:
         _render_flavor_step()
     elif current_step == 2:
-        _render_experience_step()
-    elif current_step == 3:
-        _render_grinder_step()
-    elif current_step == 4:
         _render_equipment_step()
     else:
         current_step = 0
@@ -133,39 +122,15 @@ def _render_flavor_step():
             st.rerun()
 
 
-def _render_experience_step():
-    """Step 3: Experience level selection."""
-    st.subheader("How experienced are you with pour-over brewing?")
+def _render_equipment_step():
+    """Step 3: Grinder and dripper selection, then onboarding completion."""
+    st.subheader("What equipment do you use?")
 
-    selected_label = st.radio(
-        "Choose the option that best describes you:",
-        options=list(_EXPERIENCE_OPTIONS.keys()),
-        index=None,
-        key="onboarding_experience_label",
-    )
-
-    col_back, col_next = st.columns([1, 3])
-    with col_back:
-        if st.button("Back", use_container_width=True):
-            st.session_state.onboarding_step = 1
-            st.rerun()
-    with col_next:
-        if st.button("Next", use_container_width=True):
-            if selected_label is None:
-                st.warning("Please select your experience level.")
-                return
-            st.session_state.onboarding_experience = _EXPERIENCE_OPTIONS[selected_label]
-            st.session_state.onboarding_step = 3
-            st.rerun()
-
-
-def _render_grinder_step():
-    """Step 4: Grinder selection."""
-    st.subheader("What grinder do you use?")
-
+    # Grinder selection
+    st.markdown("**Grinder**")
     options = get_grinder_options()
     labels = [label for _, label in options]
-    selected_label = st.selectbox(
+    selected_grinder_label = st.selectbox(
         "Choose your grinder:",
         options=labels,
         index=None,
@@ -173,34 +138,19 @@ def _render_grinder_step():
         key="onboarding_grinder_label",
     )
 
-    if selected_label and selected_label != "Other / not listed":
-        grinder_id = [gid for gid, lbl in options if lbl == selected_label][0]
+    if selected_grinder_label and selected_grinder_label != "Other / not listed":
+        grinder_id = [gid for gid, lbl in options if lbl == selected_grinder_label][0]
         st.caption(
             f"We'll show grind recommendations specific to your "
-            f"{selected_label.split('(')[0].strip()}."
+            f"{selected_grinder_label.split('(')[0].strip()}."
         )
     else:
         grinder_id = "other"
 
-    col_back, col_next = st.columns([1, 3])
-    with col_back:
-        if st.button("Back", use_container_width=True):
-            st.session_state.onboarding_step = 2
-            st.rerun()
-    with col_next:
-        if st.button("Next", use_container_width=True):
-            if selected_label is None:
-                st.warning("Please select your grinder to continue.")
-                return
-            st.session_state.onboarding_grinder = grinder_id
-            st.session_state.onboarding_step = 4
-            st.rerun()
+    st.markdown("---")
 
-
-def _render_equipment_step():
-    """Step 5: Equipment selection and onboarding completion."""
-    st.subheader("What drippers do you own?")
-
+    # Dripper selection
+    st.markdown("**Drippers**")
     selected_drippers = []
     for label, method in _DRIPPER_OPTIONS.items():
         if st.checkbox(label, key=f"dripper_{method.value}"):
@@ -209,14 +159,18 @@ def _render_equipment_step():
     col_back, col_next = st.columns([1, 3])
     with col_back:
         if st.button("Back", use_container_width=True):
-            st.session_state.onboarding_step = 3
+            st.session_state.onboarding_step = 1
             st.rerun()
     with col_next:
         if st.button("Get Started", use_container_width=True):
+            if selected_grinder_label is None:
+                st.warning("Please select your grinder to continue.")
+                return
             if len(selected_drippers) < 1:
                 st.warning("Please select at least one dripper to continue.")
                 return
 
+            st.session_state.onboarding_grinder = grinder_id
             _complete_onboarding(selected_drippers)
 
 
@@ -231,7 +185,7 @@ def _complete_onboarding(drippers: list[BrewMethod]):
     onboarding = Onboarding(
         preferred_clusters=st.session_state.onboarding_flavors_selected,
         roast_preference=st.session_state.onboarding_roast,
-        experience_level=st.session_state.onboarding_experience,
+        experience_level=ExperienceLevel.INTERMEDIATE,
         grinder_id=st.session_state.get("onboarding_grinder"),
     )
 

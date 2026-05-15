@@ -86,7 +86,7 @@ def render():
     cols = st.columns(4)
     steps = [
         ("1", "Describe Your Beans", "Tell us the roast, origin, and flavors."),
-        ("2", "Get a Recipe", "ML picks the best pour-over method and parameters."),
+        ("2", "Get a Recipe", "BrewMatch picks the best pour-over method and parameters."),
         ("3", "Brew & Feedback", "Follow the steps, then rate what went right or wrong."),
         ("4", "Get a Fix", "Specific diagnosis tells you exactly what to adjust."),
     ]

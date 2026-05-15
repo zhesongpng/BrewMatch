@@ -1,4 +1,4 @@
-"""Page: Profile — Display name, drippers, password, stats, logout."""
+"""Page: Profile — Display name, grinder, drippers, password, stats, logout."""
 import logging
 import re
 
@@ -9,10 +9,12 @@ from src.app.db import (
     get_db,
     get_user_stats,
     load_user,
+    update_onboarding,
     update_user_display_name,
     update_user_drippers,
 )
 from src.data_models import BrewMethod
+from src.grinder_catalog import get_grinder_options
 
 
 _logger = logging.getLogger(__name__)
@@ -59,6 +61,9 @@ def render():
     _render_drippers(user_id, user)
     st.markdown("---")
 
+    _render_grinder(user_id, user)
+    st.markdown("---")
+
     _render_change_password(user_id)
     st.markdown("---")
 
@@ -103,6 +108,50 @@ def _render_drippers(user_id, user):
             st.rerun()
         else:
             st.warning("Please select at least one dripper.")
+
+
+def _render_grinder(user_id, user):
+    st.markdown("### Your Grinder")
+    onboarding = st.session_state.get("onboarding")
+    current_grinder_id = getattr(onboarding, "grinder_id", None) if onboarding else None
+
+    options = get_grinder_options()
+    labels = [label for _, label in options]
+
+    # Find current grinder label for default selection.
+    default_index = None
+    if current_grinder_id:
+        for i, (gid, _) in enumerate(options):
+            if gid == current_grinder_id:
+                default_index = i
+                break
+
+    selected_label = st.selectbox(
+        "Grinder",
+        options=labels,
+        index=default_index,
+        key="profile_grinder_label",
+    )
+
+    if st.button("Save Grinder", key="save_grinder_btn"):
+        grinder_id = "other"
+        if selected_label and selected_label != "Other / not listed":
+            matches = [gid for gid, lbl in options if lbl == selected_label]
+            if matches:
+                grinder_id = matches[0]
+
+        # Update the onboarding object in session state and DB.
+        if onboarding:
+            from dataclasses import replace
+            onboarding = replace(onboarding, grinder_id=grinder_id)
+            st.session_state.onboarding = onboarding
+
+            drippers = st.session_state.get("drippers")
+            with get_db() as conn:
+                update_onboarding(conn, user_id, onboarding, drippers)
+
+        st.success("Grinder updated.")
+        st.rerun()
 
 
 def _render_change_password(user_id):

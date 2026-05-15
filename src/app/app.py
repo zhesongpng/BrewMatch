@@ -245,6 +245,9 @@ def render_sidebar():
             if st.button("Sign In", use_container_width=True):
                 st.session_state.page = "auth"
                 st.rerun()
+            if st.button("Create Account", use_container_width=True):
+                st.session_state.page = "auth"
+                st.rerun()
 
 
 _DEMO_EMAIL = "demo@brewmatch.com"

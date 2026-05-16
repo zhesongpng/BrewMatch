@@ -8,6 +8,7 @@ import logging
 import streamlit as st
 
 from src.app.utils import escape_markdown
+from src.grinder_catalog import get_grinder_display
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,12 @@ def _render_brew_list(user_id: str):
                 st.markdown(f"**Dose:** {recipe.dose_g:.1f} g  |  **Ratio:** 1:{recipe.ratio:.2f}")
             with col2:
                 st.markdown(f"**Water Temp:** {recipe.water_temp_c:.0f} C")
-                st.markdown(f"**Grind:** {recipe.grind_setting}")
+                grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+                grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
+                if grinder_display:
+                    st.markdown(f"**Grind:** {recipe.grind_setting}/10 — {grinder_display}")
+                else:
+                    st.markdown(f"**Grind:** {recipe.grind_setting}/10")
                 st.markdown(f"**Bloom:** {recipe.bloom_time_s} s  |  **Total:** {recipe.total_time_s} s")
 
             if flag_str:

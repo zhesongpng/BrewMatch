@@ -112,7 +112,7 @@ def _render_drippers(user_id, user):
 
 def _render_grinder(user_id, user):
     st.markdown("### Your Grinder")
-    onboarding = st.session_state.get("onboarding")
+    onboarding = user.get("onboarding")
     current_grinder_id = getattr(onboarding, "grinder_id", None) if onboarding else None
 
     options = get_grinder_options()
@@ -140,13 +140,14 @@ def _render_grinder(user_id, user):
             if matches:
                 grinder_id = matches[0]
 
-        # Update the onboarding object in session state and DB.
+        # Update the onboarding object from DB source, not session state.
         if onboarding:
             from dataclasses import replace
             onboarding = replace(onboarding, grinder_id=grinder_id)
             st.session_state.onboarding = onboarding
 
-            drippers = st.session_state.get("drippers")
+            # Read drippers from DB user dict, not session state.
+            drippers = user.get("drippers") or []
             with get_db() as conn:
                 update_onboarding(conn, user_id, onboarding, drippers)
 

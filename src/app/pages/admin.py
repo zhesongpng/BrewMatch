@@ -7,6 +7,7 @@ import logging
 import streamlit as st
 
 from src.app.db import get_db
+from src.app.utils import escape_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ def _render_all_brews():
                 flag_str = " | ".join(f.replace("_", " ").title() for f in flags)
                 st.warning(f"Flags: {flag_str}")
             if feedback.notes:
-                st.markdown(f"**Notes:** {feedback.notes}")
+                st.markdown(f"**Notes:** {escape_markdown(feedback.notes)}")
 
             st.caption(_format_timestamp(b["timestamp"]))
 

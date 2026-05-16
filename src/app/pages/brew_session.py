@@ -227,6 +227,8 @@ def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
             st.error("Could not save brew record. Please try again.")
             logger.debug("Brew save failed", exc_info=True)
             return
+    else:
+        st.warning("Not logged in — brew not saved. Sign in to track your history.")
 
     # Update personalization engine.
     pe = st.session_state.get("personalization_engine")
@@ -245,7 +247,8 @@ def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
     for flag_key in DIRECTIONAL_FLAGS:
         st.session_state.pop(f"flag_{flag_key}", None)
 
-    st.success("Brew recorded!")
+    if user_id:
+        st.success("Brew recorded!")
 
     # Navigate based on feedback.
     if flags:

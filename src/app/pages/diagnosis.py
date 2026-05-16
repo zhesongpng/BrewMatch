@@ -16,6 +16,7 @@ from src.data_models import (
     BrewRecord,
     Recipe,
 )
+from src.grinder_catalog import get_grinder_display
 
 # Rule-based fallback: maps each directional flag to a human-readable
 # assessment and actionable suggestions.
@@ -240,7 +241,12 @@ def _render_rule_based_diagnosis(flags: list[str], recipe: Recipe):
     st.markdown("**Current recipe parameters:**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Grind", recipe.grind_setting)
+        grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+        grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
+        if grinder_display:
+            st.metric("Grind", f"{recipe.grind_setting}/10", delta=grinder_display)
+        else:
+            st.metric("Grind", f"{recipe.grind_setting}/10")
         st.metric("Dose", f"{recipe.dose_g:.1f} g")
     with col2:
         st.metric("Water Temp", f"{recipe.water_temp_c:.0f} C")
@@ -253,7 +259,7 @@ def _render_rule_based_diagnosis(flags: list[str], recipe: Recipe):
 def _get_current_param(recipe: Recipe, param_label: str) -> str:
     """Return a display string for the current value of a parameter."""
     mapping = {
-        "Grind": lambda r: str(r.grind_setting),
+        "Grind": lambda r: _format_grind_param(r),
         "Water Temp": lambda r: f"{r.water_temp_c:.0f} C",
         "Dose": lambda r: f"{r.dose_g:.1f} g",
         "Ratio": lambda r: f"1:{r.ratio:.2f}",
@@ -263,6 +269,14 @@ def _get_current_param(recipe: Recipe, param_label: str) -> str:
     if getter:
         return getter(recipe)
     return ""
+
+
+def _format_grind_param(recipe: Recipe) -> str:
+    grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+    grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
+    if grinder_display:
+        return f"{recipe.grind_setting}/10 ({grinder_display})"
+    return f"{recipe.grind_setting}/10"
 
 
 def _render_extraction_theory():

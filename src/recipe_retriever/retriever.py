@@ -430,9 +430,22 @@ class RecipeRetriever:
 
             from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(
-                self._embedding_model_name, device="cpu",
-            )
+            # `low_cpu_mem_usage=True` (the transformers/accelerate default on
+            # some cloud builds) initialises weights on the "meta" device and
+            # then calls `.to("cpu")`, which raises "Cannot copy out of meta
+            # tensor; no data!". Forcing it off loads real weights directly on
+            # CPU. Older sentence-transformers lack `model_kwargs`, so fall
+            # back to the plain constructor.
+            try:
+                self._model = SentenceTransformer(
+                    self._embedding_model_name,
+                    device="cpu",
+                    model_kwargs={"low_cpu_mem_usage": False},
+                )
+            except TypeError:
+                self._model = SentenceTransformer(
+                    self._embedding_model_name, device="cpu",
+                )
         return self._model
 
     def _get_collection(self):
@@ -497,8 +510,19 @@ class RecipeRetriever:
         self._recipes = {r.recipe_id: r for r in recipes}
         self._recipe_texts = {rid: recipe_to_text(r) for rid, r in self._recipes.items()}
 
-        self._build_dense_index()
+        # Sparse (BM25) is pure Python with no model dependency — build it
+        # first so retrieval always works. The dense (embedding) index is a
+        # best-effort enhancement: on constrained cloud environments the
+        # sentence-transformers model can fail to load (meta-tensor error),
+        # and that MUST degrade to keyword search, not break the feature.
         self._build_sparse_index()
+        try:
+            self._build_dense_index()
+        except Exception as exc:
+            logger.warning(
+                "Dense index unavailable (%s) — falling back to BM25-only "
+                "keyword retrieval", exc,
+            )
 
     def _build_dense_index(self) -> None:
         """Build ChromaDB collection from indexed recipes."""
@@ -747,9 +771,19 @@ class RecipeRetriever:
             except ValueError:
                 logger.warning("Unknown brew method in preferences: %s", name)
 
-        # Build query text and embedding (cached)
+        # Build query text and embedding (cached). The embedding is
+        # best-effort: if the model is unavailable (e.g. meta-tensor failure
+        # on cloud) we proceed with an empty embedding and _hybrid_retrieve
+        # falls back to BM25-only ranking rather than raising.
         query_text = bean_to_query_text(bean_profile)
-        query_emb = self._get_query_embedding(query_text)
+        try:
+            query_emb = self._get_query_embedding(query_text)
+        except Exception as exc:
+            logger.warning(
+                "Query embedding unavailable (%s) — using BM25-only retrieval",
+                exc,
+            )
+            query_emb = []
 
         # Stage 2: Hybrid retrieval
         rrf_scores = self._hybrid_retrieve(query_text, query_emb)

@@ -16,6 +16,12 @@ Two bugs were found during the Milestone 5 demo walkthrough:
 3. The evaluation dashboard read ``models/`` via a bare relative path.
    Streamlit Cloud runs the app from a temp directory, so the dashboard
    resolved no data and showed "Not yet evaluated" for every metric.
+
+4. The sentence-transformers embedding model fails to load on Streamlit
+   Cloud with "Cannot copy out of meta tensor; no data!". This left the
+   retriever with recipes loaded but no search index, and retrieval
+   hard-failed with "Could not retrieve recipes". Retrieval must degrade
+   to BM25-only keyword search when the embedding model is unavailable.
 """
 
 from __future__ import annotations
@@ -128,3 +134,46 @@ class TestEvaluationDashboardPathResolution:
             "CWD — path resolution regressed to relative"
         )
         assert "taste_prediction" in data
+
+
+@pytest.mark.regression
+class TestRetrievalDegradesWithoutEmbeddingModel:
+    """Recipe retrieval must fall back to BM25 if the embedding model fails."""
+
+    def test_index_and_retrieve_survive_model_failure(self):
+        from src.data_models import BeanProfile, Process, RoastLevel
+        from src.recipe_retriever.retriever import RecipeRetriever
+
+        r = RecipeRetriever(chroma_persist_dir=None)
+
+        # Reproduce the exact Streamlit Cloud failure.
+        def _meta_tensor_failure(*args, **kwargs):
+            raise RuntimeError("Cannot copy out of meta tensor; no data!")
+
+        r._get_model = _meta_tensor_failure
+
+        # Indexing must NOT raise and MUST still build the BM25 index.
+        r.index_recipes("data/recipes")
+        assert r._recipes, "recipes failed to load"
+        assert r._bm25 is not None, (
+            "BM25 index was not built — a model failure during dense "
+            "indexing skipped the sparse index (non-atomic indexing)"
+        )
+
+        # Retrieval must return recipes via BM25, not raise RuntimeError.
+        bean = BeanProfile(
+            origin_country="Ethiopia",
+            process=Process.WASHED,
+            roast_level=RoastLevel.LIGHT,
+            flavor_clusters=["Floral", "Citrus"],
+            source_text="jasmine lemon blueberry",
+        )
+        result = r.retrieve(
+            bean,
+            {"brew_methods": ["V60", "Kalita Wave", "Origami"]},
+            top_k=3,
+        )
+        assert result.recipes, (
+            "retrieval hard-failed with the embedding model unavailable — "
+            "BM25-only degradation is not working"
+        )

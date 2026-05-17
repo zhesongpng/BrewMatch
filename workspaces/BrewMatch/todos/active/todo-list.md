@@ -5,6 +5,17 @@ Date: 2026-05-09
 
 ---
 
+> **Completion status (2026-05-17):** Milestones 1–5 are complete and the app
+> is deployed and verified on Streamlit Cloud. The unchecked `[ ]` boxes in
+> the per-milestone files are stale tracking artifacts, not outstanding work —
+> the codebase is built (661 tests passing), all evaluation artifacts exist in
+> `models/`, and the report is finalized. See journal entries 0019–0021 for the
+> deployment, cloud-mode bug, and evaluation-honesty record. Only remaining
+> deferred item: persistent-database migration (accounts/history reset on
+> cloud restart — accepted limitation for the course demo).
+
+---
+
 ## Decisions Resolved
 
 - **RT2-13**: Keep 5 directional flags (too_sour, too_bitter, too_weak, too_harsh, astringent). Brief updated.

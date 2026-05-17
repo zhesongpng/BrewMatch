@@ -5,12 +5,17 @@ Depends on: Milestone 4 complete (evaluation results generated)
 
 ---
 
-- [ ] **Update brief to reflect 5 directional flags**
-  - Add "astringent" to brief Section 4 feedback list
-  - Add "astringent" to brief Section 5 core flow step 5
+- [x] **Update brief to reflect 5 directional flags**
+  - Already complete — brief Section 4 and Section 5 step 6 already list all
+    five flags (too sour / too bitter / too weak / too harsh / astringent)
 
-- [ ] **Final demo walkthrough and polish**
-  - Full demo flow: landing → demo mode → Alex's profile → bean input → recommendation → brew → feedback → diagnosis → history
-  - Verify all evaluation dashboard metrics display correctly
-  - Test both demo mode (in-memory) and production mode (file-based SQLite)
-  - Backup screenshots for live demo failure scenario
+- [x] **Final demo walkthrough and polish**
+  - Full demo flow verified end-to-end programmatically (landing → demo
+    login → Alex's profile → bean input → recommendation → brew → feedback
+    → diagnosis → history) — all 9 steps green
+  - Evaluation dashboard data loading verified (fixed CWD-relative path bug)
+  - Both demo mode (in-memory) and production mode (file SQLite) tested;
+    three cloud-only bugs found and fixed (in-memory DB wipe, missing demo
+    drippers, eval dashboard path) — guarded by 5 regression tests
+  - Backup screenshots: NOT done — requires a browser; must be captured
+    manually from the live app after this deploy

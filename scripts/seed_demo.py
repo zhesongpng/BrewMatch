@@ -60,6 +60,11 @@ ALEX_PREFERENCES = LearnedPreferences(
     preferred_ratio_range=(15.0, 16.5),
 )
 
+# Alex's brews span all three pour-over drippers, so the demo profile
+# reflects ownership of each. Without this the profile/recommend pages
+# show no equipment for the showcase account.
+ALEX_DRIPPERS = [BrewMethod.V60, BrewMethod.KALITA_WAVE, BrewMethod.ORIGAMI]
+
 
 # ---------------------------------------------------------------------------
 # Deterministic UUID helper
@@ -484,7 +489,7 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
     delete_user_data(conn, ALEX_USER_ID)
 
     # Save Alex's user profile
-    save_user(conn, ALEX_USER_ID, ALEX_ONBOARDING)
+    save_user(conn, ALEX_USER_ID, ALEX_ONBOARDING, drippers=ALEX_DRIPPERS)
     update_preferences(conn, ALEX_USER_ID, ALEX_PREFERENCES)
 
     # Generate 15 brews spanning 30 days, one every ~2 days
@@ -537,7 +542,7 @@ def seed_demo_data_for_user(
     onboarding = onboarding or ALEX_ONBOARDING
     preferences = preferences or ALEX_PREFERENCES
 
-    save_user(conn, user_id, onboarding)
+    save_user(conn, user_id, onboarding, drippers=ALEX_DRIPPERS)
     update_preferences(conn, user_id, preferences)
 
     now = datetime.now(timezone.utc)

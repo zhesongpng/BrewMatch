@@ -11,7 +11,11 @@ from pathlib import Path
 import streamlit as st
 
 
-_EVALUATION_PATH = Path("models/evaluation_results.json")
+# Resolve models/ relative to the repo root (not the CWD). Streamlit Cloud
+# runs the app from a temp directory, so a bare relative path would not
+# resolve and the dashboard would show no data. Mirrors model.py::MODELS_DIR.
+_MODELS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "models"
+_EVALUATION_PATH = _MODELS_DIR / "evaluation_results.json"
 
 
 def _load_evaluation_data() -> dict | None:
@@ -251,7 +255,7 @@ def _render_taste_prediction(data: dict):
             st.altair_chart(chart, use_container_width=True)
 
         # Learning curve chart.
-        learning_path = Path("models/learning_curves.json")
+        learning_path = _MODELS_DIR / "learning_curves.json"
         if learning_path.is_file() and _try_altair() and _try_pandas():
             import altair as alt
             import pandas as pd

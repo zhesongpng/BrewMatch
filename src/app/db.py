@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sqlite3
+import threading
 from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -73,6 +74,37 @@ def get_db_path() -> str:
         return _CLOUD_DB_URI
 
 
+# A shared-cache in-memory SQLite database (``file:name?mode=memory&cache=shared``)
+# is destroyed the moment its LAST open connection closes. The app opens and
+# closes connections serially with no overlap, so without a long-lived holder
+# the database is wiped between every operation — the demo account is never
+# created and registrations never persist. Holding one connection open for the
+# process lifetime keeps the in-memory database alive.
+_keepalive_conns: dict[str, sqlite3.Connection] = {}
+_keepalive_lock = threading.Lock()
+
+
+def _is_in_memory_uri(path: str) -> bool:
+    return path.startswith("file:") and "mode=memory" in path
+
+
+def _ensure_keepalive(path: str) -> None:
+    """Open and retain one process-lifetime connection for an in-memory URI.
+
+    The connection is intentionally never closed: it exists solely to keep the
+    shared-cache in-memory database from being dropped when transient
+    connections close.
+    """
+    if path in _keepalive_conns:
+        return
+    with _keepalive_lock:
+        if path in _keepalive_conns:
+            return
+        conn = sqlite3.connect(path, timeout=10, uri=True, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        _keepalive_conns[path] = conn
+
+
 def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Return a new SQLite connection with ``row_factory = sqlite3.Row``.
 
@@ -82,7 +114,9 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """
     path = db_path if db_path is not None else get_db_path()
     is_uri = path.startswith("file:")
-    if not is_uri and path != ":memory:":
+    if _is_in_memory_uri(path):
+        _ensure_keepalive(path)
+    elif not is_uri and path != ":memory:":
         parent = Path(path).parent
         parent.mkdir(parents=True, exist_ok=True)
         parent.chmod(0o700)

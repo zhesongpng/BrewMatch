@@ -278,6 +278,12 @@ The application is deployed on Streamlit Cloud, automatically rebuilding on ever
 - The ChromaDB vector index falls back to in-memory mode on the read-only cloud filesystem. This means recipe indexing rebuilds on every server restart (takes ~2 seconds for 47 recipes — negligible).
 - A demo account (`demo@brewmatch.com` / `brewmatch`) is auto-seeded on startup with 15 pre-built brews showing a realistic learning curve, so evaluators can immediately see the full experience without creating their own data.
 
+**Cloud in-memory hardening (Milestone 5):** The cloud's in-memory database fallback required three fixes, each now covered by regression tests in `tests/regression/test_demo_mode_persistence.py`:
+
+- A shared-cache in-memory SQLite database is dropped the moment its last connection closes. Because the app opened and closed connections serially with no overlap, the database was wiped between every operation — the demo account was never created and registrations did not persist within a session. Fixed by holding one process-lifetime keep-alive connection per in-memory database.
+- The demo account is now seeded with all three pour-over drippers (V60, Kalita Wave, Origami), matching Alex's brew history, so the showcase profile displays equipment.
+- The evaluation dashboard now resolves the `models/` metrics directory relative to the repository root rather than the working directory, so it displays correctly when Streamlit Cloud runs the app from a temporary directory.
+
 ---
 
 ## 7. Known Limitations

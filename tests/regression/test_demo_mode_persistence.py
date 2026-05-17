@@ -22,6 +22,10 @@ Two bugs were found during the Milestone 5 demo walkthrough:
    retriever with recipes loaded but no search index, and retrieval
    hard-failed with "Could not retrieve recipes". Retrieval must degrade
    to BM25-only keyword search when the embedding model is unavailable.
+
+5. The optimization comparison showed grind on the bare 1-10 scale while
+   the recipe card showed grinder-specific clicks — confusingly
+   inconsistent. Both must use the same grinder-aware formatting.
 """
 
 from __future__ import annotations
@@ -176,4 +180,59 @@ class TestRetrievalDegradesWithoutEmbeddingModel:
         assert result.recipes, (
             "retrieval hard-failed with the embedding model unavailable — "
             "BM25-only degradation is not working"
+        )
+
+
+@pytest.mark.regression
+class TestGrindDisplayConsistency:
+    """Optimization grind display must match the recipe card (grinder-aware)."""
+
+    def _set_grinder(self, grinder_id):
+        import streamlit as st
+        from src.app.pages import recommend
+        from src.data_models import (
+            ExperienceLevel,
+            Onboarding,
+            RoastLevel,
+        )
+
+        class _SS(dict):
+            pass
+
+        ss = _SS()
+        if grinder_id is not None:
+            ss["onboarding"] = Onboarding(
+                preferred_clusters=["Berry"],
+                roast_preference=RoastLevel.LIGHT,
+                experience_level=ExperienceLevel.INTERMEDIATE,
+                grinder_id=grinder_id,
+            )
+        recommend.st.session_state = ss
+        return recommend
+
+    def test_grinder_clicks_shown_when_configured(self):
+        recommend = self._set_grinder("comandante-c40")
+        out = recommend._format_grind(5)
+        assert "Comandante C40" in out and "clicks" in out, (
+            "grind display dropped grinder-specific clicks — optimization "
+            "would show a bare /10 inconsistent with the recipe card"
+        )
+        assert "(5/10)" in out  # scale kept as secondary reference
+
+    def test_continuous_optimizer_value_rounded_to_step(self):
+        recommend = self._set_grinder("comandante-c40")
+        # Optimizer emits continuous values; must round to a whole step
+        # so the grinder mapping (keyed to whole steps) resolves.
+        assert recommend._format_grind(7.3).startswith(
+            recommend._format_grind(7).split(" ")[0]
+        )
+        assert "(7/10)" in recommend._format_grind(7.3)
+
+    def test_falls_back_to_scale_without_grinder(self):
+        recommend = self._set_grinder(None)
+        out = recommend._format_grind(5)
+        assert "(5/10)" in out
+        assert "clicks" not in out and "—" not in out, (
+            "no grinder configured — must fall back to the 1-10 scale "
+            "rather than show an empty grind field"
         )

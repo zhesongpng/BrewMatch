@@ -27,6 +27,24 @@ _GRIND_LABELS = {
 }
 
 
+def _format_grind(grind_value: float) -> str:
+    """Format a grind setting for display.
+
+    Returns the grinder-specific clicks when the user has a grinder
+    configured (e.g. "Medium (5/10) — ~22 clicks on Comandante C40"),
+    otherwise the 1-10 scale alone. The optimizer produces continuous
+    values, so round to the nearest whole step before translating —
+    grinder mappings are keyed to whole steps.
+    """
+    step = max(1, min(10, int(round(grind_value))))
+    label = _GRIND_LABELS.get(step, str(step))
+    grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
+    grinder_display = get_grinder_display(grinder_id, step)
+    if grinder_display:
+        return f"{label} ({step}/10) — {grinder_display}"
+    return f"{label} ({step}/10)"
+
+
 def render():
     """Render the recipe recommendation page."""
     st.title("Recommended Recipes")
@@ -157,13 +175,7 @@ def _render_recipe_card(
             st.markdown(f"**Dose:** {recipe.dose_g:.1f} g")
             st.markdown(f"**Ratio:** 1:{recipe.ratio:.1f}")
         with param_col2:
-            grind_label = _GRIND_LABELS.get(recipe.grind_setting, str(recipe.grind_setting))
-            grinder_id = getattr(st.session_state.get("onboarding"), "grinder_id", None)
-            grinder_display = get_grinder_display(grinder_id, recipe.grind_setting)
-            if grinder_display:
-                st.markdown(f"**Grind:** {grind_label} ({recipe.grind_setting}/10) — {grinder_display}")
-            else:
-                st.markdown(f"**Grind:** {grind_label} ({recipe.grind_setting}/10)")
+            st.markdown(f"**Grind:** {_format_grind(recipe.grind_setting)}")
             st.markdown(f"**Temp:** {recipe.water_temp_c:.0f} C")
         with param_col3:
             st.markdown(f"**Bloom:** {recipe.bloom_time_s}s")
@@ -247,13 +259,13 @@ def _run_optimization(
             opt_col1, opt_col2 = st.columns(2)
             with opt_col1:
                 st.markdown("**Original**")
-                st.markdown(f"- Grind: {recipe.grind_setting}/10")
+                st.markdown(f"- Grind: {_format_grind(recipe.grind_setting)}")
                 st.markdown(f"- Temp: {recipe.water_temp_c:.0f} C")
                 st.markdown(f"- Dose: {recipe.dose_g:.1f}g")
                 st.markdown(f"- Ratio: 1:{recipe.ratio:.1f}")
             with opt_col2:
                 st.markdown("**Optimized**")
-                st.markdown(f"- Grind: {optimized.grind_setting}/10")
+                st.markdown(f"- Grind: {_format_grind(optimized.grind_setting)}")
                 st.markdown(f"- Temp: {optimized.water_temp_c:.0f} C")
                 st.markdown(f"- Dose: {optimized.dose_g:.1f}g")
                 st.markdown(f"- Ratio: 1:{optimized.ratio:.1f}")
@@ -262,7 +274,13 @@ def _run_optimization(
                 st.markdown("**Changes:**")
                 for param, (old, new) in result.parameter_changes.items():
                     label = param.replace("_", " ").title()
-                    st.markdown(f"- {label}: {old:.1f} -> {new:.1f}")
+                    if param == "grind_setting":
+                        st.markdown(
+                            f"- {label}: {_format_grind(old)} -> "
+                            f"{_format_grind(new)}"
+                        )
+                    else:
+                        st.markdown(f"- {label}: {old:.1f} -> {new:.1f}")
 
             if st.button(
                 f"Start Brewing with Optimized Recipe",

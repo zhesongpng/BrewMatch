@@ -270,7 +270,7 @@ A full security and quality audit was conducted, identifying and resolving 5 iss
 
 ## 6. Deployment
 
-The application is deployed on Streamlit Cloud, automatically rebuilding on every push to the `main` branch. The production URL is accessible publicly.
+The application is deployed on Streamlit Cloud, automatically rebuilding on every push to the `main` branch. The production URL is accessible publicly. The deployed app has been verified end-to-end in the live cloud environment: demo login, bean input, recipe recommendation, brew session, feedback, diagnosis, history, and the evaluation dashboard all function correctly.
 
 **Infrastructure notes:**
 
@@ -278,11 +278,13 @@ The application is deployed on Streamlit Cloud, automatically rebuilding on ever
 - The ChromaDB vector index falls back to in-memory mode on the read-only cloud filesystem. This means recipe indexing rebuilds on every server restart (takes ~2 seconds for 47 recipes — negligible).
 - A demo account (`demo@brewmatch.com` / `brewmatch`) is auto-seeded on startup with 15 pre-built brews showing a realistic learning curve, so evaluators can immediately see the full experience without creating their own data.
 
-**Cloud in-memory hardening (Milestone 5):** The cloud's in-memory database fallback required three fixes, each now covered by regression tests in `tests/regression/test_demo_mode_persistence.py`:
+**Cloud robustness hardening (Milestone 5):** Local development used file-based SQLite and a working embedding model, so the test suite validated a code path the cloud never runs. The Milestone 5 demo walkthrough exercised the app the way Streamlit Cloud actually runs it and uncovered five issues — all now fixed and covered by regression tests in `tests/regression/test_demo_mode_persistence.py` (see journal entries 0020–0021 for the full record):
 
-- A shared-cache in-memory SQLite database is dropped the moment its last connection closes. Because the app opened and closed connections serially with no overlap, the database was wiped between every operation — the demo account was never created and registrations did not persist within a session. Fixed by holding one process-lifetime keep-alive connection per in-memory database.
-- The demo account is now seeded with all three pour-over drippers (V60, Kalita Wave, Origami), matching Alex's brew history, so the showcase profile displays equipment.
-- The evaluation dashboard now resolves the `models/` metrics directory relative to the repository root rather than the working directory, so it displays correctly when Streamlit Cloud runs the app from a temporary directory.
+- **In-memory database wiped between operations.** A shared-cache in-memory SQLite database is dropped the moment its last connection closes. Because the app opened and closed connections serially with no overlap, the database was wiped between every operation — the demo account was never created and registrations did not persist within a session. Fixed by holding one process-lifetime keep-alive connection per in-memory database.
+- **Demo account had no equipment.** The demo account is now seeded with all three pour-over drippers (V60, Kalita Wave, Origami), matching Alex's brew history, so the showcase profile displays equipment.
+- **Evaluation dashboard showed no data.** It now resolves the `models/` metrics directory relative to the repository root rather than the working directory, so it displays correctly when Streamlit Cloud runs the app from a temporary directory.
+- **Recipe retrieval hard-failed when the embedding model could not load.** The semantic-search model fails on Streamlit Cloud with a meta-tensor error. Retrieval now degrades gracefully to keyword (BM25) ranking instead of erroring, so recipes are always returned; semantic ranking is a best-effort enhancement on top.
+- **Inconsistent grind display.** The recipe card showed grinder-specific clicks while the optimizer showed only the bare 1–10 scale. Both now use one shared formatter, so grind reads consistently (in clicks when a grinder is configured, on the 1–10 scale otherwise).
 
 ---
 

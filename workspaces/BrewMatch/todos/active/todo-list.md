@@ -1,46 +1,104 @@
-# BrewMatch Master Todo List
+# BrewMatch — Master Todo List
 
-Status: Pending human approval
-Date: 2026-05-09
-
----
-
-> **Completion status (2026-05-17):** Milestones 1–5 are complete and the app
-> is deployed and verified on Streamlit Cloud. The unchecked `[ ]` boxes in
-> the per-milestone files are stale tracking artifacts, not outstanding work —
-> the codebase is built (661 tests passing), all evaluation artifacts exist in
-> `models/`, and the report is finalized. See journal entries 0019–0021 for the
-> deployment, cloud-mode bug, and evaluation-honesty record. Only remaining
-> deferred item: persistent-database migration (accounts/history reset on
-> cloud restart — accepted limitation for the course demo).
+Last updated: 2026-06-10
 
 ---
 
-## Decisions Resolved
+## Where the project is now
 
-- **RT2-13**: Keep 5 directional flags (too_sour, too_bitter, too_weak, too_harsh, astringent). Brief updated.
-- **Diagnosis-first**: Architecture prioritizes diagnosis over personalization (journal 0005).
-- **Pour-over only**: V60, Kalita Wave, Origami (journal 0006).
-- **Optimizer**: 4 tunable parameters (grind, temp, dose, ratio); pour schedule fixed from retrieved recipe.
-- **Demo mode**: In-memory SQLite via `BREWMATCH_DEMO_MODE=true`.
+**The course project is finished and submitted.** Milestones 1–5 (data, ML
+pipeline, web app, evaluation, polish) are all complete. Their finalized
+records live in `todos/completed/`. The app is built, tested (646 tests
+passing), and deployed.
+
+We are now in a **new chapter with a bigger goal: grow BrewMatch from a course
+project into a real product** — reliable enough for daily use, nice enough to
+show people, and eventually a small community of like-minded coffee people
+sharing recipes, with the option to commercialise later.
+
+That vision is sequenced so each phase delivers something usable on its own and
+nothing has to be rebuilt later:
+
+| Phase       | Goal                                                            | Status         |
+| ----------- | --------------------------------------------------------------- | -------------- |
+| **Phase 1** | Stop the live app resetting + let it learn from your real brews | 🔜 In progress |
+| **Phase 2** | A nicer, redesigned interface + a real login, on a new host     | ⏳ Planned     |
+| **Phase 3** | Community: share recipes with a group of users                  | 💭 Future      |
+| **Later**   | Commercialisation, once there are real users to learn from      | 💭 Future      |
+
+The order matters: a reliable foundation (Phase 1) before a nice face and real
+accounts (Phase 2) before inviting other people in (Phase 3) before charging
+anyone (Later). Building the foundation on **Supabase** (see Phase 1 decision)
+means the login and community pieces are ready when we reach them — no redo.
 
 ---
 
-## Milestone Index
+## Phase 1 — at a glance
 
-| Milestone                   | File                                           | Todos  | Sessions  | Depends on           |
-| --------------------------- | ---------------------------------------------- | ------ | --------- | -------------------- |
-| **1: Project Setup & Data** | [m1-project-setup.md](m1-project-setup.md)     | 7      | 3-4       | Nothing (start here) |
-| **2: ML Pipeline**          | [m2-ml-pipeline.md](m2-ml-pipeline.md)         | 10     | 4-5       | Milestone 1          |
-| **3: Web Application**      | [m3-web-application.md](m3-web-application.md) | 18     | 5-7       | Milestone 2          |
-| **4: Evaluation**           | [m4-evaluation.md](m4-evaluation.md)           | 8      | 3-4       | Milestone 3          |
-| **5: Polish**               | [m5-polish.md](m5-polish.md)                   | 2      | 1         | Milestone 4          |
-| **Total**                   |                                                | **45** | **16-21** |                      |
+**The problem:** the live online app forgets everything when it restarts —
+accounts, brew history, the lot. This happens often on free Streamlit hosting,
+which is why your logins keep resetting.
 
-## Dependency Order
+**The cause:** the app currently keeps your data in its own temporary memory
+(like a whiteboard inside the app). Every restart wipes the whiteboard.
 
-```
-M1 → M2 → M3 (pages can be built in parallel, wiring is sequential) → M4 → M5
-```
+**The fix:** give the app a _permanent database_ — a separate filing cabinet
+that lives on the internet and survives restarts — and point the live app at
+it. Then build the part you most wanted: the app learning from the brews you
+actually log and rate.
 
-Within Milestone 2: bean extraction and feature encoder can run in parallel. Taste predictor must complete before optimizer and diagnosis engine. Retriever can run in parallel with predictor. Personalization depends on predictor.
+**When Phase 1 is done, two things are true:**
+
+1. You stay logged in and your brew history never disappears.
+2. The more real brews you log and rate, the more the recommendations bend
+   toward _your_ taste.
+
+➡️ **Step-by-step task list:**
+`active/p1-live-persistence-and-learning-loop.md`
+
+---
+
+## Phase 2 — planned (not started)
+
+Redesign the look-and-feel with full design control, add a **real login**
+(social sign-in, password reset, email verification — using Supabase's built-in
+accounts), and move onto a host that isn't Streamlit. We lock in the exact
+tools when we get here; all of Phase 1's work (database + learning) carries over
+unchanged. No detailed tasks yet — we plan this once Phase 1 lands.
+
+## Phase 3 — future (community)
+
+Open it up so a group of like-minded people can join, log their own brews, and
+share recipes with each other. This is where BrewMatch stops being a solo tool
+and becomes a small community. Built on the same Supabase foundation, so the
+accounts and permissions are already in place. We plan this in detail after
+Phase 2.
+
+## Later — commercialisation (deliberately last)
+
+The recommended order is: prove it's reliable (Phase 1) → make it nice with real
+accounts (Phase 2) → get a handful of real users sharing recipes (Phase 3) →
+_then_ explore charging. Trying to monetise before there are engaged users is
+the most common way small products stall. The genuine asset to build toward is
+the brew data: a community logging real cups creates something generic coffee
+apps don't have. No tasks here yet — this is a marker, not active work.
+
+---
+
+## Key product decisions already on record
+
+(Kept for context — these are settled, not open questions.)
+
+- **Scope:** pour-over only — V60, Kalita Wave, Origami.
+- **Diagnosis-first:** the app is a troubleshooting tool first, personalization
+  second.
+- **Five taste flags:** too sour, too bitter, too weak, too harsh, astringent.
+- **Optimizer:** tunes 4 things (grind, temperature, dose, ratio); the pour
+  schedule comes fixed from the retrieved recipe.
+
+---
+
+## Archived: course submission (Milestones 1–5)
+
+All complete. Finalized records are in `todos/completed/`. Nothing in those
+milestones is outstanding — they are kept only for history.

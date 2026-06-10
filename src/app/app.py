@@ -320,15 +320,20 @@ def main():
     restore_session()
     load_models()
 
-    # Initialize DB schema once at startup.
+    # Initialize DB schema once at startup. Log the active backend and the
+    # outcome at WARNING so they are always visible in the hosting logs — a
+    # missing/incorrect DATABASE_URL otherwise fails silently.
     try:
-        from src.app.db import get_connection, init_db
+        from src.app.db import active_backend, get_connection, init_db
 
+        backend = active_backend()
+        logger.warning("BrewMatch startup: database backend = %s", backend)
         conn = get_connection()
         init_db(conn)
         conn.close()
+        logger.warning("BrewMatch startup: database READY (backend = %s)", backend)
     except Exception as exc:
-        logger.error("Failed to initialize database: %s", exc)
+        logger.error("BrewMatch startup: database init FAILED — %s", exc)
 
     # Ensure the demo account exists.
     _ensure_demo_account()

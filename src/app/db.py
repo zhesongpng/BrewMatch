@@ -124,6 +124,14 @@ def _is_postgres_url(url: str) -> bool:
     return url.startswith("postgres://") or url.startswith("postgresql://")
 
 
+def active_backend() -> str:
+    """Return the backend get_connection() will use: 'postgres' or 'sqlite'."""
+    url = _database_url()
+    if url and _is_postgres_url(url):
+        return "postgres"
+    return "sqlite"
+
+
 class _PgConn:
     """Thin DB-API wrapper over a psycopg connection.
 

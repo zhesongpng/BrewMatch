@@ -133,20 +133,23 @@ def active_backend() -> str:
 
 
 class _PgConn:
-    """Thin DB-API wrapper over a psycopg connection.
+    """Thin DB-API wrapper over a psycopg2 connection.
 
     Translates SQLite-style ``?`` placeholders to ``%s`` and exposes the
     ``execute`` / ``commit`` / ``close`` surface the query functions in this
-    module rely on, so they run unchanged against PostgreSQL. Rows come back
-    as dict-like mappings, so ``row["column"]`` works the same as it does with
-    ``sqlite3.Row``.
+    module rely on, so they run unchanged against PostgreSQL. A fresh cursor
+    is created per ``execute`` (psycopg2 connections have no top-level
+    ``execute``); rows come back as dict-like mappings via ``RealDictCursor``,
+    so ``row["column"]`` works the same as it does with ``sqlite3.Row``.
     """
 
     def __init__(self, raw: object) -> None:
         self._raw = raw
 
     def execute(self, sql: str, params: tuple = ()):  # noqa: ANN201
-        return self._raw.execute(sql.replace("?", "%s"), tuple(params))
+        cur = self._raw.cursor()
+        cur.execute(sql.replace("?", "%s"), tuple(params))
+        return cur
 
     def commit(self) -> None:
         self._raw.commit()
@@ -160,25 +163,21 @@ class _PgConn:
 
 def _make_pg_connection(url: str) -> _PgConn:
     try:
-        import psycopg
-        from psycopg.rows import dict_row
+        import psycopg2
+        import psycopg2.extras
     except ImportError as exc:  # pragma: no cover - import-time guard
         raise RuntimeError(
-            "PostgreSQL backend requires the 'psycopg' package. "
-            "Install it with: uv pip install 'psycopg[binary]'"
+            "PostgreSQL backend requires the 'psycopg2-binary' package. "
+            "Install it with: uv pip install psycopg2-binary"
         ) from exc
-    # prepare_threshold=None disables prepared statements, required for
-    # compatibility with connection poolers in transaction mode (Supabase).
-    connect_kwargs: dict = {
-        "autocommit": False,
-        "row_factory": dict_row,
-        "prepare_threshold": None,
-    }
+    # RealDictCursor returns dict-like rows so row["col"] works like sqlite3.Row.
+    connect_kwargs: dict = {"cursor_factory": psycopg2.extras.RealDictCursor}
     # Supabase requires TLS. Default to sslmode=require unless the URL already
     # specifies one, so a plain connection string still connects encrypted.
     if "sslmode=" not in url:
         connect_kwargs["sslmode"] = "require"
-    raw = psycopg.connect(url, **connect_kwargs)
+    raw = psycopg2.connect(url, **connect_kwargs)
+    raw.autocommit = False
     return _PgConn(raw)
 
 

@@ -14,4 +14,5 @@ openai>=1.0.0
 bcrypt>=4.0.0
 streamlit-cookies-manager>=0.2.0
 altair>=5.0.0
-psycopg[binary]>=3.1
+# PostgreSQL driver for permanent hosted storage (Supabase)
+psycopg[binary]>=3.2

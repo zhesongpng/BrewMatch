@@ -33,13 +33,21 @@ def _bridge_secrets_to_env() -> None:
     """
     for key in ("DATABASE_URL",):
         if os.environ.get(key):
-            continue
+            return
         try:
             value = st.secrets[key]  # raises if no secrets are configured
         except Exception:
+            try:
+                available = list(st.secrets.keys())
+            except Exception:
+                available = []
+            logger.warning(
+                "startup: secret %r NOT found; available secret keys = %s", key, available
+            )
             continue  # no secrets file / key absent — expected locally
         if value:
             os.environ[key] = str(value)
+            logger.warning("startup: secret %r loaded (length=%d)", key, len(str(value)))
 
 
 _bridge_secrets_to_env()
@@ -314,6 +322,10 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
+    # Re-run the secret bridge inside the script context (in addition to the
+    # import-time call) so st.secrets is fully initialized when we read it.
+    _bridge_secrets_to_env()
 
     init_session_state()
     init_cookie_manager()

@@ -21,6 +21,29 @@ import streamlit as st
 
 logger = logging.getLogger(__name__)
 
+
+def _bridge_secrets_to_env() -> None:
+    """Copy hosted secrets into os.environ so the database layer can read them.
+
+    On Streamlit Community Cloud, configured secrets are exposed via
+    ``st.secrets`` rather than the process environment. The database layer
+    reads ``DATABASE_URL`` from ``os.environ`` (uniform across local and
+    hosted), so we bridge it here at startup. Any environment value already
+    present wins, so local ``.env`` / shell settings are never overridden.
+    """
+    for key in ("DATABASE_URL",):
+        if os.environ.get(key):
+            continue
+        try:
+            value = st.secrets[key]  # raises if no secrets are configured
+        except Exception:
+            continue  # no secrets file / key absent — expected locally
+        if value:
+            os.environ[key] = str(value)
+
+
+_bridge_secrets_to_env()
+
 _PUBLIC_PAGES = {"landing", "auth"}
 
 

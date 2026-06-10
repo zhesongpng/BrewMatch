@@ -105,13 +105,98 @@ def _ensure_keepalive(path: str) -> None:
         _keepalive_conns[path] = conn
 
 
-def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
-    """Return a new SQLite connection with ``row_factory = sqlite3.Row``.
+# ---------------------------------------------------------------------------
+# PostgreSQL backend (permanent storage for the hosted app)
+#
+# When DATABASE_URL points at a PostgreSQL server (e.g. Supabase), the app
+# stores data there so it survives restarts. The local SQLite path is left
+# unchanged: tests and local runs keep using it exactly as before.
+# ---------------------------------------------------------------------------
 
-    For file-based databases the parent directory is created automatically.
-    In-memory demo mode uses URI-style shared cache so all connections
-    reference the same database.
+
+def _database_url() -> Optional[str]:
+    """Return the configured PostgreSQL URL, or None to use SQLite."""
+    url = os.environ.get("DATABASE_URL", "").strip()
+    return url or None
+
+
+def _is_postgres_url(url: str) -> bool:
+    return url.startswith("postgres://") or url.startswith("postgresql://")
+
+
+class _PgConn:
+    """Thin DB-API wrapper over a psycopg connection.
+
+    Translates SQLite-style ``?`` placeholders to ``%s`` and exposes the
+    ``execute`` / ``commit`` / ``close`` surface the query functions in this
+    module rely on, so they run unchanged against PostgreSQL. Rows come back
+    as dict-like mappings, so ``row["column"]`` works the same as it does with
+    ``sqlite3.Row``.
     """
+
+    def __init__(self, raw: object) -> None:
+        self._raw = raw
+
+    def execute(self, sql: str, params: tuple = ()):  # noqa: ANN201
+        return self._raw.execute(sql.replace("?", "%s"), tuple(params))
+
+    def commit(self) -> None:
+        self._raw.commit()
+
+    def close(self) -> None:
+        self._raw.close()
+
+    def cursor(self):  # noqa: ANN201
+        return self._raw.cursor()
+
+
+def _make_pg_connection(url: str) -> _PgConn:
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError as exc:  # pragma: no cover - import-time guard
+        raise RuntimeError(
+            "PostgreSQL backend requires the 'psycopg' package. "
+            "Install it with: uv pip install 'psycopg[binary]'"
+        ) from exc
+    # prepare_threshold=None disables prepared statements, required for
+    # compatibility with connection poolers in transaction mode (Supabase).
+    connect_kwargs: dict = {
+        "autocommit": False,
+        "row_factory": dict_row,
+        "prepare_threshold": None,
+    }
+    # Supabase requires TLS. Default to sslmode=require unless the URL already
+    # specifies one, so a plain connection string still connects encrypted.
+    if "sslmode=" not in url:
+        connect_kwargs["sslmode"] = "require"
+    raw = psycopg.connect(url, **connect_kwargs)
+    return _PgConn(raw)
+
+
+def _is_pg(conn: object) -> bool:
+    """True when ``conn`` is the PostgreSQL wrapper (vs a raw sqlite3 conn)."""
+    return isinstance(conn, _PgConn)
+
+
+def get_connection(db_path: Optional[str] = None):  # noqa: ANN201
+    """Return a database connection for the active backend.
+
+    Precedence:
+      1. An explicit ``db_path`` always selects SQLite (used by tests and
+         local file storage).
+      2. Otherwise, if ``DATABASE_URL`` names a PostgreSQL server, connect
+         there (permanent storage for the hosted app).
+      3. Otherwise fall back to the SQLite path from :func:`get_db_path`.
+
+    SQLite connections use ``row_factory = sqlite3.Row``; PostgreSQL
+    connections return dict-like rows. Both support ``row["column"]`` access.
+    """
+    if db_path is None:
+        url = _database_url()
+        if url and _is_postgres_url(url):
+            return _make_pg_connection(url)
+
     path = db_path if db_path is not None else get_db_path()
     is_uri = path.startswith("file:")
     if _is_in_memory_uri(path):
@@ -210,15 +295,19 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
 
-    # Run idempotent migrations for existing databases.
-    existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
-    for sql in _MIGRATIONS:
-        col_name = sql.split()[-1].strip('"')
-        if col_name not in existing:
-            try:
-                conn.execute(sql)
-            except sqlite3.OperationalError:
-                pass  # Column already exists
+    # Legacy column migrations apply only to pre-existing SQLite files that
+    # predate the email/display_name/password_hash/drippers columns. A fresh
+    # PostgreSQL schema already includes every column from _CREATE_USERS, so
+    # the PRAGMA-based migration loop (SQLite-only syntax) is skipped there.
+    if not _is_pg(conn):
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+        for sql in _MIGRATIONS:
+            col_name = sql.split()[-1].strip('"')
+            if col_name not in existing:
+                try:
+                    conn.execute(sql)
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
     conn.commit()
 
 
@@ -543,6 +632,20 @@ def load_brew_history(
 
 def get_user_stats(conn: sqlite3.Connection, user_id: str) -> dict:
     """Compute aggregate stats for a user."""
+    # JSON-field access differs by backend: SQLite uses json_extract(...),
+    # PostgreSQL uses the ->> operator on a jsonb cast. The values stored are
+    # identical, so only the extraction syntax changes.
+    if _is_pg(conn):
+        score_expr = "(feedback_json::jsonb ->> 'score')"
+        score_num = f"({score_expr})::float8"
+        origin_expr = "(bean_json::jsonb ->> 'origin_country')"
+        clusters_expr = "(bean_json::jsonb ->> 'flavor_clusters')"
+    else:
+        score_expr = "json_extract(feedback_json, '$.score')"
+        score_num = f"CAST({score_expr} AS REAL)"
+        origin_expr = "json_extract(bean_json, '$.origin_country')"
+        clusters_expr = "json_extract(bean_json, '$.flavor_clusters')"
+
     # Total brews
     total_row = conn.execute(
         "SELECT COUNT(*) AS cnt FROM brew_history WHERE user_id = ?",
@@ -552,19 +655,23 @@ def get_user_stats(conn: sqlite3.Connection, user_id: str) -> dict:
 
     # Average score (only from feedback that has a score)
     avg_row = conn.execute(
-        """
-        SELECT AVG(CAST(json_extract(feedback_json, '$.score') AS REAL)) AS avg_score
+        f"""
+        SELECT AVG({score_num}) AS avg_score
         FROM brew_history
-        WHERE user_id = ? AND json_extract(feedback_json, '$.score') IS NOT NULL
+        WHERE user_id = ? AND {score_expr} IS NOT NULL
         """,
         (user_id,),
     ).fetchone()
-    avg_score = round(avg_row["avg_score"], 2) if avg_row and avg_row["avg_score"] is not None else 0.0
+    avg_score = (
+        round(float(avg_row["avg_score"]), 2)
+        if avg_row and avg_row["avg_score"] is not None
+        else 0.0
+    )
 
     # Favorite origins (top 3)
     origin_rows = conn.execute(
-        """
-        SELECT json_extract(bean_json, '$.origin_country') AS origin, COUNT(*) AS cnt
+        f"""
+        SELECT {origin_expr} AS origin, COUNT(*) AS cnt
         FROM brew_history
         WHERE user_id = ?
         GROUP BY origin
@@ -577,8 +684,8 @@ def get_user_stats(conn: sqlite3.Connection, user_id: str) -> dict:
 
     # Favorite clusters: flatten the flavor_clusters arrays and count
     cluster_rows = conn.execute(
-        """
-        SELECT json_extract(bean_json, '$.flavor_clusters') AS clusters_json
+        f"""
+        SELECT {clusters_expr} AS clusters_json
         FROM brew_history
         WHERE user_id = ?
         """,
@@ -586,7 +693,10 @@ def get_user_stats(conn: sqlite3.Connection, user_id: str) -> dict:
     ).fetchall()
     cluster_counts: dict[str, int] = {}
     for r in cluster_rows:
-        clusters = json.loads(r["clusters_json"])
+        raw_clusters = r["clusters_json"]
+        if not raw_clusters:
+            continue
+        clusters = json.loads(raw_clusters)
         for c in clusters:
             cluster_counts[c] = cluster_counts.get(c, 0) + 1
     sorted_clusters = sorted(cluster_counts.items(), key=lambda x: x[1], reverse=True)

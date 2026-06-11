@@ -6,9 +6,25 @@ import sqlite3
 import streamlit as st
 
 from src.app.auth import login as auth_login, register as auth_register
-from src.app.db import get_db, load_user
+from src.app.db import count_brews, get_db, load_user
+from src.personalization.engine import PersonalizationEngine
 
 _logger = logging.getLogger(__name__)
+
+
+def apply_personalization_phase(conn, user_id: str) -> None:
+    """Set the sidebar personalization phase from the user's saved brew count.
+
+    The phase shown in the sidebar is derived purely from how many brews the
+    user has logged (0=bean_aware, 1-4=directional, 5-9=content_based,
+    10+=full_hybrid). This MUST run every time a user enters the app — login,
+    session restore, and onboarding — otherwise the phase silently resets to
+    the cold-start default even for users with a full brew history.
+    """
+    brew_count = count_brews(conn, user_id)
+    st.session_state.personalization_phase = PersonalizationEngine.get_phase_for_count(
+        brew_count
+    )
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -99,6 +115,7 @@ def _on_auth_success(user_id: str, session_token: str, redirect_page: str):
 
     with get_db() as conn:
         user = load_user(conn, user_id)
+        apply_personalization_phase(conn, user_id)
 
     if user and user.get("onboarding"):
         st.session_state.onboarding = user["onboarding"]

@@ -205,7 +205,10 @@ def _complete_onboarding(drippers: list[BrewMethod]):
                 user_id=user_id,
                 onboarding=onboarding,
             )
-            st.session_state.personalization_phase = "warm_start"
+            from src.app.pages.auth import apply_personalization_phase
+
+            with get_db() as phase_conn:
+                apply_personalization_phase(phase_conn, user_id)
         except Exception:
             _logger.warning("PersonalizationEngine init failed — features unavailable", exc_info=True)
 

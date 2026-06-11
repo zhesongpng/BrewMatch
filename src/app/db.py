@@ -633,6 +633,20 @@ def load_brew_history(
     return results
 
 
+def count_brews(conn: sqlite3.Connection, user_id: str) -> int:
+    """Return the total number of brews a user has recorded.
+
+    Lightweight COUNT(*) used to derive the personalization phase on login
+    and session restore. The ``?`` placeholder is translated to ``%s`` for
+    PostgreSQL by the connection wrapper, so this is dialect-portable.
+    """
+    row = conn.execute(
+        "SELECT COUNT(*) AS cnt FROM brew_history WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    return int(row["cnt"]) if row else 0
+
+
 # ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import pytest
 
 from src.app.db import (
+    count_brews,
     delete_user_data,
     get_connection,
     get_user_stats,
@@ -282,6 +283,32 @@ class TestGetUserStats:
         assert stats["avg_score"] == 0.0
         assert stats["favorite_origins"] == []
         assert stats["favorite_clusters"] == []
+
+
+class TestCountBrews:
+    def test_count_brews_empty(self, conn, onboarding):
+        save_user(conn, "user-1", onboarding)
+        assert count_brews(conn, "user-1") == 0
+
+    def test_count_brews_counts_all_saved(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        save_user(conn, "user-1", onboarding)
+        recipe = make_recipe_db()
+        bean = make_bean_db()
+        for i in range(7):
+            save_brew(conn, "user-1", _brew_record(f"b{i}", bean, recipe))
+        assert count_brews(conn, "user-1") == 7
+
+    def test_count_brews_is_per_user(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        save_user(conn, "user-1", onboarding)
+        save_user(conn, "user-2", onboarding)
+        recipe = make_recipe_db()
+        bean = make_bean_db()
+        save_brew(conn, "user-1", _brew_record("b1", bean, recipe))
+        assert count_brews(conn, "user-2") == 0
 
 
 class TestDeleteUserData:

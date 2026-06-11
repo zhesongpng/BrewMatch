@@ -131,6 +131,10 @@ def restore_session():
                 st.session_state.onboarding = user["onboarding"]
             if user.get("drippers"):
                 st.session_state.drippers = user["drippers"]
+            from src.app.pages.auth import apply_personalization_phase
+
+            with get_db() as conn:
+                apply_personalization_phase(conn, user_id)
     except Exception:
         logger.debug("Session restore failed", exc_info=True)
 

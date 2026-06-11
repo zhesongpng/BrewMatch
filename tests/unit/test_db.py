@@ -9,12 +9,16 @@ import pytest
 
 from src.app.db import (
     count_brews,
+    create_bag,
     delete_user_data,
     get_connection,
     get_user_stats,
+    grams_used_for_bag,
     init_db,
+    list_active_bags,
     load_brew_history,
     load_user,
+    mark_bag_finished,
     save_brew,
     save_user,
     update_preferences,
@@ -23,6 +27,7 @@ from src.data_models import (
     BeanProfile,
     BrewMethod,
     BrewRecord,
+    CoffeeBag,
     ExperienceLevel,
     Feedback,
     LearnedPreferences,
@@ -32,6 +37,7 @@ from src.data_models import (
     Recipe,
     RoastLevel,
     SuitableFor,
+    create_bag_id,
 )
 
 
@@ -120,17 +126,121 @@ def _brew_record(brew_id: str, bean: BeanProfile, recipe: Recipe) -> BrewRecord:
 
 class TestInitDb:
     def test_init_db_creates_tables(self, conn):
-        """init_db should create users and brew_history tables."""
+        """init_db should create users, brew_history, and coffee_bags tables."""
         tables = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
         ).fetchall()
         table_names = [row["name"] for row in tables]
         assert "users" in table_names
         assert "brew_history" in table_names
+        assert "coffee_bags" in table_names
+
+    def test_brew_history_has_bag_columns(self, conn):
+        """Fresh brew_history must carry the bag link columns."""
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(brew_history)").fetchall()}
+        assert "bag_id" in cols
+        assert "actual_dose_g" in cols
 
     def test_init_db_idempotent(self, conn):
         """Calling init_db twice must not raise."""
         init_db(conn)  # second call -- should succeed silently
+
+
+class TestBrewHistoryMigration:
+    @pytest.mark.regression
+    def test_init_db_adds_bag_columns_to_legacy_table(self):
+        """A brew_history table created by an EARLIER app version (no bag_id /
+        actual_dose_g) must gain both columns when init_db runs against it.
+        This exercises the SQLite ADD COLUMN migration path (PostgreSQL uses
+        ADD COLUMN IF NOT EXISTS, verified live against Supabase)."""
+        from src.app.db import _CREATE_SESSIONS, _CREATE_USERS
+
+        legacy = get_connection(":memory:")
+        legacy.execute(_CREATE_USERS)
+        legacy.execute(
+            """CREATE TABLE brew_history (
+                brew_id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL, bean_json TEXT NOT NULL,
+                recipe_json TEXT NOT NULL, feedback_json TEXT NOT NULL)"""
+        )
+        legacy.execute(_CREATE_SESSIONS)
+        before = {r[1] for r in legacy.execute("PRAGMA table_info(brew_history)").fetchall()}
+        assert "bag_id" not in before and "actual_dose_g" not in before
+
+        init_db(legacy)  # migrates the existing table in place
+
+        after = {r[1] for r in legacy.execute("PRAGMA table_info(brew_history)").fetchall()}
+        assert "bag_id" in after
+        assert "actual_dose_g" in after
+        init_db(legacy)  # idempotent: re-running must not raise or duplicate
+        legacy.close()
+
+
+class TestCoffeeBagCRUD:
+    def _make_bag(self, make_bean_db, **overrides) -> CoffeeBag:
+        defaults = dict(
+            bag_id=create_bag_id(),
+            roaster="Onyx Coffee Lab",
+            name="Ethiopia Guji",
+            bean_profile=make_bean_db(roaster="Onyx Coffee Lab", name="Ethiopia Guji"),
+        )
+        defaults.update(overrides)
+        return CoffeeBag(**defaults)
+
+    def test_create_and_list_active_bag(self, conn, onboarding, make_bean_db):
+        save_user(conn, "u1", onboarding)
+        bag = self._make_bag(
+            make_bean_db, bag_id="bag-1", bag_size_g=340.0, date_opened="2026-06-11"
+        )
+        create_bag(conn, "u1", bag)
+
+        bags = list_active_bags(conn, "u1")
+        assert len(bags) == 1
+        got = bags[0]
+        assert got.bag_id == "bag-1"
+        assert got.roaster == "Onyx Coffee Lab"
+        assert got.name == "Ethiopia Guji"
+        assert got.bag_size_g == 340.0
+        assert got.date_opened == "2026-06-11"
+        assert got.active is True
+        # Bean details round-trip through bean_json.
+        assert got.bean_profile.origin_country == "Ethiopia"
+        assert got.bean_profile.name == "Ethiopia Guji"
+
+    def test_list_active_excludes_finished(self, conn, onboarding, make_bean_db):
+        save_user(conn, "u1", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-2"))
+        mark_bag_finished(conn, "bag-1")
+        assert [b.bag_id for b in list_active_bags(conn, "u1")] == ["bag-2"]
+
+    def test_list_active_scoped_to_user(self, conn, onboarding, make_bean_db):
+        save_user(conn, "u1", onboarding)
+        save_user(conn, "u2", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        create_bag(conn, "u2", self._make_bag(make_bean_db, bag_id="bag-2"))
+        assert [b.bag_id for b in list_active_bags(conn, "u1")] == ["bag-1"]
+
+    def test_grams_used_sums_actual_dose_ignoring_nulls(
+        self, conn, onboarding, make_bean_db
+    ):
+        save_user(conn, "u1", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        # Link brews directly; save_brew wiring of these columns is B1.6.
+        for bid, dose in [("br1", 15.0), ("br2", 18.5), ("br3", None)]:
+            conn.execute(
+                "INSERT INTO brew_history "
+                "(brew_id,user_id,timestamp,bean_json,recipe_json,feedback_json,bag_id,actual_dose_g) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (bid, "u1", "t", "{}", "{}", "{}", "bag-1", dose),
+            )
+        conn.commit()
+        assert grams_used_for_bag(conn, "bag-1") == pytest.approx(33.5)
+
+    def test_grams_used_empty_bag_is_zero(self, conn, onboarding, make_bean_db):
+        save_user(conn, "u1", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        assert grams_used_for_bag(conn, "bag-1") == 0.0
 
 
 class TestUserRoundTrip:

@@ -164,6 +164,9 @@ User 1──N BrewHistory 1──1 BeanProfile
 - A User has many BrewHistory entries
 - Each BrewHistory links to one BeanProfile and one Recipe (snapshot at brew time)
 - Each BrewHistory has one Feedback
+- Each BrewHistory MAY link to one CoffeeBag (`brew_history.bag_id`, nullable);
+  brews logged before bags existed and one-off brews have no bag
+- A User has many CoffeeBags
 - Recipes are shared (many users can brew the same recipe)
 - BeanProfiles can be shared (many users can have the same beans)
 - Feedback belongs to exactly one BrewHistory
@@ -172,11 +175,17 @@ User 1──N BrewHistory 1──1 BeanProfile
 
 ## 5. Storage
 
-| Data Type               | Storage                   | Format                         |
-| ----------------------- | ------------------------- | ------------------------------ |
-| Recipes                 | `data/recipes/` directory | JSON files, one per recipe     |
-| Bean Profiles           | In-memory during session  | Extracted on-the-fly by LLM    |
-| User Taste Profiles     | SQLite (`data/users.db`)  | Single table with JSON columns |
-| Synthetic Training Data | `data/synthetic/`         | CSV files                      |
-| External Reference Data | `data/external/`          | CSV files (CQI, etc.)          |
-| Model Artifacts         | `models/`                 | Pickle/joblib files            |
+The user database runs on SQLite locally (`data/users.db`) and on PostgreSQL
+(Supabase) for the hosted app; `src/app/db.py` issues dialect-portable DDL/queries
+against both. Tables: `users`, `brew_history`, `sessions`, `coffee_bags`.
+
+| Data Type               | Storage                     | Format                                                                        |
+| ----------------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| Recipes                 | `data/recipes/` directory   | JSON files, one per recipe                                                    |
+| Bean Profiles           | In-memory during session    | Extracted on-the-fly by LLM                                                   |
+| User Taste Profiles     | SQLite / PostgreSQL `users` | Row per user with JSON columns                                                |
+| Brew History            | `brew_history` table        | Row per brew; `bag_id` + `actual_dose_g` link a brew to its bag and real dose |
+| Coffee Bags             | `coffee_bags` table         | Row per bag; bean details in `bean_json`, `active` as INTEGER 0/1             |
+| Synthetic Training Data | `data/synthetic/`           | CSV files                                                                     |
+| External Reference Data | `data/external/`            | CSV files (CQI, etc.)                                                         |
+| Model Artifacts         | `models/`                   | Pickle/joblib files                                                           |

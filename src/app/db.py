@@ -23,6 +23,7 @@ from src.data_models import (
     BeanProfile,
     BrewMethod,
     BrewRecord,
+    CoffeeBag,
     ExperienceLevel,
     Feedback,
     LearnedPreferences,
@@ -270,6 +271,8 @@ CREATE TABLE IF NOT EXISTS brew_history (
     bean_json TEXT NOT NULL,
     recipe_json TEXT NOT NULL,
     feedback_json TEXT NOT NULL,
+    bag_id TEXT,
+    actual_dose_g REAL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 """
@@ -284,11 +287,39 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 """
 
+# A saved bag of coffee the user owns. ``active`` is stored as INTEGER (0/1)
+# rather than BOOLEAN so the same DDL is valid on both SQLite and PostgreSQL.
+_CREATE_COFFEE_BAGS = """
+CREATE TABLE IF NOT EXISTS coffee_bags (
+    bag_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    roaster TEXT NOT NULL,
+    name TEXT NOT NULL,
+    bag_size_g REAL NOT NULL,
+    bean_json TEXT NOT NULL,
+    date_opened TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+"""
+
 _MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN email TEXT",
     "ALTER TABLE users ADD COLUMN display_name TEXT",
     "ALTER TABLE users ADD COLUMN password_hash TEXT",
     "ALTER TABLE users ADD COLUMN drippers_json TEXT",
+]
+
+# brew_history gains a bag link + the real grams used per brew. Both are
+# nullable: brews logged before bags existed (and one-off brews with no bag)
+# keep NULL. Fresh installs get these columns from _CREATE_BREW_HISTORY; these
+# ALTERs patch already-deployed tables. SQLite has no ADD COLUMN IF NOT EXISTS,
+# so it runs these inside a PRAGMA-guarded try/except; PostgreSQL uses the
+# IF NOT EXISTS form (see init_db).
+_BREW_HISTORY_MIGRATIONS = [
+    "ALTER TABLE brew_history ADD COLUMN bag_id TEXT",
+    "ALTER TABLE brew_history ADD COLUMN actual_dose_g REAL",
 ]
 
 
@@ -297,25 +328,50 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.execute(_CREATE_USERS)
     conn.execute(_CREATE_BREW_HISTORY)
     conn.execute(_CREATE_SESSIONS)
+    conn.execute(_CREATE_COFFEE_BAGS)
 
-    # Indexes for session lookups and cleanup.
+    # Column migrations for ALREADY-DEPLOYED tables. Fresh installs get every
+    # column from the _CREATE_* DDL above; these patch tables created by an
+    # earlier version. They MUST run before the indexes below, which reference
+    # the new brew_history.bag_id column.
+    if _is_pg(conn):
+        # PostgreSQL supports ADD COLUMN IF NOT EXISTS, so the deployed Supabase
+        # brew_history table gains the bag link without a separate existence
+        # probe. (A fresh PostgreSQL users table already has every column, so
+        # the users migrations are PostgreSQL no-ops and are skipped.)
+        conn.execute("ALTER TABLE brew_history ADD COLUMN IF NOT EXISTS bag_id TEXT")
+        conn.execute("ALTER TABLE brew_history ADD COLUMN IF NOT EXISTS actual_dose_g REAL")
+    else:
+        # SQLite has no ADD COLUMN IF NOT EXISTS: probe PRAGMA table_info and
+        # ALTER only the missing columns, inside try/except as belt-and-braces.
+        _sqlite_add_missing_columns(conn, "users", _MIGRATIONS)
+        _sqlite_add_missing_columns(conn, "brew_history", _BREW_HISTORY_MIGRATIONS)
+
+    # Indexes (after migrations so brew_history.bag_id exists on old tables too).
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
-
-    # Legacy column migrations apply only to pre-existing SQLite files that
-    # predate the email/display_name/password_hash/drippers columns. A fresh
-    # PostgreSQL schema already includes every column from _CREATE_USERS, so
-    # the PRAGMA-based migration loop (SQLite-only syntax) is skipped there.
-    if not _is_pg(conn):
-        existing = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
-        for sql in _MIGRATIONS:
-            col_name = sql.split()[-1].strip('"')
-            if col_name not in existing:
-                try:
-                    conn.execute(sql)
-                except sqlite3.OperationalError:
-                    pass  # Column already exists
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_bags_user_active ON coffee_bags(user_id, active)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_brew_bag ON brew_history(bag_id)")
     conn.commit()
+
+
+def _sqlite_add_missing_columns(
+    conn: sqlite3.Connection, table: str, alter_statements: list[str]
+) -> None:
+    """Run ``ALTER TABLE ... ADD COLUMN`` for columns not already present.
+
+    SQLite-only helper: PostgreSQL uses ``ADD COLUMN IF NOT EXISTS`` directly.
+    Each statement's final token is the column name; it is added only when
+    ``PRAGMA table_info`` shows the column is missing.
+    """
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    for sql in alter_statements:
+        col_name = sql.split()[-1].strip('"')
+        if col_name not in existing:
+            try:
+                conn.execute(sql)
+            except sqlite3.OperationalError:
+                pass  # Column already exists (concurrent init)
 
 
 # ---------------------------------------------------------------------------
@@ -645,6 +701,89 @@ def count_brews(conn: sqlite3.Connection, user_id: str) -> int:
         (user_id,),
     ).fetchone()
     return int(row["cnt"]) if row else 0
+
+
+# ---------------------------------------------------------------------------
+# CRUD: coffee bags
+# ---------------------------------------------------------------------------
+
+def create_bag(conn: sqlite3.Connection, user_id: str, bag: CoffeeBag) -> None:
+    """INSERT a new saved coffee bag for a user.
+
+    ``active`` is stored as INTEGER 0/1 (dialect-portable); the bean details
+    are serialized to JSON via the same helper brew history uses.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """
+        INSERT INTO coffee_bags
+            (bag_id, user_id, roaster, name, bag_size_g, bean_json,
+             date_opened, active, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            bag.bag_id,
+            user_id,
+            bag.roaster,
+            bag.name,
+            bag.bag_size_g,
+            _serialize_bean(bag.bean_profile),
+            bag.date_opened,
+            1 if bag.active else 0,
+            now,
+        ),
+    )
+    conn.commit()
+
+
+def list_active_bags(conn: sqlite3.Connection, user_id: str) -> list[CoffeeBag]:
+    """Return a user's active (unfinished) bags, newest first."""
+    rows = conn.execute(
+        """
+        SELECT bag_id, roaster, name, bag_size_g, bean_json, date_opened, active
+        FROM coffee_bags
+        WHERE user_id = ? AND active = 1
+        ORDER BY created_at DESC
+        """,
+        (user_id,),
+    ).fetchall()
+    return [
+        CoffeeBag(
+            bag_id=row["bag_id"],
+            roaster=row["roaster"],
+            name=row["name"],
+            bean_profile=_deserialize_bean(row["bean_json"]),
+            bag_size_g=float(row["bag_size_g"]),
+            date_opened=row["date_opened"],
+            active=bool(row["active"]),
+        )
+        for row in rows
+    ]
+
+
+def mark_bag_finished(conn: sqlite3.Connection, bag_id: str) -> None:
+    """Mark a bag finished so it drops off the active list (active = 0)."""
+    conn.execute("UPDATE coffee_bags SET active = 0 WHERE bag_id = ?", (bag_id,))
+    conn.commit()
+
+
+def grams_used_for_bag(conn: sqlite3.Connection, bag_id: str) -> float:
+    """Return the total grams of coffee used from a bag.
+
+    Sums the real per-brew dose (``actual_dose_g``) over every brew linked to
+    this bag. Brews with a NULL dose (records logged before bags existed)
+    contribute nothing. Drives the 'running low' countdown:
+    ``grams_left = bag.bag_size_g - grams_used_for_bag(...)``.
+    """
+    row = conn.execute(
+        """
+        SELECT COALESCE(SUM(actual_dose_g), 0) AS grams
+        FROM brew_history
+        WHERE bag_id = ?
+        """,
+        (bag_id,),
+    ).fetchone()
+    return float(row["grams"]) if row and row["grams"] is not None else 0.0
 
 
 # ---------------------------------------------------------------------------

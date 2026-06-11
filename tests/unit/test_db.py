@@ -239,6 +239,43 @@ class TestBrewRoundTrip:
         save_user(conn, "user-1", onboarding)
         assert load_brew_history(conn, "user-1") == []
 
+    def test_brew_roundtrip_preserves_roaster_and_name(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        """A bean carrying roaster/name survives the full save→load persistence
+        path (_serialize_bean → _deserialize_bean), not just the session-state
+        helper. This is the exact path brew history is stored through."""
+        save_user(conn, "user-1", onboarding)
+        bean = make_bean_db(roaster="Onyx Coffee Lab", name="Ethiopia Guji")
+        brew = _brew_record("brew-bag", bean, make_recipe_db())
+        save_brew(conn, "user-1", brew)
+
+        loaded = load_brew_history(conn, "user-1")[0]["bean_profile"]
+        assert loaded.roaster == "Onyx Coffee Lab"
+        assert loaded.name == "Ethiopia Guji"
+
+    @pytest.mark.regression
+    def test_legacy_bean_json_without_roaster_name_deserializes(self):
+        """Backward compatibility: a brew record serialized BEFORE roaster/name
+        existed (keys absent from bean_json) must deserialize cleanly via the db
+        layer with both fields None — old history must never fail to load."""
+        import json
+
+        from src.app.db import _deserialize_bean
+
+        legacy_json = json.dumps(
+            {
+                "origin_country": "Colombia",
+                "process": "washed",
+                "roast_level": "medium",
+                "flavor_clusters": ["Chocolate"],
+                "source_text": "legacy entry",
+            }
+        )
+        bean = _deserialize_bean(legacy_json)
+        assert bean.roaster is None
+        assert bean.name is None
+
 
 class TestGetUserStats:
     @pytest.mark.regression

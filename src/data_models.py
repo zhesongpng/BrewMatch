@@ -164,6 +164,10 @@ class BeanProfile:
     altitude_min_m: Optional[int] = None
     altitude_max_m: Optional[int] = None
     extraction_confidence: Optional[float] = None
+    # Bag identity (optional): present when the bean comes from a saved bag.
+    # Older brew records predate these fields and deserialize with both as None.
+    roaster: Optional[str] = None
+    name: Optional[str] = None
 
     def __post_init__(self):
         if not self.origin_country or not self.origin_country.strip():
@@ -187,6 +191,35 @@ class BeanProfile:
             raise ValueError(
                 f"altitude_min_m ({self.altitude_min_m}) > altitude_max_m ({self.altitude_max_m})"
             )
+
+
+@dataclass
+class CoffeeBag:
+    """A saved bag of coffee the user owns.
+
+    Entered once when a bag is opened, then picked for each brew until it runs
+    out. Carries the full bean details via ``bean_profile`` plus the bag's own
+    identity (roaster, product name) and tracking fields (size, open date,
+    active flag). ``bag_size_g`` drives the "running low" countdown.
+    """
+
+    bag_id: str
+    roaster: str
+    name: str
+    bean_profile: BeanProfile
+    bag_size_g: float = 250.0
+    date_opened: Optional[str] = None
+    active: bool = True
+
+    def __post_init__(self):
+        if not self.bag_id:
+            raise ValueError("bag_id is required")
+        if not self.roaster or not self.roaster.strip():
+            raise ValueError("roaster is required (whitespace-only is not allowed)")
+        if not self.name or not self.name.strip():
+            raise ValueError("name is required (whitespace-only is not allowed)")
+        if self.bag_size_g <= 0:
+            raise ValueError(f"bag_size_g must be > 0, got {self.bag_size_g}")
 
 
 @dataclass
@@ -286,3 +319,7 @@ class UserTasteProfile:
 
 def create_user_id() -> str:
     return str(uuid4())
+
+
+def create_bag_id() -> str:
+    return uuid4().hex[:12]

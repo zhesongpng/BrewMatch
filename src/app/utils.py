@@ -62,6 +62,8 @@ def dict_to_bean_profile(bean_dict: dict) -> BeanProfile:
         altitude_min_m=bean_dict.get("altitude_min_m"),
         altitude_max_m=bean_dict.get("altitude_max_m"),
         extraction_confidence=bean_dict.get("extraction_confidence"),
+        roaster=bean_dict.get("roaster"),
+        name=bean_dict.get("name"),
     )
 
 

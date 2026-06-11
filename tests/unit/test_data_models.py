@@ -4,6 +4,7 @@ from src.data_models import (
     BeanProfile,
     BrewMethod,
     BrewRecord,
+    CoffeeBag,
     ExperienceLevel,
     Feedback,
     LearnedPreferences,
@@ -14,6 +15,7 @@ from src.data_models import (
     RoastLevel,
     SuitableFor,
     UserTasteProfile,
+    create_bag_id,
     create_user_id,
     DIRECTIONAL_FLAGS,
     FLAVOR_CLUSTERS,
@@ -263,6 +265,85 @@ class TestBeanProfile:
         )
         assert b.origin_region == "Yirgacheffe"
         assert b.extraction_confidence == 0.85
+
+    def test_roaster_and_name_default_to_none(self):
+        # Beans not sourced from a saved bag carry no roaster/name.
+        b = _make_bean()
+        assert b.roaster is None
+        assert b.name is None
+
+    def test_roaster_and_name_set(self):
+        b = _make_bean(roaster="Onyx Coffee Lab", name="Ethiopia Guji")
+        assert b.roaster == "Onyx Coffee Lab"
+        assert b.name == "Ethiopia Guji"
+
+    def test_legacy_bean_dict_without_roaster_name_still_loads(self):
+        # Backward compatibility: a brew record stored BEFORE roaster/name
+        # existed has neither key. It must deserialize cleanly with both None.
+        from src.app.utils import bean_to_dict, dict_to_bean_profile
+
+        legacy_dict = {
+            "origin_country": "Colombia",
+            "process": "washed",
+            "roast_level": "medium",
+            "flavor_clusters": ["Chocolate"],
+            "source_text": "legacy entry",
+        }
+        assert "roaster" not in legacy_dict and "name" not in legacy_dict
+        bean = dict_to_bean_profile(legacy_dict)
+        assert bean.roaster is None
+        assert bean.name is None
+        # And a new bean round-trips roaster/name through dict and back.
+        new = _make_bean(roaster="Sey", name="Kenya Karatu")
+        round_tripped = dict_to_bean_profile(bean_to_dict(new))
+        assert round_tripped.roaster == "Sey"
+        assert round_tripped.name == "Kenya Karatu"
+
+
+# --- CoffeeBag Tests ---
+
+class TestCoffeeBag:
+    def _make_bag(self, **overrides) -> "CoffeeBag":
+        defaults = dict(
+            bag_id="bag-001",
+            roaster="Onyx Coffee Lab",
+            name="Ethiopia Guji",
+            bean_profile=_make_bean(),
+        )
+        defaults.update(overrides)
+        return CoffeeBag(**defaults)
+
+    def test_valid_bag_defaults(self):
+        bag = self._make_bag()
+        assert bag.bag_size_g == 250.0
+        assert bag.active is True
+        assert bag.date_opened is None
+        assert bag.bean_profile.origin_country == "Ethiopia"
+
+    def test_custom_size_and_fields(self):
+        bag = self._make_bag(bag_size_g=340.0, date_opened="2026-06-11", active=False)
+        assert bag.bag_size_g == 340.0
+        assert bag.date_opened == "2026-06-11"
+        assert bag.active is False
+
+    def test_missing_bag_id(self):
+        with pytest.raises(ValueError, match="bag_id is required"):
+            self._make_bag(bag_id="")
+
+    def test_missing_roaster(self):
+        with pytest.raises(ValueError, match="roaster is required"):
+            self._make_bag(roaster="   ")
+
+    def test_missing_name(self):
+        with pytest.raises(ValueError, match="name is required"):
+            self._make_bag(name="")
+
+    def test_nonpositive_size(self):
+        with pytest.raises(ValueError, match="bag_size_g must be > 0"):
+            self._make_bag(bag_size_g=0)
+
+    def test_create_bag_id_is_unique(self):
+        assert create_bag_id() != create_bag_id()
 
 
 # --- Feedback Tests ---

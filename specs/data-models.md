@@ -61,6 +61,11 @@ The recipe entity is the core of the knowledge base. Each recipe represents a co
 | `altitude_max_m`        | int    | NO       | Maximum altitude in meters                                          |
 | `source_text`           | string | YES      | Original free-text description                                      |
 | `extraction_confidence` | float  | NO       | 0.0 - 1.0, confidence of LLM extraction                             |
+| `roaster`               | string | NO       | Roaster name; set when the bean comes from a saved bag              |
+| `name`                  | string | NO       | Coffee / product name (e.g. "Ethiopia Guji"); set from a saved bag  |
+
+`roaster` and `name` default to `None`. Brew records created before these fields
+existed deserialize with both as `None` (backward-compatible).
 
 ### Flavor Clusters (15 top-level)
 
@@ -79,6 +84,31 @@ The recipe entity is the core of the knowledge base. Each recipe represents a co
 13. Fermented (winey, whisky, rum, overripe fruit)
 14. Syrupy (molasses, treacle, maple, agave)
 15. Balanced (clean, smooth, round, well-integrated)
+
+---
+
+## 2.5 Coffee Bag
+
+A saved bag of coffee the user owns. Entered once when a bag is opened, then
+picked for each brew until it runs out. Implemented as the `CoffeeBag` dataclass
+in `src/data_models.py`.
+
+### Schema
+
+| Field          | Type        | Required | Constraints / Default | Description                                         |
+| -------------- | ----------- | -------- | --------------------- | --------------------------------------------------- |
+| `bag_id`       | string      | YES      | Non-empty             | Identifier (12-char hex via `create_bag_id()`)      |
+| `roaster`      | string      | YES      | Non-empty             | Roaster name                                        |
+| `name`         | string      | YES      | Non-empty             | Coffee / product name (e.g. "Ethiopia Guji")        |
+| `bean_profile` | BeanProfile | YES      | —                     | Full bean details carried by the bag                |
+| `bag_size_g`   | float       | NO       | > 0; default 250.0    | Bag weight in grams; drives the "running low" count |
+| `date_opened`  | string      | NO       | default `None`        | ISO date the bag was opened                         |
+| `active`       | bool        | NO       | default `True`        | False once the bag is marked finished               |
+
+### Validation Rules
+
+- `bag_id`, `roaster` (non-whitespace), and `name` (non-whitespace) are required.
+- `bag_size_g` must be > 0.
 
 ---
 

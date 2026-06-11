@@ -37,7 +37,7 @@ brew records with no roaster/name must still deserialize.
   unit test confirms an old bean dict (no roaster/name) still loads.
 - Size: ~60 LOC + tests. Invariants: backward-compat of BeanProfile.
 
-### B1.2 — Create the bag table, link brews to bags + storage helpers (build)
+### B1.2 — Create the bag table, link brews to bags + storage helpers (build) ✅ DONE 2026-06-11
 
 Add a `coffee_bags` table to `src/app/db.py` `init_db` using the same
 `CREATE TABLE IF NOT EXISTS` pattern as `_CREATE_USERS` / `_CREATE_BREW_HISTORY`

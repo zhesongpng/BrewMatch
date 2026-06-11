@@ -78,7 +78,7 @@ SQLite-style `?` placeholders — the Postgres adapter rewrites `?`→`%s` via
     Without the Postgres branch, the live Supabase app errors on the first
     bag-linked brew. Verify against a real Postgres instance, not just SQLite.
 
-### B1.3 — Build the "Your Coffees" picker screen (build)
+### B1.3 — Build the "Your Coffees" picker screen (build) ✅ DONE 2026-06-11
 
 Rebuild `src/app/pages/bean_input.py` as a picker: show the user's open bags as
 selectable cards/list (roaster + coffee name + "≈N brews left"), with an

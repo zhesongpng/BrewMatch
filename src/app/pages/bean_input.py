@@ -1,22 +1,36 @@
-"""Page: Bean Input. See specs/user-interface.md Section 4.3.
+"""Page: Your Coffees. See specs/user-interface.md Section 4.3.
 
-Manual bean profile entry with guided dropdowns for origin, process,
-roast level, and flavor profiles. The profile is stored in session state
-for the recommendation page.
+Pick a saved bag of coffee to brew with, or add a new bag once when you open
+it. Selecting a bag sets it as the current bean for the recommendation + brew
+flow, exactly as the old per-brew form did -- but entered once per bag instead
+of once per cup.
+
+Build/wire split (COC B1): this step (B1.3) renders the picker and add-bag form
+against session state. B1.4 swaps the three data-access seams below
+(_load_active_bags / _save_bag / _grams_used) for the database helpers in
+src.app.db so bags persist across sessions.
 """
 import logging
+from datetime import datetime, timezone
 
 import streamlit as st
 
-from src.app.utils import bean_to_dict
+from src.app.utils import bean_to_dict, escape_markdown
 from src.bean_extractor.extractor import create_manual_profile
 from src.data_models import (
     FLAVOR_CLUSTERS,
+    CoffeeBag,
     Process,
     RoastLevel,
+    create_bag_id,
 )
 
 logger = logging.getLogger(__name__)
+
+# Nominal dose used ONLY to estimate "brews left" for display until real
+# per-brew doses are tracked (B1.6). Always shown with a leading "≈" so the
+# number reads as an estimate, never a precise count.
+_NOMINAL_DOSE_G = 15.0
 
 _ROAST_LABELS = {
     "Light": RoastLevel.LIGHT,
@@ -43,106 +57,53 @@ _COMMON_ORIGINS = [
 ]
 
 
-def render():
-    """Render the bean input page."""
-    st.title("Describe Your Beans")
-    st.caption("Enter the details from your coffee bag label.")
-    _render_manual_mode()
+# ---------------------------------------------------------------------------
+# B1.4 wiring seams
+#
+# These three functions are the ONLY place this page touches bag storage. In
+# B1.3 they use session state (bags live for the session). B1.4 replaces their
+# bodies with list_active_bags / create_bag / grams_used_for_bag against the
+# database -- the rendering code below does not change.
+# ---------------------------------------------------------------------------
+
+def _load_active_bags() -> list[CoffeeBag]:
+    return list(st.session_state.get("coffee_bags", []))
 
 
-def _render_manual_mode():
-    """Manual form entry mode."""
-    with st.form("manual_bean_form"):
-        col_left, col_right = st.columns(2)
-
-        with col_left:
-            origin_selection = st.selectbox(
-                "Origin Country *",
-                options=_COMMON_ORIGINS,
-                key="manual_origin_select",
-            )
-            custom_origin = ""
-            if origin_selection == "Other":
-                custom_origin = st.text_input(
-                    "Specify Origin *",
-                    placeholder="e.g., Yemen, Burundi, Nicaragua",
-                    key="manual_origin_custom",
-                )
-            region = st.text_input(
-                "Region",
-                placeholder="e.g., Yirgacheffe, Huila",
-                key="manual_region",
-            )
-            process_label = st.selectbox(
-                "Process Method *",
-                options=list(_PROCESS_LABELS.keys()),
-                key="manual_process",
-            )
-            roast_label = st.selectbox(
-                "Roast Level *",
-                options=list(_ROAST_LABELS.keys()),
-                key="manual_roast",
-            )
-
-        with col_right:
-            variety = st.text_input(
-                "Variety",
-                placeholder="e.g., Gesha, Bourbon, SL28",
-                key="manual_variety",
-            )
-            flavor_selected = st.multiselect(
-                "Flavor Profiles * (at least 1)",
-                options=list(FLAVOR_CLUSTERS),
-                max_selections=10,
-                key="manual_flavors",
-            )
-            altitude = st.text_input(
-                "Altitude (m)",
-                placeholder="e.g., 1800 or 1500-2000",
-                key="manual_altitude",
-            )
-
-        submitted = st.form_submit_button("Save Bean Profile", use_container_width=True)
-
-    if submitted:
-        origin = custom_origin.strip() if origin_selection == "Other" else origin_selection
-        errors = _validate_manual_input(origin, process_label, roast_label, flavor_selected)
-        if errors:
-            for error in errors:
-                st.warning(error)
-            return
-
-        altitude_min, altitude_max = _parse_altitude(altitude)
-
-        result = create_manual_profile(
-            origin_country=origin,
-            process=_PROCESS_LABELS[process_label].value,
-            roast_level=_ROAST_LABELS[roast_label].value,
-            flavor_clusters=flavor_selected,
-            source_text="manual entry",
-            origin_region=region.strip() if region.strip() else None,
-            variety=variety.strip() if variety.strip() else None,
-            altitude_min_m=altitude_min,
-            altitude_max_m=altitude_max,
-        )
-
-        profile = result.bean_profile
-        bean_dict = bean_to_dict(profile)
-
-        st.session_state.current_bean = bean_dict
-        st.success("Bean profile saved.")
-        st.session_state.page = "recommend"
-        st.rerun()
+def _save_bag(bag: CoffeeBag) -> None:
+    st.session_state.setdefault("coffee_bags", []).append(bag)
 
 
-def _validate_manual_input(
+def _grams_used(bag: CoffeeBag) -> float:
+    # No brews are logged against session-state bags yet; the real running
+    # total arrives with B1.6 (grams_used_for_bag).
+    return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Pure helpers (unit-testable without Streamlit)
+# ---------------------------------------------------------------------------
+
+def _brews_left(bag: CoffeeBag, grams_used: float) -> int:
+    """Estimate how many brews remain in a bag from grams remaining."""
+    remaining = bag.bag_size_g - grams_used
+    return max(0, int(remaining // _NOMINAL_DOSE_G))
+
+
+def _validate_bag_input(
+    roaster: str,
+    coffee_name: str,
     origin: str,
     process_label: str,
     roast_label: str,
     flavors: list[str],
 ) -> list[str]:
-    """Validate manual form inputs. Returns a list of error messages."""
+    """Validate the add-bag form. Returns a list of error messages."""
     errors = []
+    if not roaster or not roaster.strip():
+        errors.append("Roaster is required.")
+    if not coffee_name or not coffee_name.strip():
+        errors.append("Coffee name is required.")
     if not origin or not origin.strip():
         errors.append("Origin country is required.")
     if not process_label:
@@ -152,6 +113,189 @@ def _validate_manual_input(
     if not flavors:
         errors.append("Please select at least one flavor profile.")
     return errors
+
+
+def _build_bag(
+    *,
+    roaster: str,
+    coffee_name: str,
+    bag_size_g: float,
+    origin: str,
+    process_label: str,
+    roast_label: str,
+    flavor_clusters: list[str],
+    region: str = "",
+    variety: str = "",
+    altitude_min_m: int | None = None,
+    altitude_max_m: int | None = None,
+) -> CoffeeBag:
+    """Build a CoffeeBag from validated form inputs.
+
+    Reuses create_manual_profile for the bean half, then attaches the bag's
+    roaster/name to the bean so they flow into history and diagnosis.
+    """
+    result = create_manual_profile(
+        origin_country=origin,
+        process=_PROCESS_LABELS[process_label].value,
+        roast_level=_ROAST_LABELS[roast_label].value,
+        flavor_clusters=flavor_clusters,
+        source_text="manual entry",
+        origin_region=region.strip() or None,
+        variety=variety.strip() or None,
+        altitude_min_m=altitude_min_m,
+        altitude_max_m=altitude_max_m,
+    )
+    profile = result.bean_profile
+    profile.roaster = roaster.strip()
+    profile.name = coffee_name.strip()
+
+    return CoffeeBag(
+        bag_id=create_bag_id(),
+        roaster=roaster.strip(),
+        name=coffee_name.strip(),
+        bean_profile=profile,
+        bag_size_g=float(bag_size_g),
+        date_opened=datetime.now(timezone.utc).date().isoformat(),
+        active=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Rendering
+# ---------------------------------------------------------------------------
+
+def render():
+    """Render the Your Coffees picker."""
+    st.title("Your Coffees")
+    st.caption("Pick a bag to brew with, or add a new one when you open it.")
+
+    bags = _load_active_bags()
+    if bags:
+        _render_bag_list(bags)
+    else:
+        st.info("No saved bags yet. Add your first bag below to get started.")
+
+    _render_add_bag_form(has_bags=bool(bags))
+
+
+def _render_bag_list(bags: list[CoffeeBag]) -> None:
+    st.subheader("Your open bags")
+    for bag in bags:
+        with st.container(border=True):
+            col_info, col_action = st.columns([3, 1])
+            with col_info:
+                st.markdown(
+                    f"**{escape_markdown(bag.roaster)} — {escape_markdown(bag.name)}**"
+                )
+                left = _brews_left(bag, _grams_used(bag))
+                st.caption(
+                    f"{escape_markdown(bag.bean_profile.origin_country)} · "
+                    f"≈{left} brews left"
+                )
+            with col_action:
+                if st.button(
+                    "Brew this", key=f"pick_{bag.bag_id}", use_container_width=True
+                ):
+                    _select_bag(bag)
+
+
+def _select_bag(bag: CoffeeBag) -> None:
+    """Set the picked bag as the current bean and move to recommendations."""
+    st.session_state.current_bean = bean_to_dict(bag.bean_profile)
+    st.session_state.current_bag_id = bag.bag_id
+    st.session_state.page = "recommend"
+    st.rerun()
+
+
+def _render_add_bag_form(has_bags: bool) -> None:
+    # Open the form by default when there are no bags yet, so a first-time user
+    # lands directly on it.
+    with st.expander("Add a new bag", expanded=not has_bags):
+        with st.form("add_bag_form"):
+            col_left, col_right = st.columns(2)
+
+            with col_left:
+                roaster = st.text_input(
+                    "Roaster *", placeholder="e.g., Onyx Coffee Lab", key="bag_roaster"
+                )
+                coffee_name = st.text_input(
+                    "Coffee name *", placeholder="e.g., Ethiopia Guji", key="bag_name"
+                )
+                bag_size = st.number_input(
+                    "Bag size (g)", min_value=50.0, max_value=2000.0,
+                    value=250.0, step=10.0, key="bag_size",
+                    help="Most bags are 250 g or 340 g (12 oz).",
+                )
+                origin_selection = st.selectbox(
+                    "Origin Country *", options=_COMMON_ORIGINS, key="manual_origin_select"
+                )
+                # Rendered unconditionally: inside an st.form the selectbox value
+                # is not readable until submit, so a conditional field would need
+                # two submits to appear. Always showing it makes "Other" work in
+                # one pass; it is only read when "Other" is selected.
+                custom_origin = st.text_input(
+                    "If 'Other', specify origin",
+                    placeholder="e.g., Yemen, Burundi, Nicaragua",
+                    key="manual_origin_custom",
+                )
+                region = st.text_input(
+                    "Region", placeholder="e.g., Yirgacheffe, Huila", key="manual_region"
+                )
+
+            with col_right:
+                process_label = st.selectbox(
+                    "Process Method *", options=list(_PROCESS_LABELS.keys()),
+                    key="manual_process",
+                )
+                roast_label = st.selectbox(
+                    "Roast Level *", options=list(_ROAST_LABELS.keys()), key="manual_roast"
+                )
+                variety = st.text_input(
+                    "Variety", placeholder="e.g., Gesha, Bourbon, SL28", key="manual_variety"
+                )
+                flavor_selected = st.multiselect(
+                    "Flavor Profiles * (at least 1)", options=list(FLAVOR_CLUSTERS),
+                    max_selections=10, key="manual_flavors",
+                )
+                altitude = st.text_input(
+                    "Altitude (m)", placeholder="e.g., 1800 or 1500-2000", key="manual_altitude"
+                )
+
+            submitted = st.form_submit_button("Save bag", use_container_width=True)
+
+        if submitted:
+            origin = (
+                custom_origin.strip()
+                if origin_selection == "Other"
+                else origin_selection
+            )
+            errors = _validate_bag_input(
+                roaster, coffee_name, origin, process_label, roast_label, flavor_selected
+            )
+            if errors:
+                for error in errors:
+                    st.warning(error)
+                return
+
+            altitude_min, altitude_max = _parse_altitude(altitude)
+            bag = _build_bag(
+                roaster=roaster,
+                coffee_name=coffee_name,
+                bag_size_g=bag_size,
+                origin=origin,
+                process_label=process_label,
+                roast_label=roast_label,
+                flavor_clusters=flavor_selected,
+                region=region,
+                variety=variety,
+                altitude_min_m=altitude_min,
+                altitude_max_m=altitude_max,
+            )
+            _save_bag(bag)
+            st.success(
+                f"Saved {escape_markdown(bag.roaster)} — {escape_markdown(bag.name)}."
+            )
+            _select_bag(bag)
 
 
 def _parse_altitude(altitude_str: str) -> tuple[int | None, int | None]:

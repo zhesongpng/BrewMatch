@@ -27,7 +27,7 @@ BrewMatch is a Streamlit web application — a coffee troubleshooting tool. The 
 | --------------------- | ------------- | --------------------------------------------------------------- |
 | Landing               | `/`           | App introduction and entry point                                |
 | Onboarding            | `/onboarding` | New user quiz (4 questions: roast, flavor, experience, dripper) |
-| Bean Input            | `/bean-input` | Enter bean description (text or manual)                         |
+| Your Coffees          | `/bean-input` | Pick a saved bag to brew with, or add a new bag                 |
 | Recipe Recommendation | `/recommend`  | View recommended recipes + optimized parameters                 |
 | Brew Session          | `/brew`       | Follow brewing instructions, record feedback                    |
 | History               | `/history`    | View past brews, ratings, and taste profile evolution           |
@@ -130,55 +130,62 @@ BrewMatch is a Streamlit web application — a coffee troubleshooting tool. The 
 
 **Validation:** Cannot proceed past Step 1 without a selection. Cannot finish without at least 1 flavor cluster. Cannot finish without at least 1 dripper selected. On completion, store in `user.onboarding` and navigate to `/bean-input`.
 
-### 4.3 Bean Input Page
+### 4.3 Your Coffees Page (bag picker)
+
+Implemented in `src/app/pages/bean_input.py` (route name `bean_input`). A user
+saves a bag of coffee once when they open it, then picks it for each brew until
+it runs out — instead of re-entering the bean every cup.
 
 **Layout:**
 
 ```
 +----------------------------------------------+
-|   Tell Us About Your Beans                    |
+|   Your Coffees                                |
+|   Pick a bag to brew with, or add a new one.  |
 |                                               |
-|   Enter the description from your coffee bag: |
+|   Your open bags                              |
 |   +-----------------------------------------+ |
-|   | Ethiopia Yirgacheffe, washed process,   | |
-|   | light roast. Notes of blueberry,        | |
-|   | jasmine, and bergamot.                  | |
+|   | Onyx Coffee Lab — Ethiopia Guji         | |
+|   | Ethiopia · ≈22 brews left   [Brew this] | |
 |   +-----------------------------------------+ |
 |                                               |
-|   [Analyze Beans]                             |
-|                                               |
-|   -- Or enter manually --                     |
-|   [Manual Entry Form]                         |
-|                                               |
-|   -- Extracted Profile --                     |
-|   Origin: Ethiopia     Confidence: HIGH (0.85)|
-|   Region: Yirgacheffe  Process: Washed        |
-|   Roast: Light         Clusters: Berry, Floral|
-|                           Citrus              |
-|                                               |
-|   [Looks Good - Find Recipes]                 |
+|   v Add a new bag                             |
+|     Roaster*  Coffee name*  Bag size (g)      |
+|     [ manual bean form fields ]               |
+|     [Save bag]                                |
 +----------------------------------------------+
 ```
 
 **Behavior:**
 
-1. User enters free-text description.
-2. On "Analyze Beans", call bean extraction pipeline (`specs/bean-extraction.md`).
-3. Display extracted profile with confidence indicator (green/yellow/red).
-4. If confidence is LOW, prompt manual entry.
-5. "Manual Entry" button reveals a structured form (dropdowns and sliders).
-6. "Find Recipes" navigates to `/recommend`.
+1. List the user's active bags as cards (`Roaster — Coffee`, origin, and an
+   estimated "≈N brews left"). When there are none, show a prompt to add the
+   first bag and open the add-bag form by default.
+2. "Brew this" on a card sets the bag's bean as `current_bean`, records
+   `current_bag_id`, and navigates to `/recommend`.
+3. "Add a new bag" reveals a form: roaster, coffee name, bag size (default
+   250 g), plus the bean fields. "Save bag" validates, saves the bag, and
+   selects it for brewing.
+4. Roaster and coffee name are attached to the bean so they flow into history
+   and diagnosis.
 
-**Manual entry form fields:**
+The "≈N brews left" estimate uses a nominal dose until real per-brew doses are
+tracked; running-low becomes exact once doses are captured at brew time.
 
-| Field           | Widget                  | Options                                                |
-| --------------- | ----------------------- | ------------------------------------------------------ |
-| Origin country  | `st.selectbox`          | Alphabetized country list                              |
-| Region          | `st.text_input`         | Free text                                              |
-| Process         | `st.radio`              | washed, natural, honey, anaerobic, wet-hulled, unknown |
-| Roast level     | `st.slider` with labels | light through dark                                     |
-| Flavor clusters | `st.multiselect`        | 15 cluster names                                       |
-| Variety         | `st.text_input`         | Free text                                              |
+**Add-bag form fields:**
+
+| Field           | Widget            | Options                                                |
+| --------------- | ----------------- | ------------------------------------------------------ |
+| Roaster\*       | `st.text_input`   | Free text (required)                                   |
+| Coffee name\*   | `st.text_input`   | Free text (required)                                   |
+| Bag size (g)    | `st.number_input` | 50–2000, default 250                                   |
+| Origin country  | `st.selectbox`    | Common origin list + "Other"                           |
+| Region          | `st.text_input`   | Free text                                              |
+| Process         | `st.selectbox`    | washed, natural, honey, anaerobic, wet-hulled, unknown |
+| Roast level     | `st.selectbox`    | light through dark                                     |
+| Flavor clusters | `st.multiselect`  | 15 cluster names (at least 1)                          |
+| Variety         | `st.text_input`   | Free text                                              |
+| Altitude (m)    | `st.text_input`   | Single value or range                                  |
 
 ### 4.4 Recipe Recommendation Page
 

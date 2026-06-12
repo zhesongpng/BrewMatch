@@ -166,8 +166,14 @@ it runs out — instead of re-entering the bean every cup.
 3. "Add a new bag" reveals a form: roaster, coffee name, bag size (default
    250 g), plus the bean fields. "Save bag" validates, saves the bag, and
    selects it for brewing.
-4. Roaster and coffee name are attached to the bean so they flow into history
+4. "Finished" on a card marks the bag empty (`active = 0`) so it drops off the
+   list.
+5. Roaster and coffee name are attached to the bean so they flow into history
    and diagnosis.
+
+Bags are persisted per user via `src.app.db` (coffee_bags table), so they
+survive logout and reappear on next login. The picker is login-gated, so a
+`user_id` is always present when it renders.
 
 The "≈N brews left" estimate uses a nominal dose until real per-brew doses are
 tracked; running-low becomes exact once doses are captured at brew time.

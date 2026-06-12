@@ -5,16 +5,25 @@ it. Selecting a bag sets it as the current bean for the recommendation + brew
 flow, exactly as the old per-brew form did -- but entered once per bag instead
 of once per cup.
 
-Build/wire split (COC B1): this step (B1.3) renders the picker and add-bag form
-against session state. B1.4 swaps the three data-access seams below
-(_load_active_bags / _save_bag / _grams_used) for the database helpers in
-src.app.db so bags persist across sessions.
+Persistence (COC B1.4): bags are stored in the database via the helpers in
+src.app.db, scoped to the logged-in user, so they survive logout and reappear
+on next login. The data-access seams below (_load_active_bags / _save_bag /
+_grams_used / _finish_bag) are the only place this page touches storage. The
+picker page is login-gated (see app._PUBLIC_PAGES), so a user_id is always
+present when it renders; the seams degrade to a safe no-op if it is ever absent.
 """
 import logging
 from datetime import datetime, timezone
 
 import streamlit as st
 
+from src.app.db import (
+    create_bag,
+    get_db,
+    grams_used_for_bag,
+    list_active_bags,
+    mark_bag_finished,
+)
 from src.app.utils import bean_to_dict, escape_markdown
 from src.bean_extractor.extractor import create_manual_profile
 from src.data_models import (
@@ -58,26 +67,49 @@ _COMMON_ORIGINS = [
 
 
 # ---------------------------------------------------------------------------
-# B1.4 wiring seams
+# Storage seams
 #
-# These three functions are the ONLY place this page touches bag storage. In
-# B1.3 they use session state (bags live for the session). B1.4 replaces their
-# bodies with list_active_bags / create_bag / grams_used_for_bag against the
-# database -- the rendering code below does not change.
+# The ONLY place this page touches bag storage. Each reads the logged-in user
+# from session state and delegates to the database helpers in src.app.db, so
+# bags persist across sessions and are scoped per user.
 # ---------------------------------------------------------------------------
 
+def _current_user_id() -> str | None:
+    return st.session_state.get("user_id")
+
+
 def _load_active_bags() -> list[CoffeeBag]:
-    return list(st.session_state.get("coffee_bags", []))
+    user_id = _current_user_id()
+    if not user_id:
+        return []
+    with get_db() as conn:
+        return list_active_bags(conn, user_id)
 
 
 def _save_bag(bag: CoffeeBag) -> None:
-    st.session_state.setdefault("coffee_bags", []).append(bag)
+    user_id = _current_user_id()
+    if not user_id:
+        return
+    with get_db() as conn:
+        create_bag(conn, user_id, bag)
 
 
 def _grams_used(bag: CoffeeBag) -> float:
-    # No brews are logged against session-state bags yet; the real running
-    # total arrives with B1.6 (grams_used_for_bag).
-    return 0.0
+    # Real running total: sum of actual doses logged against this bag. Stays 0
+    # until brews are wired to record their bag + dose (B1.6).
+    user_id = _current_user_id()
+    if not user_id:
+        return 0.0
+    with get_db() as conn:
+        return grams_used_for_bag(conn, user_id, bag.bag_id)
+
+
+def _finish_bag(bag_id: str) -> None:
+    user_id = _current_user_id()
+    if not user_id:
+        return
+    with get_db() as conn:
+        mark_bag_finished(conn, user_id, bag_id)
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +229,15 @@ def _render_bag_list(bags: list[CoffeeBag]) -> None:
                     "Brew this", key=f"pick_{bag.bag_id}", use_container_width=True
                 ):
                     _select_bag(bag)
+                if st.button(
+                    "Finished",
+                    key=f"finish_{bag.bag_id}",
+                    use_container_width=True,
+                    type="secondary",
+                    help="Mark this bag empty and remove it from your list.",
+                ):
+                    _finish_bag(bag.bag_id)
+                    st.rerun()
 
 
 def _select_bag(bag: CoffeeBag) -> None:

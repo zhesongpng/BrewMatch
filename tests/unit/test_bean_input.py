@@ -4,6 +4,11 @@ Covers the pure, Streamlit-free helpers: bag construction from form inputs,
 the "brews left" estimate, and add-bag validation. The st.* rendering is
 exercised manually / in B1.4 integration.
 """
+import contextlib
+
+import pytest
+
+from src.app.db import get_connection, init_db
 from src.app.pages import bean_input as bi
 from src.data_models import CoffeeBag
 
@@ -101,6 +106,68 @@ class TestValidateBagInput:
     def test_missing_origin(self):
         errs = bi._validate_bag_input("Onyx", "Guji", "", "Washed", "Light", ["Floral"])
         assert any("Origin" in e for e in errs)
+
+
+class TestStorageSeams:
+    """B1.4 wiring: the seams persist bags to the database, scoped per user."""
+
+    @pytest.fixture()
+    def wired(self, monkeypatch):
+        """Point the page seams at a shared in-memory DB with a logged-in user."""
+        conn = get_connection(":memory:")
+        init_db(conn)
+        conn.execute(
+            "INSERT INTO users (user_id, onboarding_json, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?)",
+            ("u1", "{}", "t", "t"),
+        )
+        conn.commit()
+
+        @contextlib.contextmanager
+        def fake_get_db():
+            yield conn  # shared connection; do NOT close between seam calls
+
+        monkeypatch.setattr(bi, "get_db", fake_get_db)
+        monkeypatch.setattr(bi, "_current_user_id", lambda: "u1")
+        yield conn
+        conn.close()
+
+    def _bag(self, **o) -> CoffeeBag:
+        return bi._build_bag(
+            roaster=o.get("roaster", "Onyx"),
+            coffee_name=o.get("name", "Guji"),
+            bag_size_g=o.get("size", 250.0),
+            origin="Ethiopia",
+            process_label="Washed",
+            roast_label="Light",
+            flavor_clusters=["Floral"],
+        )
+
+    def test_save_then_load_roundtrip(self, wired):
+        bag = self._bag()
+        bi._save_bag(bag)
+        loaded = bi._load_active_bags()
+        assert [b.bag_id for b in loaded] == [bag.bag_id]
+        assert loaded[0].roaster == "Onyx"
+        assert loaded[0].bean_profile.name == "Guji"
+
+    def test_finish_removes_from_active(self, wired):
+        b1, b2 = self._bag(name="A"), self._bag(name="B")
+        bi._save_bag(b1)
+        bi._save_bag(b2)
+        bi._finish_bag(b1.bag_id)
+        remaining = [b.bag_id for b in bi._load_active_bags()]
+        assert remaining == [b2.bag_id]
+
+    def test_grams_used_zero_when_no_brews(self, wired):
+        bag = self._bag()
+        bi._save_bag(bag)
+        assert bi._grams_used(bag) == 0.0
+
+    def test_no_user_is_safe_noop(self, wired, monkeypatch):
+        monkeypatch.setattr(bi, "_current_user_id", lambda: None)
+        bi._save_bag(self._bag())  # must not raise, must not persist
+        assert bi._load_active_bags() == []
 
 
 class TestParseAltitude:

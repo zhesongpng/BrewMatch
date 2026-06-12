@@ -211,8 +211,18 @@ class TestCoffeeBagCRUD:
         save_user(conn, "u1", onboarding)
         create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
         create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-2"))
-        mark_bag_finished(conn, "bag-1")
+        mark_bag_finished(conn, "u1", "bag-1")
         assert [b.bag_id for b in list_active_bags(conn, "u1")] == ["bag-2"]
+
+    def test_mark_finished_scoped_to_user(self, conn, onboarding, make_bean_db):
+        # A user must not be able to finish another user's bag.
+        save_user(conn, "u1", onboarding)
+        save_user(conn, "u2", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        mark_bag_finished(conn, "u2", "bag-1")  # wrong owner -> no effect
+        assert [b.bag_id for b in list_active_bags(conn, "u1")] == ["bag-1"]
+        mark_bag_finished(conn, "u1", "bag-1")  # correct owner -> finishes
+        assert list_active_bags(conn, "u1") == []
 
     def test_list_active_scoped_to_user(self, conn, onboarding, make_bean_db):
         save_user(conn, "u1", onboarding)
@@ -235,12 +245,26 @@ class TestCoffeeBagCRUD:
                 (bid, "u1", "t", "{}", "{}", "{}", "bag-1", dose),
             )
         conn.commit()
-        assert grams_used_for_bag(conn, "bag-1") == pytest.approx(33.5)
+        assert grams_used_for_bag(conn, "u1", "bag-1") == pytest.approx(33.5)
 
     def test_grams_used_empty_bag_is_zero(self, conn, onboarding, make_bean_db):
         save_user(conn, "u1", onboarding)
         create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
-        assert grams_used_for_bag(conn, "bag-1") == 0.0
+        assert grams_used_for_bag(conn, "u1", "bag-1") == 0.0
+
+    def test_grams_used_scoped_to_user(self, conn, onboarding, make_bean_db):
+        # Another user's brews against the same bag_id must not be counted.
+        save_user(conn, "u1", onboarding)
+        save_user(conn, "u2", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+        conn.execute(
+            "INSERT INTO brew_history "
+            "(brew_id,user_id,timestamp,bean_json,recipe_json,feedback_json,bag_id,actual_dose_g) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            ("brX", "u2", "t", "{}", "{}", "{}", "bag-1", 99.0),
+        )
+        conn.commit()
+        assert grams_used_for_bag(conn, "u1", "bag-1") == 0.0
 
 
 class TestUserRoundTrip:

@@ -95,7 +95,7 @@ persistence is B1.4.
 - Size: ~120 LOC. Invariants: at-least-one-flavor validation preserved, size
   default + editable.
 
-### B1.4 — Wire the picker to real bag storage (wire)
+### B1.4 — Wire the picker to real bag storage (wire) ✅ DONE 2026-06-11
 
 Connect the B1.3 picker to the B1.2 helpers: "Add a new bag" calls `create_bag`,
 the list reads `list_active_bags`, "running low" reads `grams_used_for_bag`, and

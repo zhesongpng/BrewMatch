@@ -761,27 +761,35 @@ def list_active_bags(conn: sqlite3.Connection, user_id: str) -> list[CoffeeBag]:
     ]
 
 
-def mark_bag_finished(conn: sqlite3.Connection, bag_id: str) -> None:
-    """Mark a bag finished so it drops off the active list (active = 0)."""
-    conn.execute("UPDATE coffee_bags SET active = 0 WHERE bag_id = ?", (bag_id,))
+def mark_bag_finished(conn: sqlite3.Connection, user_id: str, bag_id: str) -> None:
+    """Mark a bag finished so it drops off the active list (active = 0).
+
+    Scoped by user_id so a user can only finish their own bags (matches the
+    save_brew / load_brew_history / delete_user_data scoping convention).
+    """
+    conn.execute(
+        "UPDATE coffee_bags SET active = 0 WHERE bag_id = ? AND user_id = ?",
+        (bag_id, user_id),
+    )
     conn.commit()
 
 
-def grams_used_for_bag(conn: sqlite3.Connection, bag_id: str) -> float:
+def grams_used_for_bag(conn: sqlite3.Connection, user_id: str, bag_id: str) -> float:
     """Return the total grams of coffee used from a bag.
 
     Sums the real per-brew dose (``actual_dose_g``) over every brew linked to
     this bag. Brews with a NULL dose (records logged before bags existed)
-    contribute nothing. Drives the 'running low' countdown:
+    contribute nothing. Scoped by user_id so the count never crosses users.
+    Drives the 'running low' countdown:
     ``grams_left = bag.bag_size_g - grams_used_for_bag(...)``.
     """
     row = conn.execute(
         """
         SELECT COALESCE(SUM(actual_dose_g), 0) AS grams
         FROM brew_history
-        WHERE bag_id = ?
+        WHERE bag_id = ? AND user_id = ?
         """,
-        (bag_id,),
+        (bag_id, user_id),
     ).fetchone()
     return float(row["grams"]) if row and row["grams"] is not None else 0.0
 

@@ -246,6 +246,8 @@ tracked; running-low becomes exact once doses are captured at brew time.
 +----------------------------------------------+
 |   Brewing: Hoffmann V60 Classic              |
 |                                               |
+|   Your Dose: [ 15.0 ] g  (water 240 g, 1:16)  |
+|                                               |
 |   Step 1: Rinse filter with hot water         |
 |   Step 2: Add 15g ground coffee               |
 |   Step 3: Bloom - Pour 30g water, wait 30s    |
@@ -271,11 +273,19 @@ tracked; running-low becomes exact once doses are captured at brew time.
 **Behavior:**
 
 1. Display step-by-step brewing instructions from the selected recipe.
-2. Provide a countdown timer matching `total_time_s`.
-3. Feedback is required (thumbs up/down at minimum). Rating and flags are optional.
-4. On submit, save feedback to user brew history and update personalization state.
-5. If directional flags are present, show a brief diagnosis hint (see `/diagnosis`).
-6. Navigate to `/recommend` for next brew, or `/history` to review.
+2. An editable "Your Dose" field at the top is pre-filled with the recipe's dose.
+   Changing it rescales the water total and every pour by `your_dose ÷
+recipe_dose`, holding the coffee-to-water ratio constant; grind, water
+   temperature, bloom time, and all pour timings are unchanged. The field offers
+   12–25 g (widening to include the recipe's own dose if it falls outside that
+   band); a dose that would build an out-of-range recipe is rejected and the
+   original dose is shown instead. This is display-only — the rescaled recipe is
+   wired into the saved brew record in a later step.
+3. Provide a countdown timer matching `total_time_s`.
+4. Feedback is required (thumbs up/down at minimum). Rating and flags are optional.
+5. On submit, save feedback to user brew history and update personalization state.
+6. If directional flags are present, show a brief diagnosis hint (see `/diagnosis`).
+7. Navigate to `/recommend` for next brew, or `/history` to review.
 
 ### 4.6 History Page
 

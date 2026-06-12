@@ -113,7 +113,7 @@ saved bag survives logout and reappears on next login.
 - Size: ~40 LOC. Invariant: zero mock bag data; reads/writes go to db helpers;
   bag identity threaded into session state.
 
-### B1.5 — Build editable dose + recipe rescaling on the brew screen (build)
+### B1.5 — Build editable dose + recipe rescaling on the brew screen (build) ✅ DONE 2026-06-12
 
 Add an editable dose field at the top of `src/app/pages/brew_session.py`,
 pre-filled with the recipe's `dose_g`. When changed, rescale the displayed water

@@ -5,11 +5,20 @@ and brew record persistence.
 """
 import logging
 import uuid
+from dataclasses import replace
 from datetime import datetime, timezone
 
 import streamlit as st
 
 logger = logging.getLogger(__name__)
+
+# Dose the user is allowed to dial in on the brew screen. The Recipe model
+# accepts 12-35 g (data_models.py:110), but pour-over rarely runs above 25 g, so
+# the input offers a tighter 12-25 g range. If a recipe's own dose falls outside
+# that band the range widens to include it, so the recipe's dose is always
+# selectable and the screen never force-rescales on load.
+_MIN_DOSE_G = 12.0
+_MAX_DOSE_G = 25.0
 
 from src.app.db import save_brew
 from src.app.utils import dict_to_bean_profile, dict_to_recipe, escape_markdown
@@ -46,9 +55,14 @@ def render():
     recipe = dict_to_recipe(recipe_raw)
 
     _render_recipe_header(recipe)
-    _render_pour_steps(recipe)
-    _render_summary_bar(recipe)
-    _render_timer(recipe)
+
+    # B1.5: the dose control rescales the *displayed* recipe (water + every pour)
+    # to the dose the user actually weighed. Storage still uses the original
+    # recipe here; B1.6 wires this scaled recipe into the saved brew record.
+    display_recipe = _render_dose_control(recipe)
+    _render_pour_steps(display_recipe)
+    _render_summary_bar(display_recipe)
+    _render_timer(display_recipe)
 
     # Feedback section only appears after marking the brew complete.
     if st.session_state.get("brew_completed", False):
@@ -66,6 +80,73 @@ def _render_recipe_header(recipe: Recipe):
     st.caption(
         f"{recipe.method.value} via {recipe.source}"
     )
+
+
+def _scale_recipe(recipe: Recipe, actual_dose_g: float) -> Recipe:
+    """Return a copy of ``recipe`` rescaled to ``actual_dose_g``.
+
+    Water total and every pour scale by ``actual_dose_g / recipe.dose_g``; the
+    ratio, grind, water temperature, bloom time, and all pour timings are left
+    unchanged -- so the coffee-to-water ratio stays constant while the absolute
+    amounts track the dose actually weighed.
+
+    Raises ``ValueError`` (via ``Recipe`` / ``PourStep`` validation) if the
+    rescaled recipe falls outside model bounds (e.g. a downscale that pushes
+    total water below 180 g or a pour below 10 g). Callers handle that by
+    keeping the original recipe on screen.
+    """
+    factor = actual_dose_g / recipe.dose_g
+    scaled_pours = [
+        replace(p, water_g=round(p.water_g * factor, 1)) for p in recipe.pours
+    ]
+    return replace(
+        recipe,
+        dose_g=round(actual_dose_g, 1),
+        water_total_g=round(recipe.water_total_g * factor, 1),
+        pours=scaled_pours,
+    )
+
+
+def _render_dose_control(recipe: Recipe) -> Recipe:
+    """Render the editable dose field and return the recipe to display.
+
+    The field defaults to the recipe's own dose, so the screen opens unchanged.
+    Changing it rescales water and every pour proportionally; a dose that can't
+    build a valid recipe falls back to the original with a friendly note.
+    """
+    st.subheader("Your Dose")
+    low = min(_MIN_DOSE_G, recipe.dose_g)
+    high = max(_MAX_DOSE_G, recipe.dose_g)
+    actual_dose = st.number_input(
+        "Coffee dose (g)",
+        min_value=float(low),
+        max_value=float(high),
+        value=float(recipe.dose_g),
+        step=0.5,
+        help=(
+            "Set the dose you actually weighed. The water total and every pour "
+            "rescale to match, keeping the same coffee-to-water ratio."
+        ),
+    )
+
+    # Unchanged (within rounding) -> show the recipe as-is.
+    if abs(actual_dose - recipe.dose_g) < 0.05:
+        return recipe
+
+    try:
+        scaled = _scale_recipe(recipe, actual_dose)
+    except ValueError:
+        st.warning(
+            f"{actual_dose:.1f} g doesn't fit this recipe's range — showing the "
+            f"original {recipe.dose_g:.0f} g instead."
+        )
+        return recipe
+
+    st.caption(
+        f"Rescaled from {recipe.dose_g:.0f} g: water now "
+        f"{scaled.water_total_g:.0f} g at the same 1:{scaled.ratio:.1f} ratio."
+    )
+    return scaled
 
 
 def _render_pour_steps(recipe: Recipe):

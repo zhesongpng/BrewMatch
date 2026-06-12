@@ -645,8 +645,10 @@ def save_brew(conn: sqlite3.Connection, user_id: str, brew: BrewRecord) -> None:
     """INSERT a brew history record."""
     conn.execute(
         """
-        INSERT INTO brew_history (brew_id, user_id, timestamp, bean_json, recipe_json, feedback_json)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO brew_history
+            (brew_id, user_id, timestamp, bean_json, recipe_json, feedback_json,
+             bag_id, actual_dose_g)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             brew.brew_id,
@@ -655,6 +657,8 @@ def save_brew(conn: sqlite3.Connection, user_id: str, brew: BrewRecord) -> None:
             _serialize_bean(brew.bean_profile),
             _serialize_recipe(brew.recipe_used),
             _serialize_feedback(brew.feedback),
+            brew.bag_id,
+            brew.actual_dose_g,
         ),
     )
     conn.commit()
@@ -666,7 +670,8 @@ def load_brew_history(
     """Return recent brews for a user, newest first."""
     rows = conn.execute(
         """
-        SELECT brew_id, user_id, timestamp, bean_json, recipe_json, feedback_json
+        SELECT brew_id, user_id, timestamp, bean_json, recipe_json, feedback_json,
+               bag_id, actual_dose_g
         FROM brew_history
         WHERE user_id = ?
         ORDER BY timestamp DESC
@@ -684,6 +689,8 @@ def load_brew_history(
                 "bean_profile": _deserialize_bean(row["bean_json"]),
                 "recipe_used": _deserialize_recipe(row["recipe_json"]),
                 "feedback": _deserialize_feedback(row["feedback_json"]),
+                "bag_id": row["bag_id"],
+                "actual_dose_g": row["actual_dose_g"],
             }
         )
     return results
@@ -759,6 +766,37 @@ def list_active_bags(conn: sqlite3.Connection, user_id: str) -> list[CoffeeBag]:
         )
         for row in rows
     ]
+
+
+def get_bag(
+    conn: sqlite3.Connection, user_id: str, bag_id: str
+) -> Optional[CoffeeBag]:
+    """Return one of a user's bags by id, or None if it isn't theirs.
+
+    Scoped by user_id (matches the save_brew / list_active_bags convention) so a
+    user can only read their own bag. Returns the bag regardless of active flag,
+    so the brew screen can still show the running-low count for a bag the user is
+    mid-way through.
+    """
+    row = conn.execute(
+        """
+        SELECT bag_id, roaster, name, bag_size_g, bean_json, date_opened, active
+        FROM coffee_bags
+        WHERE bag_id = ? AND user_id = ?
+        """,
+        (bag_id, user_id),
+    ).fetchone()
+    if row is None:
+        return None
+    return CoffeeBag(
+        bag_id=row["bag_id"],
+        roaster=row["roaster"],
+        name=row["name"],
+        bean_profile=_deserialize_bean(row["bean_json"]),
+        bag_size_g=float(row["bag_size_g"]),
+        date_opened=row["date_opened"],
+        active=bool(row["active"]),
+    )
 
 
 def mark_bag_finished(conn: sqlite3.Connection, user_id: str, bag_id: str) -> None:

@@ -127,7 +127,9 @@ in `src/data_models.py`.
 | `brew_history[].brew_id`                    | UUID           | Unique brew identifier                                                    |
 | `brew_history[].timestamp`                  | ISO-8601       | When the brew was made                                                    |
 | `brew_history[].bean_profile`               | object         | Bean profile at time of brew                                              |
-| `brew_history[].recipe_used`                | object         | Recipe parameters used                                                    |
+| `brew_history[].recipe_used`                | object         | Recipe parameters used (the dose-scaled recipe actually brewed)           |
+| `brew_history[].bag_id`                     | string \| null | Bag this brew drew from; null for a one-off brew                          |
+| `brew_history[].actual_dose_g`              | float \| null  | Real dose weighed (mirror of `recipe_used.dose_g`); drives running-low    |
 | `brew_history[].feedback.thumbs_up`         | boolean        | Primary feedback signal                                                   |
 | `brew_history[].feedback.score`             | int            | Optional 1-10 rating                                                      |
 | `brew_history[].feedback.directional_flags` | array          | Optional: "too_sour", "too_bitter", "too_weak", "too_harsh", "astringent" |

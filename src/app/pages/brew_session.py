@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 _MIN_DOSE_G = 12.0
 _MAX_DOSE_G = 25.0
 
-from src.app.db import save_brew
+# Nominal dose for the "≈N brews left" estimate, matching the bag picker
+# (bean_input._NOMINAL_DOSE_G) so the count is consistent across screens.
+_NOMINAL_DOSE_G = 15.0
+
+from src.app.db import get_bag, get_db, grams_used_for_bag, save_brew
 from src.app.utils import dict_to_bean_profile, dict_to_recipe, escape_markdown
 from src.grinder_catalog import get_grinder_display
 from src.data_models import (
@@ -55,18 +59,20 @@ def render():
     recipe = dict_to_recipe(recipe_raw)
 
     _render_recipe_header(recipe)
+    _render_bag_status()
 
-    # B1.5: the dose control rescales the *displayed* recipe (water + every pour)
-    # to the dose the user actually weighed. Storage still uses the original
-    # recipe here; B1.6 wires this scaled recipe into the saved brew record.
+    # The dose control rescales the displayed recipe (water + every pour) to the
+    # dose the user actually weighed. The scaled recipe is what gets saved, so
+    # history and the running-low count reflect the real cup (B1.5 + B1.6).
     display_recipe = _render_dose_control(recipe)
     _render_pour_steps(display_recipe)
     _render_summary_bar(display_recipe)
     _render_timer(display_recipe)
 
-    # Feedback section only appears after marking the brew complete.
+    # Feedback section only appears after marking the brew complete. It saves the
+    # scaled recipe, so the brew record carries the real dose, not the template.
     if st.session_state.get("brew_completed", False):
-        _render_feedback_section(recipe)
+        _render_feedback_section(display_recipe)
     else:
         st.markdown("---")
         if st.button("Mark Brew Complete", type="primary", use_container_width=True):
@@ -79,6 +85,36 @@ def _render_recipe_header(recipe: Recipe):
     st.title(name)
     st.caption(
         f"{recipe.method.value} via {recipe.source}"
+    )
+
+
+def _render_bag_status():
+    """Show which bag this brew draws from and roughly how many cups remain.
+
+    Reads the bag selected on the picker (``current_bag_id``) and the real grams
+    used so far. Renders nothing for a no-bag brew, so the one-off path is
+    unaffected.
+    """
+    bag_id = st.session_state.get("current_bag_id")
+    user_id = st.session_state.get("user_id")
+    if not bag_id or not user_id:
+        return
+    try:
+        with get_db() as conn:
+            bag = get_bag(conn, user_id, bag_id)
+            if bag is None:
+                return
+            used = grams_used_for_bag(conn, user_id, bag_id)
+    except Exception:
+        logger.debug("Bag status lookup failed", exc_info=True)
+        return
+
+    remaining = max(0.0, bag.bag_size_g - used)
+    brews_left = int(remaining // _NOMINAL_DOSE_G)
+    st.caption(
+        f"From your bag: **{escape_markdown(bag.roaster)} — "
+        f"{escape_markdown(bag.name)}** · ≈{brews_left} brews left "
+        f"({remaining:.0f} g remaining)"
     )
 
 
@@ -275,11 +311,17 @@ def _render_feedback_section(recipe: Recipe):
 
 
 def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
+    # ``recipe`` is the scaled recipe from the dose control, so recipe.dose_g is
+    # the dose actually weighed -- mirror it into actual_dose_g.
     bean = st.session_state.get("current_bean")
     if bean is None:
+        # No bag/bean was picked -- this is the one-off fallback path. Do NOT
+        # link a (possibly stale) bag id; the bag link is additive, never forced.
         bean = _fallback_bean_from_recipe(recipe)
+        bag_id = None
     else:
         bean = dict_to_bean_profile(bean)
+        bag_id = st.session_state.get("current_bag_id")
 
     feedback = Feedback(
         thumbs_up=st.session_state.feedback_thumbs_up,
@@ -294,14 +336,14 @@ def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
         bean_profile=bean,
         recipe_used=recipe,
         feedback=feedback,
+        bag_id=bag_id,
+        actual_dose_g=recipe.dose_g,
     )
 
     # Persist to database.
     user_id = st.session_state.get("user_id")
     if user_id:
         try:
-            from src.app.db import get_db
-
             with get_db() as conn:
                 save_brew(conn, user_id, brew_record)
         except Exception as exc:

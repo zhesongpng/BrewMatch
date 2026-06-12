@@ -245,12 +245,20 @@ class BrewRecord:
     bean_profile: BeanProfile
     recipe_used: Recipe
     feedback: Feedback
+    # Bag link (optional): present when the brew came from a saved bag. The
+    # dose actually weighed is mirrored from ``recipe_used.dose_g`` into
+    # ``actual_dose_g`` so the running-low countdown can SUM it cheaply without
+    # JSON extraction. Older records predate both fields and load with None.
+    bag_id: Optional[str] = None
+    actual_dose_g: Optional[float] = None
 
     def __post_init__(self):
         if not self.brew_id:
             raise ValueError("brew_id is required")
         if not self.timestamp:
             raise ValueError("timestamp is required")
+        if self.actual_dose_g is not None and self.actual_dose_g <= 0:
+            raise ValueError(f"actual_dose_g must be > 0, got {self.actual_dose_g}")
 
 
 @dataclass

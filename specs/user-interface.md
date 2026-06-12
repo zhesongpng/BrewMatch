@@ -245,6 +245,8 @@ tracked; running-low becomes exact once doses are captured at brew time.
 ```
 +----------------------------------------------+
 |   Brewing: Hoffmann V60 Classic              |
+|   From your bag: Onyx — Ethiopia Guji         |
+|     ≈14 brews left (218 g remaining)          |
 |                                               |
 |   Your Dose: [ 15.0 ] g  (water 240 g, 1:16)  |
 |                                               |
@@ -274,19 +276,25 @@ tracked; running-low becomes exact once doses are captured at brew time.
 
 1. Display step-by-step brewing instructions from the selected recipe.
 2. An editable "Your Dose" field at the top is pre-filled with the recipe's dose.
-   Changing it rescales the on-screen brewing guidance — the water total and
-   every pour — by `your_dose ÷ recipe_dose`, holding the coffee-to-water ratio
-   constant; grind, water temperature, bloom time, and all pour timings are
-   unchanged. The field offers 12–25 g (widening to include the recipe's own
-   dose if it falls outside that band); a dose that would build an out-of-range
-   recipe is rejected and the original dose is shown instead. The rescaling
-   adjusts the displayed guidance only; the recipe stored with the brew record
-   is unchanged.
-3. Provide a countdown timer matching `total_time_s`.
-4. Feedback is required (thumbs up/down at minimum). Rating and flags are optional.
-5. On submit, save feedback to user brew history and update personalization state.
-6. If directional flags are present, show a brief diagnosis hint (see `/diagnosis`).
-7. Navigate to `/recommend` for next brew, or `/history` to review.
+   Changing it rescales the brewing guidance — the water total and every pour —
+   by `your_dose ÷ recipe_dose`, holding the coffee-to-water ratio constant;
+   grind, water temperature, bloom time, and all pour timings are unchanged. The
+   field offers 12–25 g (widening to include the recipe's own dose if it falls
+   outside that band); a dose that would build an out-of-range recipe is rejected
+   and the original dose is shown instead.
+3. When the brew came from a saved bag (a bag was picked on the Your Coffees
+   screen), a line shows the bag's roaster and coffee name and "≈N brews left"
+   from the real grams used so far. A one-off brew with no bag shows no such line.
+4. Provide a countdown timer matching `total_time_s`.
+5. Feedback is required (thumbs up/down at minimum). Rating and flags are optional.
+6. On submit, save feedback to user brew history and update personalization state.
+   The brew record stores the **scaled** recipe (so its dose, water, and pours
+   are what was actually brewed) and mirrors the real dose into `actual_dose_g`.
+   If the brew came from a bag, the bag id is stored too, so the bag's
+   "running low" countdown decrements by the real dose; a no-bag brew stores a
+   null bag id and nothing decrements.
+7. If directional flags are present, show a brief diagnosis hint (see `/diagnosis`).
+8. Navigate to `/recommend` for next brew, or `/history` to review.
 
 ### 4.6 History Page
 

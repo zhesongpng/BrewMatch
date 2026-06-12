@@ -139,7 +139,7 @@ read from the scaled values instead.
   12–35 g — a pre-existing spec/code divergence, out of B1 scope, flagged in the
   validation report.
 
-### B1.6 — Wire bag + actual dose + running-low into the brew record (wire)
+### B1.6 — Wire bag + actual dose + running-low into the brew record (wire) ✅ DONE 2026-06-12
 
 Connect the brew screen to real data: read `current_bag_id` (from B1.4), save it
 plus the **actual dose** (from B1.5) into `brew_history.bag_id` /

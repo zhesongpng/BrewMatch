@@ -11,6 +11,7 @@ from src.app.db import (
     count_brews,
     create_bag,
     delete_user_data,
+    get_bag,
     get_connection,
     get_user_stats,
     grams_used_for_bag,
@@ -409,6 +410,104 @@ class TestBrewRoundTrip:
         bean = _deserialize_bean(legacy_json)
         assert bean.roaster is None
         assert bean.name is None
+
+
+class TestBrewBagLink:
+    """B1.6: a brew carries its bag link + the real dose, and the running-low
+    count sums those real doses."""
+
+    def _bag_brew(self, brew_id, bean, recipe, bag_id, dose):
+        return BrewRecord(
+            brew_id=brew_id,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            bean_profile=bean,
+            recipe_used=recipe,
+            feedback=Feedback(thumbs_up=True, score=7),
+            bag_id=bag_id,
+            actual_dose_g=dose,
+        )
+
+    def test_save_brew_persists_bag_link_and_dose(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        save_user(conn, "u1", onboarding)
+        brew = self._bag_brew(
+            "brew-1", make_bean_db(), make_recipe_db(), bag_id="bag-1", dose=18.0
+        )
+        save_brew(conn, "u1", brew)
+
+        entry = load_brew_history(conn, "u1")[0]
+        assert entry["bag_id"] == "bag-1"
+        assert entry["actual_dose_g"] == 18.0
+
+    def test_no_bag_brew_saves_null_link(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        # The one-off path: no bag picked. bag_id stays NULL, dose may still be
+        # recorded. load_brew_history must round-trip the nulls cleanly.
+        save_user(conn, "u1", onboarding)
+        brew = _brew_record("brew-noba", make_bean_db(), make_recipe_db())
+        save_brew(conn, "u1", brew)
+
+        entry = load_brew_history(conn, "u1")[0]
+        assert entry["bag_id"] is None
+        assert entry["actual_dose_g"] is None
+
+    def test_grams_used_sums_saved_actual_doses(
+        self, conn, onboarding, make_recipe_db, make_bean_db
+    ):
+        # The full B1.6 loop: two bag-linked brews at real doses -> grams_used
+        # equals the SUM of those doses (not the recipe's assumed dose).
+        save_user(conn, "u1", onboarding)
+        bean, recipe = make_bean_db(), make_recipe_db()
+        save_brew(conn, "u1", self._bag_brew("b1", bean, recipe, "bag-1", 18.0))
+        save_brew(conn, "u1", self._bag_brew("b2", bean, recipe, "bag-1", 16.5))
+        # A brew on a different bag must not count toward bag-1.
+        save_brew(conn, "u1", self._bag_brew("b3", bean, recipe, "bag-2", 20.0))
+
+        assert grams_used_for_bag(conn, "u1", "bag-1") == pytest.approx(34.5)
+
+
+class TestGetBag:
+    def _make_bag(self, make_bean_db, **overrides) -> CoffeeBag:
+        defaults = dict(
+            bag_id="bag-1",
+            roaster="Onyx Coffee Lab",
+            name="Ethiopia Guji",
+            bean_profile=make_bean_db(roaster="Onyx Coffee Lab", name="Ethiopia Guji"),
+            bag_size_g=250.0,
+        )
+        defaults.update(overrides)
+        return CoffeeBag(**defaults)
+
+    def test_get_bag_returns_owned_bag(self, conn, onboarding, make_bean_db):
+        save_user(conn, "u1", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_size_g=340.0))
+        bag = get_bag(conn, "u1", "bag-1")
+        assert bag is not None
+        assert bag.bag_size_g == 340.0
+        assert bag.roaster == "Onyx Coffee Lab"
+
+    def test_get_bag_scoped_to_user(self, conn, onboarding, make_bean_db):
+        # A user must not read another user's bag.
+        save_user(conn, "u1", onboarding)
+        save_user(conn, "u2", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db))
+        assert get_bag(conn, "u2", "bag-1") is None
+
+    def test_get_bag_missing_returns_none(self, conn, onboarding):
+        save_user(conn, "u1", onboarding)
+        assert get_bag(conn, "u1", "nope") is None
+
+    def test_get_bag_returns_finished_bag(self, conn, onboarding, make_bean_db):
+        # get_bag ignores the active flag so the brew screen can still show the
+        # count for a bag the user just finished mid-session.
+        save_user(conn, "u1", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db))
+        mark_bag_finished(conn, "u1", "bag-1")
+        bag = get_bag(conn, "u1", "bag-1")
+        assert bag is not None
+        assert bag.active is False
 
 
 class TestGetUserStats:

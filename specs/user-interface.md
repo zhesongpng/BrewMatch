@@ -274,13 +274,14 @@ tracked; running-low becomes exact once doses are captured at brew time.
 
 1. Display step-by-step brewing instructions from the selected recipe.
 2. An editable "Your Dose" field at the top is pre-filled with the recipe's dose.
-   Changing it rescales the water total and every pour by `your_dose ÷
-recipe_dose`, holding the coffee-to-water ratio constant; grind, water
-   temperature, bloom time, and all pour timings are unchanged. The field offers
-   12–25 g (widening to include the recipe's own dose if it falls outside that
-   band); a dose that would build an out-of-range recipe is rejected and the
-   original dose is shown instead. This is display-only — the rescaled recipe is
-   wired into the saved brew record in a later step.
+   Changing it rescales the on-screen brewing guidance — the water total and
+   every pour — by `your_dose ÷ recipe_dose`, holding the coffee-to-water ratio
+   constant; grind, water temperature, bloom time, and all pour timings are
+   unchanged. The field offers 12–25 g (widening to include the recipe's own
+   dose if it falls outside that band); a dose that would build an out-of-range
+   recipe is rejected and the original dose is shown instead. The rescaling
+   adjusts the displayed guidance only; the recipe stored with the brew record
+   is unchanged.
 3. Provide a countdown timer matching `total_time_s`.
 4. Feedback is required (thumbs up/down at minimum). Rating and flags are optional.
 5. On submit, save feedback to user brew history and update personalization state.

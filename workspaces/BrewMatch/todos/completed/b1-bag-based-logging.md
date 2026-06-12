@@ -1,7 +1,7 @@
 # B1 — Bag-Based Brew Logging (detailed task list)
 
 Created: 2026-06-11
-Status: **AWAITING YOUR APPROVAL — nothing built yet**
+Status: **COMPLETE — B1.1–B1.7 all shipped 2026-06-12**
 Plan: `workspaces/BrewMatch/02-plans/03-bag-based-logging.md`
 Parent: expands "B1" in `todos/active/p1-live-persistence-and-learning-loop.md`
 
@@ -175,7 +175,7 @@ required.
 - Size: ~80 LOC. Invariants: actual dose persisted, running-low subtracts real
   dose, roaster/name carried into history, no-bag path unaffected.
 
-### B1.7 — Regression test: bag reusable + real-dose decrement (test)
+### B1.7 — Regression test: bag reusable + real-dose decrement (test) ✅ DONE 2026-06-12
 
 Add a regression test proving the whole loop: create a bag, brew from it twice
 with different actual doses, confirm the bag is reusable across sessions and its

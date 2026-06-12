@@ -22,6 +22,11 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 
+# Track which secret keys we've already logged as missing, so the per-rerun
+# secret bridge logs the "not found" case once per process instead of every click.
+_secrets_missing_logged: set[str] = set()
+
+
 def _bridge_secrets_to_env() -> None:
     """Copy hosted secrets into os.environ so the database layer can read them.
 
@@ -37,13 +42,17 @@ def _bridge_secrets_to_env() -> None:
         try:
             value = st.secrets[key]  # raises if no secrets are configured
         except Exception:
-            try:
-                available = list(st.secrets.keys())
-            except Exception:
-                available = []
-            logger.warning(
-                "startup: secret %r NOT found; available secret keys = %s", key, available
-            )
+            # main() calls this on every rerun, so log the "missing" case only
+            # once per process to avoid flooding the logs on each interaction.
+            if key not in _secrets_missing_logged:
+                try:
+                    available = list(st.secrets.keys())
+                except Exception:
+                    available = []
+                logger.warning(
+                    "startup: secret %r NOT found; available secret keys = %s", key, available
+                )
+                _secrets_missing_logged.add(key)
             continue  # no secrets file / key absent — expected locally
         if value:
             os.environ[key] = str(value)
@@ -319,6 +328,32 @@ def _ensure_demo_account():
         logger.debug("Could not create demo account", exc_info=True)
 
 
+@st.cache_resource(show_spinner=False)
+def _bootstrap_database_once() -> bool:
+    """Create the schema + seed the demo account exactly once per process.
+
+    Streamlit re-runs ``main()`` on every interaction. Opening a connection and
+    replaying the full schema init (~10 DDL statements + migration probes) plus
+    the demo-account lookup on every click is the dominant per-interaction cost —
+    cheap on local SQLite, a network round-trip *per statement* on hosted
+    Postgres. ``@st.cache_resource`` runs this body on the first script execution
+    and reuses the result for every later rerun and session, so the setup cost is
+    paid once. The work is idempotent regardless; on failure the function raises
+    (Streamlit does not cache exceptions) so the next rerun retries.
+    """
+    from src.app.db import active_backend, get_connection, init_db
+
+    backend = active_backend()
+    logger.warning("BrewMatch startup: database backend = %s", backend)
+    conn = get_connection()
+    init_db(conn)
+    conn.close()
+    logger.warning("BrewMatch startup: database READY (backend = %s)", backend)
+
+    _ensure_demo_account()
+    return True
+
+
 def main():
     st.set_page_config(
         page_title="BrewMatch",
@@ -336,23 +371,11 @@ def main():
     restore_session()
     load_models()
 
-    # Initialize DB schema once at startup. Log the active backend and the
-    # outcome at WARNING so they are always visible in the hosting logs — a
-    # missing/incorrect DATABASE_URL otherwise fails silently.
+    # Schema init + demo seeding run once per process (see _bootstrap_database_once).
     try:
-        from src.app.db import active_backend, get_connection, init_db
-
-        backend = active_backend()
-        logger.warning("BrewMatch startup: database backend = %s", backend)
-        conn = get_connection()
-        init_db(conn)
-        conn.close()
-        logger.warning("BrewMatch startup: database READY (backend = %s)", backend)
+        _bootstrap_database_once()
     except Exception as exc:
-        logger.error("BrewMatch startup: database init FAILED — %s", exc)
-
-    # Ensure the demo account exists.
-    _ensure_demo_account()
+        logger.error("BrewMatch startup: database bootstrap FAILED — %s", exc)
 
     render_sidebar()
 

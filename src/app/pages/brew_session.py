@@ -310,18 +310,28 @@ def _render_feedback_section(recipe: Recipe):
         _submit_feedback(recipe, score, selected_flags, notes)
 
 
+def _resolve_bag_id(current_bean, current_bag_id: str | None) -> str | None:
+    """The bag this brew links to.
+
+    Returns the picked bag id ONLY when a real bean/bag was selected. No bean
+    means the one-off fallback path, so the link is dropped -- this stops a stale
+    ``current_bag_id`` left over from an earlier pick from attaching itself to a
+    no-bag brew. The bag link is additive, never forced.
+    """
+    if current_bean is None:
+        return None
+    return current_bag_id
+
+
 def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
     # ``recipe`` is the scaled recipe from the dose control, so recipe.dose_g is
     # the dose actually weighed -- mirror it into actual_dose_g.
-    bean = st.session_state.get("current_bean")
-    if bean is None:
-        # No bag/bean was picked -- this is the one-off fallback path. Do NOT
-        # link a (possibly stale) bag id; the bag link is additive, never forced.
+    raw_bean = st.session_state.get("current_bean")
+    bag_id = _resolve_bag_id(raw_bean, st.session_state.get("current_bag_id"))
+    if raw_bean is None:
         bean = _fallback_bean_from_recipe(recipe)
-        bag_id = None
     else:
-        bean = dict_to_bean_profile(bean)
-        bag_id = st.session_state.get("current_bag_id")
+        bean = dict_to_bean_profile(raw_bean)
 
     feedback = Feedback(
         thumbs_up=st.session_state.feedback_thumbs_up,

@@ -97,3 +97,18 @@ class TestScaleRecipe:
         )
         with pytest.raises(ValueError):
             bs._scale_recipe(recipe, 12.0)
+
+
+class TestResolveBagId:
+    """The no-bag guard: a brew links to a bag only when a bean was actually
+    picked, so a stale current_bag_id can't attach to a one-off brew."""
+
+    def test_bean_present_links_to_current_bag(self):
+        assert bs._resolve_bag_id({"origin_country": "Ethiopia"}, "bag-1") == "bag-1"
+
+    def test_no_bean_drops_stale_bag_id(self):
+        # Fallback path: current_bean is None but a bag id lingers from earlier.
+        assert bs._resolve_bag_id(None, "stale-bag") is None
+
+    def test_bean_present_but_no_bag_is_none(self):
+        assert bs._resolve_bag_id({"origin_country": "Ethiopia"}, None) is None

@@ -6,13 +6,13 @@ Last updated: 2026-06-10
 
 ## Where the project is now
 
-**The course project is finished and submitted.** Milestones 1–5 (data, ML
+**The foundational build is complete.** Milestones 1–5 (data, ML
 pipeline, web app, evaluation, polish) are all complete. Their finalized
 records live in `todos/completed/`. The app is built, tested (646 tests
 passing), and deployed.
 
-We are now in a **new chapter with a bigger goal: grow BrewMatch from a course
-project into a real product** — reliable enough for daily use, nice enough to
+We are now in a **new chapter with a bigger goal: grow BrewMatch into a real
+product** — reliable enough for daily use, nice enough to
 show people, and eventually a small community of like-minded coffee people
 sharing recipes, with the option to commercialise later.
 
@@ -98,7 +98,7 @@ apps don't have. No tasks here yet — this is a marker, not active work.
 
 ---
 
-## Archived: course submission (Milestones 1–5)
+## Archived: foundational build (Milestones 1–5)
 
 All complete. Finalized records are in `todos/completed/`. Nothing in those
 milestones is outstanding — they are kept only for history.

@@ -1,6 +1,6 @@
 # BrewMatch
 
-A pour-over coffee troubleshooting tool that diagnoses brew issues and recommends recipe adjustments. Course project for NUS MBA MGMT655 -- Machine Learning for Decision Making.
+A pour-over coffee troubleshooting tool that diagnoses brew issues and recommends recipe adjustments — giving you a bean-matched starting recipe, then telling you exactly what to change when a cup tastes off.
 
 ## What It Does
 
@@ -83,4 +83,4 @@ The taste predictor also powers diagnosis via a perturb-and-score approach: eval
 
 ## License
 
-Educational project for NUS MBA MGMT655. Not licensed for commercial use.
+© 2026 BrewMatch. All rights reserved. (License terms to be finalized.)

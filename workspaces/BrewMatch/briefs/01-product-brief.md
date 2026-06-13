@@ -116,9 +116,9 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 - Singapore home brewing matured post-COVID
 - Adjacent: Acaia (smart scales), Fellow (kettles), Beanconqueror (free, no ML)
 
-### 8.2 Commercial Path (Post-Course)
+### 8.2 Commercial Path
 
-BrewMatch is designed as a course project with commercial potential. If the diagnosis-first approach resonates with users, the most viable path to revenue would be:
+If the diagnosis-first approach resonates with users, the most viable path to revenue would be:
 
 - **One-time premium unlock** (S$10-15): Aligns with what coffee apps charge successfully (Filtru, Coffely). Users pay once for the full ML pipeline — diagnosis, optimization, taste adaptation. Lower friction than subscription for a niche lifestyle app.
 - **Freemium entry point**: Unlimited diagnosis for free (builds habit). Premium unlocks taste adaptation (the emergent personalization that makes starting recipes get better over time), recipe export, and multi-dripper support in a future version.
@@ -130,5 +130,15 @@ The subscription model (S$5-8/month) was evaluated and rejected — too expensiv
 - **Willingness to pay is the biggest open question.** Free competition is abundant (Beanconqueror, YouTube, ChatGPT).
 - **Retention risk**: users find a working recipe and stop opening the app — the diagnosis loop only activates when something goes wrong.
 - **Cold start cliff**: weak taste adaptation for first 10+ brews — mitigated by diagnosis-first approach (value on brew 1, not brew 10).
-- **Weak network effects**: per-user taste profiles don't benefit from other users — no social flywheel.
+- **Weak _social_ network effects**: no viral or friend-driven loop. (But real _data_ network effects do exist — see §8.4.)
 - **Competing with free**: the value must be clearly better than typing "my V60 brew is too sour" into ChatGPT. The edge is contextual precision — BrewMatch knows the exact parameters you used.
+
+### 8.4 Network Effects: Data, Not Social
+
+BrewMatch has weak _social_ network effects but real _data_ network effects. It doesn't get better because your friends join — it gets better because every brew anyone logs improves the model for everyone buying similar beans. Three mechanisms:
+
+- **Cohort cold-start**: new users don't start from zero. After a couple of brews we place them in a taste archetype learned from the existing user base, so personalized recommendations arrive on brew 1, not brew 10. _More users → faster value for every new user._
+- **Shared brewing-physics model**: every logged (bean, recipe, outcome) sharpens the common base model underneath each person's taste. _More users → a smarter baseline for everyone._
+- **Bean-level collective wisdom** (the strongest, and the local advantage): when many people brew the same bag from the same roaster, the next buyer inherits what worked for the previous ones. Because the target market clusters around a small set of local roasters, the same beans recur across users, so this compounds fast. _More users on the same beans → better starting recipes for those beans._
+
+These are _data_ effects, so they strengthen the product at scale, not at launch — early users carry the cold-start cost so later users don't. There is still no social loop, and v1 does not build one; the diagnosis engine delivers value on day one regardless. The strongest pillar to build first is bean-level priors: it directly attacks the cold-start cliff and the roaster concentration makes it real rather than aspirational.

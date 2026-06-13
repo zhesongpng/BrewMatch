@@ -51,6 +51,7 @@ htmlcov/
 *.pem
 *.key
 secrets/
+.streamlit/secrets.toml
 
 # Workspace session notes (per-session, not versioned)
 **/.session-notes

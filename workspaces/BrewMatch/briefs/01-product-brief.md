@@ -65,7 +65,9 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 ### 6.1 Recipe Knowledge Base + Retrieval (Unsupervised + RAG)
 
 - Curated database from public sources (Hoffmann, Barista Hustle, Tetsu Kasuya 4:6, Scott Rao, Onyx, Reddit top posts)
-- Each recipe tagged with bean profile fit, dripper method, parameters, source
+- Each recipe stores two kinds of data:
+  - **Brewable parameters** — what you follow to make the cup: dose, water, ratio, grind setting, water temperature, bloom time, total time, and a step-by-step pour schedule. The pour schedule is stored as discrete numeric steps (not free text), so it can be both brewed by a person and adjusted by the optimizer.
+  - **Matching metadata** ("suitable for") — which roast levels, origins, processes, and flavor profiles the recipe fits. This is the field that lets the system _pick_ the right recipe for your bean instead of making you browse a list — it's what makes BrewMatch a recommender, not a recipe library.
 - Embedding-based retrieval given a query bean profile
 - LLM layer generates natural-language brewing instructions
 

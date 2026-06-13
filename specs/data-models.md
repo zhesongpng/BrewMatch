@@ -4,6 +4,11 @@
 
 The recipe entity is the core of the knowledge base. Each recipe represents a complete brewing method with all parameters specified.
 
+A recipe record serves **two distinct purposes** at once, which is why its fields fall into two groups:
+
+1. **Brewable parameters** — the values a person follows to make the cup: `dose_g`, `water_total_g`, `ratio`, `grind_setting`, `water_temp_c`, `bloom_time_s`, `total_time_s`, the structured `pours` schedule, and the natural-language `instructions`. Unlike free-text recipe sites, the pour schedule is stored as discrete, machine-checkable steps (`pours[]`) with enforced invariants (see Validation Rules), so the same record can be brewed by a human and reasoned over by the optimizer.
+2. **Matching metadata** — the `suitable_for` block (`roast_levels`, `origins`, `processes`, `flavor_profiles`). This group is what makes BrewMatch a recommendation engine rather than a recipe library: it lets the retriever pick the right starting recipe for a given bean, instead of asking the user to browse. A recipe with no `suitable_for` block is unusable for matching — it is a required field.
+
 ### Schema
 
 | Field                          | Type   | Required | Constraints                     | Description                                  |
@@ -12,8 +17,8 @@ The recipe entity is the core of the knowledge base. Each recipe represents a co
 | `source`                       | string | YES      | Non-empty                       | Attribution (e.g., "James Hoffmann")         |
 | `source_url`                   | string | NO       | Valid URL                       | Link to original source                      |
 | `method`                       | enum   | YES      | "V60", "Kalita Wave", "Origami" | Brew method / dripper type                   |
-| `dose_g`                       | float  | YES      | 12.0 - 22.0                     | Coffee dose in grams                         |
-| `water_total_g`                | float  | YES      | 180.0 - 400.0                   | Total water weight in grams                  |
+| `dose_g`                       | float  | YES      | 12.0 - 35.0                     | Coffee dose in grams                         |
+| `water_total_g`                | float  | YES      | 180.0 - 600.0                   | Total water weight in grams                  |
 | `ratio`                        | float  | YES      | 14.0 - 18.0                     | Water:coffee ratio (e.g., 16.67 = 1:16.67)   |
 | `grind_setting`                | int    | YES      | 1 - 10                          | Relative grind (1=very fine, 10=very coarse) |
 | `water_temp_c`                 | float  | YES      | 85.0 - 100.0                    | Water temperature in Celsius                 |

@@ -1,6 +1,7 @@
 {
   "recipe_id": "kasuya-4-6-bright",
   "source": "Tetsu Kasuya",
+  "source_tier": "champion",
   "method": "V60",
   "dose_g": 20.0,
   "water_total_g": 300.0,

@@ -234,7 +234,7 @@ tracked; running-low becomes exact once doses are captured at brew time.
 
 1. Call recipe retrieval (`specs/recipe-retrieval.md`) with the bean profile.
 2. Call taste prediction (`specs/taste-prediction.md`) for each recipe to show predicted scores.
-3. Display 3 recipes ranked by predicted score.
+3. Display 3 recipes ranked by predicted score. Each card shows a source-tier trust badge below the attribution line: `champion` → "🏆 Championship recipe", `barista` → "☕ Pro recipe", `enthusiast` → no badge (see `data-models.md` `Recipe.source_tier`).
 4. "Optimize for my taste" runs recipe optimization (`specs/recipe-optimization.md`) and shows the optimized parameters alongside the best recipe.
 5. "Start Brewing" saves the selected recipe and navigates to `/brew`.
 

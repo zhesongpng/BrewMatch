@@ -201,6 +201,17 @@ Higher score when recipe parameters respect coffee science constraints:
 
 See `coffee-science.md` for the full constraint model.
 
+#### 5.3a Source-tier near-tie breaker
+
+Candidates are sorted by the combined rerank score above. When two candidates'
+combined scores fall within a small band (`TIE_BAND = 0.02`) of each other, the
+tie is broken in favor of the more credible source tier (`source_tier`:
+`champion` > `barista` > `enthusiast`). The score is quantized into
+`TIE_BAND`-wide buckets for the comparison, so tier only re-orders candidates
+that land in the same bucket — a clear score gap is **never** overridden by tier.
+This keeps match quality primary and uses credibility only to settle genuine
+near-ties. See `data-models.md` (`Recipe.source_tier`).
+
 ### 5.4 Stage 4: Diversity Selection
 
 From the reranked top candidates, select the final 3 recommendations with diversity.

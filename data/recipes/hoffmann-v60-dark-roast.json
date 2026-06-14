@@ -1,6 +1,7 @@
 {
   "recipe_id": "hoffmann-v60-dark-roast",
   "source": "James Hoffmann",
+  "source_tier": "champion",
   "method": "V60",
   "dose_g": 16.0,
   "water_total_g": 256.0,

@@ -1,6 +1,7 @@
 {
   "recipe_id": "hoffmann-v60-light-delicate",
   "source": "James Hoffmann",
+  "source_tier": "champion",
   "method": "V60",
   "dose_g": 14.0,
   "water_total_g": 238.0,

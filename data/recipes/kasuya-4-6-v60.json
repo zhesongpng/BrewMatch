@@ -1,6 +1,7 @@
 {
   "recipe_id": "kasuya-4-6-v60",
   "source": "Tetsu Kasuya",
+  "source_tier": "champion",
   "source_url": "https://www.youtube.com/watch?v=wmCW8xSWGZY",
   "method": "V60",
   "dose_g": 20.0,

@@ -15,9 +15,21 @@ from src.data_models import (
     Process,
     Recipe,
     RoastLevel,
+    SourceTier,
 )
 
 logger = logging.getLogger(__name__)
+
+# Trust badges shown on recipe cards. Enthusiast-tier recipes show no badge.
+_TIER_BADGES = {
+    SourceTier.CHAMPION: "🏆 Championship recipe",
+    SourceTier.BARISTA: "☕ Pro recipe",
+}
+
+
+def _format_source_tier_badge(tier: SourceTier) -> str:
+    """Plain-language trust badge for a recipe's source tier ('' if none)."""
+    return _TIER_BADGES.get(tier, "")
 
 # Labels for grind settings (1-10 scale)
 _GRIND_LABELS = {
@@ -166,6 +178,9 @@ def _render_recipe_card(
             name = recipe.recipe_id.replace("-", " ").replace("_", " ").title()
             st.subheader(f"#{idx + 1} {name}")
             st.caption(f"{rank} via {recipe.source} | {recipe.method.value}")
+            badge = _format_source_tier_badge(recipe.source_tier)
+            if badge:
+                st.caption(badge)
         with score_col:
             if predicted_score is not None:
                 st.metric("Predicted Score", f"{predicted_score:.1f}/10")

@@ -1,6 +1,7 @@
 {
   "recipe_id": "dark-origami-smooth",
   "source": "Tetsu Kasuya",
+  "source_tier": "champion",
   "method": "Origami",
   "dose_g": 15.0,
   "water_total_g": 240.0,

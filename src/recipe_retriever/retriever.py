@@ -29,6 +29,7 @@ from src.data_models import (
     Process,
     Recipe,
     RoastLevel,
+    SourceTier,
     SuitableFor,
 )
 
@@ -79,6 +80,16 @@ SIGNAL_WEIGHTS = {
 DIVERSITY_ALPHA = 0.7
 _MIN_PARAM_DIFF = 2
 
+# Source-tier near-tie breaker (spec §5.3a). Tier only re-orders recipes whose
+# combined rerank scores fall within TIE_BAND of each other; it never overrides
+# a clear winner. Higher TIER_RANK wins the tie.
+TIER_RANK = {
+    SourceTier.CHAMPION: 2,
+    SourceTier.BARISTA: 1,
+    SourceTier.ENTHUSIAST: 0,
+}
+TIE_BAND = 0.02
+
 # Stopwords for BM25 tokenization
 _STOPWORDS = frozenset(
     "a an the and or but in on at to for of with by from is it that this "
@@ -118,6 +129,7 @@ def _parse_recipe(raw: dict) -> Recipe:
         suitable_for=suitable_for,
         instructions=raw["instructions"],
         source_url=raw.get("source_url"),
+        source_tier=raw.get("source_tier"),  # None -> default tier in __post_init__
     )
 
 
@@ -675,7 +687,16 @@ class RecipeRetriever:
             signals = compute_rerank_score(recipe, bean, query_emb, recipe_emb)
             scored.append((rid, signals["combined"], signals))
 
-        scored.sort(key=lambda x: x[1], reverse=True)
+        # Sort by combined score, but break NEAR-ties (scores within TIE_BAND)
+        # in favor of the more credible source tier. Quantizing the score into
+        # TIE_BAND-wide buckets means tier only matters when two recipes land in
+        # the same bucket; a clear score gap is never overridden by tier.
+        def _sort_key(item: tuple[str, float, dict[str, float]]):
+            rid, combined, _ = item
+            tier = self._recipes[rid].source_tier
+            return (round(combined / TIE_BAND), TIER_RANK[tier], combined)
+
+        scored.sort(key=_sort_key, reverse=True)
         return scored
 
     # -------------------------------------------------------------------

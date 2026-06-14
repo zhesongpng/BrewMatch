@@ -38,6 +38,19 @@ class ExperienceLevel(str, Enum):
     ADVANCED = "advanced"
 
 
+class SourceTier(str, Enum):
+    """Credibility tier of a recipe's source.
+
+    Used as a trust signal in the UI and as a near-tie breaker in retrieval
+    ranking (see recipe-retrieval spec). ``champion`` is reserved (strict
+    definition) for titled world-championship winners; everything else
+    defaults to ``barista``.
+    """
+    CHAMPION = "champion"
+    BARISTA = "barista"
+    ENTHUSIAST = "enthusiast"
+
+
 DIRECTIONAL_FLAGS = ("too_sour", "too_bitter", "too_weak", "too_harsh", "astringent")
 
 FLAVOR_CLUSTERS = (
@@ -101,8 +114,21 @@ class Recipe:
     suitable_for: SuitableFor
     instructions: str
     source_url: Optional[str] = None
+    source_tier: SourceTier = SourceTier.BARISTA
 
     def __post_init__(self):
+        # Coerce source_tier so the field round-trips through JSON / DB layers
+        # that hand us a raw string (or omit it on legacy records -> default).
+        if self.source_tier is None:
+            self.source_tier = SourceTier.BARISTA
+        elif not isinstance(self.source_tier, SourceTier):
+            try:
+                self.source_tier = SourceTier(self.source_tier)
+            except ValueError:
+                raise ValueError(
+                    f"source_tier must be one of "
+                    f"{[t.value for t in SourceTier]}, got '{self.source_tier}'"
+                )
         if not self.recipe_id or not self.recipe_id.replace("-", "").replace("_", "").isalnum():
             raise ValueError(f"recipe_id must be kebab-case alphanumeric, got '{self.recipe_id}'")
         if not self.source or not self.source.strip():

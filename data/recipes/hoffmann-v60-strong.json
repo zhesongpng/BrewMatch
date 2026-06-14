@@ -1,6 +1,7 @@
 {
   "recipe_id": "hoffmann-v60-strong",
   "source": "James Hoffmann",
+  "source_tier": "champion",
   "method": "V60",
   "dose_g": 18.0,
   "water_total_g": 270.0,

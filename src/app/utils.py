@@ -33,6 +33,7 @@ def recipe_to_dict(recipe: Recipe) -> dict:
     d["suitable_for"]["processes"] = [
         p.value for p in recipe.suitable_for.processes
     ]
+    d["source_tier"] = recipe.source_tier.value
     return d
 
 
@@ -118,6 +119,7 @@ def dict_to_recipe(recipe_dict: dict) -> Recipe:
         suitable_for=suitable_for,
         instructions=recipe_dict["instructions"],
         source_url=recipe_dict.get("source_url"),
+        source_tier=recipe_dict.get("source_tier"),  # None -> default tier
     )
 
 

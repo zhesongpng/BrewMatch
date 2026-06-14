@@ -1,6 +1,7 @@
 {
   "recipe_id": "hoffmann-v60-classic",
   "source": "James Hoffmann",
+  "source_tier": "champion",
   "source_url": "https://www.youtube.com/watch?v=AI4ynXzkdbo",
   "method": "V60",
   "dose_g": 15.0,

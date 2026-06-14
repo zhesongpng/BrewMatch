@@ -1,6 +1,7 @@
 {
   "recipe_id": "dark-kalita-bold",
   "source": "Matt Perger",
+  "source_tier": "champion",
   "method": "Kalita Wave",
   "dose_g": 20.0,
   "water_total_g": 320.0,

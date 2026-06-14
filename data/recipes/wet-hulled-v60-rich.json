@@ -1,6 +1,7 @@
 {
   "recipe_id": "wet-hulled-v60-rich",
   "source": "Tim Wendelboe",
+  "source_tier": "champion",
   "method": "V60",
   "dose_g": 17.0,
   "water_total_g": 272.0,

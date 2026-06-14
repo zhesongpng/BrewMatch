@@ -26,12 +26,12 @@ Where `f` is the trained LightGBM taste predictor.
 
 The optimizer tunes only the parameters a user can realistically adjust between brews without changing the recipe's structure. Pour schedule (pour count, bloom time, total time) is fixed from the retrieved recipe — changing those would produce a different recipe entirely.
 
-| Parameter       | Type  | Range        | Step | Notes                   |
-| --------------- | ----- | ------------ | ---- | ----------------------- |
-| `grind_setting` | int   | 1 - 10       | 1    | Relative grind fineness |
-| `water_temp_c`  | float | 85.0 - 100.0 | 0.5  | Water temperature       |
-| `dose_g`        | float | 12.0 - 22.0  | 0.5  | Coffee weight in grams  |
-| `ratio`         | float | 14.0 - 18.0  | 0.25 | Water:coffee ratio      |
+| Parameter       | Type  | Range       | Step | Notes                                              |
+| --------------- | ----- | ----------- | ---- | -------------------------------------------------- |
+| `grind_setting` | int   | 1 - 10      | 1    | Relative grind fineness                            |
+| `water_temp_c`  | float | 85.0 - 98.0 | 0.5  | Water temperature (recommendation ceiling; see C4) |
+| `dose_g`        | float | 12.0 - 22.0 | 0.5  | Coffee weight in grams                             |
+| `ratio`         | float | 14.0 - 18.0 | 0.25 | Water:coffee ratio                                 |
 
 **Fixed from retrieved recipe** (not optimized): `bloom_time_s`, `total_time_s`, `pour_count`, pour schedule.
 
@@ -51,12 +51,12 @@ The optimizer tunes only the parameters a user can realistically adjust between 
 
 ### 3.1 Hard Constraints (must be satisfied)
 
-| ID  | Constraint                                      | Rationale                     |
-| --- | ----------------------------------------------- | ----------------------------- |
-| C1  | `water_total_g <= 400.0`                        | V60 practical capacity limit  |
-| C2  | `water_total_g >= 180.0`                        | Minimum for proper extraction |
-| C3  | `grind_setting >= 1`, `grind_setting <= 10`     | Equipment limits              |
-| C4  | `water_temp_c >= 85.0`, `water_temp_c <= 100.0` | Safety and equipment limits   |
+| ID  | Constraint                                     | Rationale                                                                                                                                                                                         |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | `water_total_g <= 400.0`                       | V60 practical capacity limit                                                                                                                                                                      |
+| C2  | `water_total_g >= 180.0`                       | Minimum for proper extraction                                                                                                                                                                     |
+| C3  | `grind_setting >= 1`, `grind_setting <= 10`    | Equipment limits                                                                                                                                                                                  |
+| C4  | `water_temp_c >= 85.0`, `water_temp_c <= 98.0` | Recommendation ceiling — the optimizer never prescribes a near-boil pour. Note: `data-models.md` allows a _logged_ brew up to 100.0°C; the optimizer search band is deliberately tighter (85–98). |
 
 ### 3.2 Soft Constraints (penalized, not forbidden)
 
@@ -128,7 +128,7 @@ This provides a warm start that dramatically improves convergence.
 ```python
 def suggest_params(trial, base_recipe):
     grind_setting = trial.suggest_int("grind_setting", 1, 10)
-    water_temp_c = trial.suggest_float("water_temp_c", 85.0, 100.0, step=0.5)
+    water_temp_c = trial.suggest_float("water_temp_c", 85.0, 98.0, step=0.5)
     dose_g = trial.suggest_float("dose_g", 12.0, 22.0, step=0.5)
     ratio = trial.suggest_float("ratio", 14.0, 18.0, step=0.25)
 

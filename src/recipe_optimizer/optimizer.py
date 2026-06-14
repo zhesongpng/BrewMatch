@@ -183,7 +183,9 @@ class RecipeOptimizer:
         def objective(trial: optuna.Trial) -> float:
             # Suggest decision variables
             grind_setting = trial.suggest_int("grind_setting", 1, 10)
-            water_temp_c = trial.suggest_float("water_temp_c", 85.0, 100.0, step=0.5)
+            # Recommendation ceiling is 98C, not the 100C storage envelope: the
+            # optimizer must never prescribe a near-boil pour (see specs §6.4).
+            water_temp_c = trial.suggest_float("water_temp_c", 85.0, 98.0, step=0.5)
             dose_g = trial.suggest_float("dose_g", 12.0, 22.0, step=0.5)
             ratio = trial.suggest_float("ratio", 14.0, 18.0, step=0.25)
 
@@ -232,7 +234,9 @@ class RecipeOptimizer:
         try:
             warm_ratio = max(14.0, min(18.0, round(base_recipe.ratio / 0.25) * 0.25))
             warm_dose = max(12.0, min(22.0, round(base_recipe.dose_g / 0.5) * 0.5))
-            warm_temp = max(85.0, min(100.0, round(base_recipe.water_temp_c / 0.5) * 0.5))
+            # Clamp the warm start into the 85-98C recommendation band even when
+            # the brewed base recipe was logged hotter (storage allows up to 100C).
+            warm_temp = max(85.0, min(98.0, round(base_recipe.water_temp_c / 0.5) * 0.5))
             study.enqueue_trial({
                 "grind_setting": max(1, min(10, base_recipe.grind_setting)),
                 "water_temp_c": warm_temp,

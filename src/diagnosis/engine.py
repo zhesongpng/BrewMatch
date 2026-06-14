@@ -25,7 +25,7 @@ from src.taste_predictor.model import TastePredictor
 # --- Valid parameter ranges for clamping ---
 PARAM_RANGES: dict[str, tuple[float, float]] = {
     "grind_setting": (1.0, 10.0),
-    "water_temp_c": (85.0, 100.0),
+    "water_temp_c": (85.0, 98.0),  # recommendation ceiling (storage allows 100C)
     "dose_g": (12.0, 22.0),
     "ratio": (14.0, 18.0),
 }

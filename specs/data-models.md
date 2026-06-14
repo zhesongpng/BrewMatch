@@ -11,25 +11,25 @@ A recipe record serves **two distinct purposes** at once, which is why its field
 
 ### Schema
 
-| Field                          | Type   | Required | Constraints                     | Description                                  |
-| ------------------------------ | ------ | -------- | ------------------------------- | -------------------------------------------- |
-| `recipe_id`                    | string | YES      | Unique, kebab-case              | Identifier (e.g., "hoffmann-v60-classic")    |
-| `source`                       | string | YES      | Non-empty                       | Attribution (e.g., "James Hoffmann")         |
-| `source_url`                   | string | NO       | Valid URL                       | Link to original source                      |
-| `method`                       | enum   | YES      | "V60", "Kalita Wave", "Origami" | Brew method / dripper type                   |
-| `dose_g`                       | float  | YES      | 12.0 - 35.0                     | Coffee dose in grams                         |
-| `water_total_g`                | float  | YES      | 180.0 - 600.0                   | Total water weight in grams                  |
-| `ratio`                        | float  | YES      | 14.0 - 18.0                     | Water:coffee ratio (e.g., 16.67 = 1:16.67)   |
-| `grind_setting`                | int    | YES      | 1 - 10                          | Relative grind (1=very fine, 10=very coarse) |
-| `water_temp_c`                 | float  | YES      | 85.0 - 100.0                    | Water temperature in Celsius                 |
-| `bloom_time_s`                 | int    | YES      | 15 - 90                         | Bloom/degassing time in seconds              |
-| `total_time_s`                 | int    | YES      | 120 - 360                       | Total brew time in seconds                   |
-| `pours`                        | array  | YES      | 1-6 elements                    | Ordered list of pour steps                   |
-| `suitable_for.roast_levels`    | array  | YES      | Subset of roast enum            | Compatible roast levels                      |
-| `suitable_for.origins`         | array  | YES      | Non-empty                       | Compatible origin countries                  |
-| `suitable_for.processes`       | array  | YES      | Subset of process enum          | Compatible processing methods                |
-| `suitable_for.flavor_profiles` | array  | YES      | Flavor cluster names            | Compatible flavor profiles (at least 1)      |
-| `instructions`                 | string | YES      | Non-empty                       | Natural language brewing instructions        |
+| Field                          | Type   | Required | Constraints                     | Description                                                                                                                                                       |
+| ------------------------------ | ------ | -------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recipe_id`                    | string | YES      | Unique, kebab-case              | Identifier (e.g., "hoffmann-v60-classic")                                                                                                                         |
+| `source`                       | string | YES      | Non-empty                       | Attribution (e.g., "James Hoffmann")                                                                                                                              |
+| `source_url`                   | string | NO       | Valid URL                       | Link to original source                                                                                                                                           |
+| `method`                       | enum   | YES      | "V60", "Kalita Wave", "Origami" | Brew method / dripper type                                                                                                                                        |
+| `dose_g`                       | float  | YES      | 12.0 - 35.0                     | Coffee dose in grams                                                                                                                                              |
+| `water_total_g`                | float  | YES      | 180.0 - 600.0                   | Total water weight in grams                                                                                                                                       |
+| `ratio`                        | float  | YES      | 14.0 - 18.0                     | Water:coffee ratio (e.g., 16.67 = 1:16.67)                                                                                                                        |
+| `grind_setting`                | int    | YES      | 1 - 10                          | Relative grind (1=very fine, 10=very coarse)                                                                                                                      |
+| `water_temp_c`                 | float  | YES      | 85.0 - 100.0                    | Water temperature in Celsius (storage envelope — a real logged brew may reach 100°C; the optimizer only _recommends_ up to 98°C, see `recipe-optimization.md` C4) |
+| `bloom_time_s`                 | int    | YES      | 15 - 90                         | Bloom/degassing time in seconds                                                                                                                                   |
+| `total_time_s`                 | int    | YES      | 120 - 360                       | Total brew time in seconds                                                                                                                                        |
+| `pours`                        | array  | YES      | 1-6 elements                    | Ordered list of pour steps                                                                                                                                        |
+| `suitable_for.roast_levels`    | array  | YES      | Subset of roast enum            | Compatible roast levels                                                                                                                                           |
+| `suitable_for.origins`         | array  | YES      | Non-empty                       | Compatible origin countries                                                                                                                                       |
+| `suitable_for.processes`       | array  | YES      | Subset of process enum          | Compatible processing methods                                                                                                                                     |
+| `suitable_for.flavor_profiles` | array  | YES      | Flavor cluster names            | Compatible flavor profiles (at least 1)                                                                                                                           |
+| `instructions`                 | string | YES      | Non-empty                       | Natural language brewing instructions                                                                                                                             |
 
 ### Pour Step Schema
 

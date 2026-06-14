@@ -86,7 +86,7 @@ Casual home brewers buy specialty beans (S$15–30 per 250g bag) and produce med
 ### 6.4 Recipe Optimization (Optimization)
 
 - Given bean + user preferences + reported issue, find the minimum parameter change to fix the specific problem
-- Constrained: grind discrete, water temp 85–96°C, ratio 1:14–1:18 for pour-over
+- Constrained: grind discrete, water temp 85–98°C (recommendation ceiling; logged brews may record up to 100°C), ratio 1:14–1:18 for pour-over
 - Bayesian optimization (Optuna TPE) starting from the recipe the user actually brewed
 
 ### 6.5 Personalization Layer (Emergent)

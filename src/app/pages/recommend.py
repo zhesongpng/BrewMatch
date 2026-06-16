@@ -57,6 +57,17 @@ def _format_grind(grind_value: float) -> str:
     return f"{label} ({step}/10)"
 
 
+def _format_clock(total_seconds: int) -> str:
+    """Render a duration in seconds as ``m:ss`` (e.g. 225 -> '3:45').
+
+    Bare-second labels ("Total: 225s") read as ambiguous; clock form makes
+    it unmistakable that brew times are minutes-and-seconds, not minutes.
+    """
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes}:{seconds:02d}"
+
+
 def render():
     """Render the recipe recommendation page."""
     st.title("Recommended Recipes")
@@ -193,19 +204,20 @@ def _render_recipe_card(
             st.markdown(f"**Grind:** {_format_grind(recipe.grind_setting)}")
             st.markdown(f"**Temp:** {recipe.water_temp_c:.0f} C")
         with param_col3:
-            st.markdown(f"**Bloom:** {recipe.bloom_time_s}s")
-            st.markdown(f"**Total:** {recipe.total_time_s}s")
+            st.markdown(f"**Bloom:** {_format_clock(recipe.bloom_time_s)}")
+            st.markdown(f"**Total:** {_format_clock(recipe.total_time_s)}")
         with param_col4:
             st.markdown(f"**Pours:** {len(recipe.pours)}")
             st.markdown(f"**Water:** {recipe.water_total_g:.0f} g")
 
         with st.expander("View Step-by-Step Instructions"):
+            cumulative = 0.0
             for pour in recipe.pours:
-                minutes = pour.time_offset_s // 60
-                seconds = pour.time_offset_s % 60
+                cumulative += pour.water_g
                 st.markdown(
-                    f"**Pour {pour.step}:** {pour.water_g:.0f} g "
-                    f"at {minutes}:{seconds:02d}"
+                    f"**Pour {pour.step}:** {pour.water_g:.0f} g water "
+                    f"at {_format_clock(pour.time_offset_s)} "
+                    f"→ {cumulative:.0f} g total"
                 )
             st.markdown("---")
             st.markdown(escape_markdown(recipe.instructions))

@@ -98,28 +98,38 @@ def init_cookie_manager():
             logger.debug("Cookie manager unavailable", exc_info=True)
 
 
-def restore_session():
-    """Restore user session from cookie if available."""
+def restore_session() -> str:
+    """Restore user session from the browser cookie if available.
+
+    Returns a status the auth gate uses to avoid a false "logged out":
+
+    - ``"restored"`` — a valid user is in session (already, or just restored).
+    - ``"pending"`` — the cookie component has not loaded yet this run; the
+      caller MUST wait a frame rather than treat the user as logged out. This
+      is the race that previously bounced mid-session users to the login page.
+    - ``"anonymous"`` — no cookie manager, no token, or an expired/invalid
+      token; the user is genuinely not logged in.
+    """
     if st.session_state.get("user_id"):
-        return
+        return "restored"
 
     cm = st.session_state.get("cookie_manager")
     if cm is None:
-        return
+        return "anonymous"
 
     try:
         if not cm.ready():
-            return
+            return "pending"
     except Exception:
-        return
+        return "anonymous"
 
     try:
         token = cm.get("session_token")
     except Exception:
-        return
+        return "anonymous"
 
     if not token:
-        return
+        return "anonymous"
 
     try:
         from src.app.auth import restore_session as auth_restore
@@ -129,7 +139,7 @@ def restore_session():
             user_id = auth_restore(conn, token)
 
         if not user_id:
-            return
+            return "anonymous"
 
         with get_db() as conn:
             user = load_user(conn, user_id)
@@ -144,8 +154,11 @@ def restore_session():
 
             with get_db() as conn:
                 apply_personalization_phase(conn, user_id)
+            return "restored"
     except Exception:
         logger.debug("Session restore failed", exc_info=True)
+
+    return "anonymous"
 
 
 def load_models():
@@ -368,7 +381,7 @@ def main():
 
     init_session_state()
     init_cookie_manager()
-    restore_session()
+    session_status = restore_session()
     load_models()
 
     # Schema init + demo seeding run once per process (see _bootstrap_database_once).
@@ -382,8 +395,22 @@ def main():
     # Auth gate: redirect to auth if not logged in and not on a public page.
     page = st.session_state.get("page", "landing")
     if page not in _PUBLIC_PAGES and not st.session_state.get("user_id"):
+        # The cookie component loads asynchronously; on the first frame after a
+        # fresh rerun (Streamlit Cloud restart, reconnect, tab reload) it is not
+        # ready yet and restore_session() returns "pending". Redirecting to auth
+        # here is the bug that bounced mid-session users to the login page. Wait
+        # for the cookie instead — but bound the wait so a genuinely logged-out
+        # user (cookie loads, no token) still reaches login promptly.
+        waits = st.session_state.get("_cookie_restore_waits", 0)
+        if session_status == "pending" and waits < 8:
+            st.session_state._cookie_restore_waits = waits + 1
+            st.info("Restoring your session…")
+            st.stop()
+        st.session_state._cookie_restore_waits = 0
         st.session_state.page = "auth"
         st.rerun()
+    else:
+        st.session_state._cookie_restore_waits = 0
 
     # Page routing
     page_map = {

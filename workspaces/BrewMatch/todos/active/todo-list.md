@@ -1,6 +1,6 @@
 # BrewMatch — Master Todo List
 
-Last updated: 2026-06-10
+Last updated: 2026-06-15 (reconciled against actual repo state)
 
 ---
 
@@ -19,12 +19,20 @@ sharing recipes, with the option to commercialise later.
 That vision is sequenced so each phase delivers something usable on its own and
 nothing has to be rebuilt later:
 
-| Phase       | Goal                                                            | Status         |
-| ----------- | --------------------------------------------------------------- | -------------- |
-| **Phase 1** | Stop the live app resetting + let it learn from your real brews | 🔜 In progress |
-| **Phase 2** | A nicer, redesigned interface + a real login, on a new host     | ⏳ Planned     |
-| **Phase 3** | Community: share recipes with a group of users                  | 💭 Future      |
-| **Later**   | Commercialisation, once there are real users to learn from      | 💭 Future      |
+| Phase       | Goal                                                            | Status          |
+| ----------- | --------------------------------------------------------------- | --------------- |
+| **Phase 1** | Stop the live app resetting + let it learn from your real brews | 🔜 Mostly done¹ |
+| **Phase 2** | A nicer, redesigned interface + a real login, on a new host     | ⏳ Planned      |
+| **Phase 3** | Community: share recipes with a group of users                  | 💭 Future       |
+| **Later**   | Commercialisation, once there are real users to learn from      | 💭 Future       |
+
+¹ **Phase 1 status (reconciled 2026-06-15):** the resetting is fixed (Supabase
+chosen, created, connected — the live app persists to it), the brew-logging
+flow shipped, and the learning engine runs automatically on every logged brew.
+Genuinely outstanding: a one-click export (C1), a recorded restart-survival
+proof (C2/A4), an honest "learned from N brews" indicator (B3 polish), and a
+small decision on whether to add an explicit "retrain" button (B2). Full detail
+and an open question in `active/p1-live-persistence-and-learning-loop.md`.
 
 The order matters: a reliable foundation (Phase 1) before a nice face and real
 accounts (Phase 2) before inviting other people in (Phase 3) before charging

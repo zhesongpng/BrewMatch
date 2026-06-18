@@ -73,6 +73,7 @@ def init_session_state():
         "selected_recipe": None,
         "optimized_params": None,
         "personalization_phase": "cold_start",
+        "personalization_brews": 0,
         "demo_mode": False,
         "page": "landing",
         "models_loaded": False,
@@ -236,7 +237,13 @@ def _handle_sidebar_logout():
         with get_db() as conn:
             auth_logout(conn, token)
 
-    for key in ["user_id", "onboarding", "drippers", "personalization_phase"]:
+    for key in [
+        "user_id",
+        "onboarding",
+        "drippers",
+        "personalization_phase",
+        "personalization_brews",
+    ]:
         st.session_state.pop(key, None)
 
     st.session_state.page = "landing"
@@ -293,6 +300,13 @@ def render_sidebar():
             phase = st.session_state.personalization_phase or "cold_start"
             phase_label = phase.replace("_", " ").title()
             st.markdown(f"**Phase:** {phase_label}")
+            brews = st.session_state.get("personalization_brews", 0)
+            if brews <= 0:
+                st.caption("Learning starts with your first logged brew.")
+            elif brews == 1:
+                st.caption("Learned from 1 brew so far.")
+            else:
+                st.caption(f"Learned from {brews} brews so far.")
             if st.button("Profile", use_container_width=True):
                 st.session_state.page = "profile"
                 st.rerun()

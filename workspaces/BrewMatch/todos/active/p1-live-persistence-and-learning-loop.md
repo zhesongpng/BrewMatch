@@ -84,19 +84,23 @@ your palate as you log real cups.
       rescales the recipe, and persistence of the real dose + bag link into
       each brew record, with end-to-end regression tests.
 
-- [~] **B2. Add a "retrain on my brews" action.** _(engine exists; explicit button is a design call)_
-  The learning itself already works: `PersonalizationEngine.record_brew`
-  updates your personal model on every logged brew, blends with the general
-  model early, and shifts toward your own data as history grows — **fully
-  automatic, no button needed**. What is NOT yet decided: whether to add an
-  explicit "retrain now" button on top of the automatic learning. Open
-  question for you (see bottom of file).
+- [x] **B2. Add a "retrain on my brews" action.** _(decided 2026-06-16: no button — automatic retrain is sufficient)_
+      The learning itself already works: `PersonalizationEngine.record_brew`
+      updates your personal model on every logged brew, blends with the general
+      model early, and shifts toward your own data as history grows — **fully
+      automatic, no button needed**. **Decision (2026-06-16):** skip the explicit
+      "retrain now" button. The model already retrains on every logged brew, so a
+      button would do nothing the automatic learning isn't already doing. The
+      honest "learned from N brews" indicator (B3) provides the visible
+      proof-of-learning instead.
 
-- [~] **B3. Show that it's learning.** _(phase indicator exists; brew-count wording is the gap)_
-  The sidebar already shows your personalization **phase**, derived from how
-  many brews you've logged (`get_phase_info` returns phase + brew count +
-  description). The remaining polish is the honest, explicit wording —
-  e.g. "learned from N brews" — rather than only the phase name.
+- [x] **B3. Show that it's learning.** _(done 2026-06-18 — sidebar now shows "Learned from N brews")_
+      The sidebar shows your personalization **phase** AND, beneath it, an honest
+      "Learned from N brews so far" line (graceful wording for 0 and 1 brew). The
+      count is stored in session state whenever the phase is recomputed (login,
+      session restore, onboarding) and refreshes immediately after each logged
+      brew, so the number is never stale. Guarded by
+      `tests/regression/test_brew_count_shown_in_sidebar.py`.
 
 **Goal B is done when:** after you log a handful of real brews, the
 recommendations visibly reflect your logged preferences (already automatic) and
@@ -112,9 +116,10 @@ helping immediately but gets better the more you use it.
 
 The point of this goal: nothing breaks, and your data is always yours.
 
-- [ ] **C1. Your data is exportable.** _(not started — no export path in the app yet)_
-      A one-click export so your brew log is always downloadable and yours,
-      independent of any host.
+- [>] **C1. Your data is exportable.** _(deferred 2026-06-18 — KIV for a future phase)_
+  A one-click export so your brew log is always downloadable and yours,
+  independent of any host. **Decision (2026-06-18):** not important now;
+  shelved for later. Nice-to-have safety feature, not blocking Phase 1.
 
 - [~] **C2. Automated checks for the permanent database.** _(partial)_
   Existing regression tests already cover in-memory survival across
@@ -150,24 +155,17 @@ To keep this focused and trackable, these are deliberately left for later:
 Goal A (stop resetting) and B1 (logging flow) are done; the learning engine
 already runs automatically. The genuinely outstanding work is small:
 
-1. **C1 — one-click brew-log export** (not started).
-2. **C2 / A4 — a recorded restart-survival proof** against the real PostgreSQL
+1. **C2 / A4 — a recorded restart-survival proof** against the real PostgreSQL
    database (the two are the same underlying test).
-3. **B3 polish — honest "learned from N brews" wording** in the sidebar (the
-   phase indicator already exists; this is a wording change).
-4. **B2 decision — does the automatic learning need an explicit "retrain"
-   button?** (see open question below).
 
-## Open question for you
+_B2 (explicit retrain button) was resolved 2026-06-16: skipped — the model
+already retrains on every logged brew, so a button adds no behavior._
 
-- **Explicit retrain button (B2):** the app already retrains on every brew you
-  log, automatically. Do you also want a visible "retrain now" button? My
-  recommendation: **skip it for now.** It adds a control that does nothing the
-  automatic learning isn't already doing, and an unused button invites the
-  question "did I need to press this?" The honest "learned from N brews"
-  indicator (B3) gives you the visible proof-of-learning without a redundant
-  button. Trade-off: some users like an explicit "do it now" action for
-  reassurance — if that's you, it's a small add. Want the button, or skip it?
+_B3 (honest "learned from N brews" wording) was done 2026-06-18 — the sidebar
+now shows the brew count beneath the phase, guarded by a regression test._
+
+_C1 (one-click export) was deferred 2026-06-18: KIV for a future phase —
+nice-to-have safety feature, not blocking Phase 1._
 
 ---
 

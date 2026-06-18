@@ -220,7 +220,13 @@ def _render_logout():
             with get_db() as conn:
                 auth_logout(conn, token)
 
-        for key in ["user_id", "onboarding", "drippers", "personalization_phase"]:
+        for key in [
+            "user_id",
+            "onboarding",
+            "drippers",
+            "personalization_phase",
+            "personalization_brews",
+        ]:
             st.session_state.pop(key, None)
 
         st.session_state.page = "landing"

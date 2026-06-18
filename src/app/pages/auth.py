@@ -20,11 +20,15 @@ def apply_personalization_phase(conn, user_id: str) -> None:
     10+=full_hybrid). This MUST run every time a user enters the app — login,
     session restore, and onboarding — otherwise the phase silently resets to
     the cold-start default even for users with a full brew history.
+
+    The brew count itself is also stored so the sidebar can honestly show
+    "learned from N brews" alongside the phase name.
     """
     brew_count = count_brews(conn, user_id)
     st.session_state.personalization_phase = PersonalizationEngine.get_phase_for_count(
         brew_count
     )
+    st.session_state.personalization_brews = brew_count
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 

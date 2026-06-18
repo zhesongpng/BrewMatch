@@ -356,6 +356,10 @@ def _submit_feedback(recipe: Recipe, score: int, flags: list[str], notes: str):
         try:
             with get_db() as conn:
                 save_brew(conn, user_id, brew_record)
+                # Refresh the sidebar phase + "learned from N brews" count so the
+                # newly logged brew is reflected immediately, not only on next login.
+                from src.app.pages.auth import apply_personalization_phase
+                apply_personalization_phase(conn, user_id)
         except Exception as exc:
             st.error("Could not save brew record. Please try again.")
             logger.debug("Brew save failed", exc_info=True)

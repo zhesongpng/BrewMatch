@@ -36,6 +36,10 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4.0",
     "mypy>=1.10",
+    # Embedded PostgreSQL for the restart-survival regression test: bundles its
+    # own Postgres binary and runs a disposable instance per test run, so the
+    # test exercises the real Postgres path without Docker or a system install.
+    "pgserver>=0.1.4",
 ]
 
 [tool.setuptools.packages.find]
@@ -46,6 +50,7 @@ include = ["src*"]
 testpaths = ["tests"]
 markers = [
     "regression: Regression tests guarding against re-introduction of fixed bugs",
+    "integration: Tests that run against real infrastructure (e.g. a real PostgreSQL server)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

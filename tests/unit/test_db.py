@@ -10,9 +10,11 @@ import pytest
 from src.app.db import (
     count_brews,
     create_bag,
+    create_session,
     delete_user_data,
     get_bag,
     get_connection,
+    get_session_user,
     get_user_stats,
     grams_used_for_bag,
     init_db,
@@ -590,11 +592,28 @@ class TestDeleteUserData:
         recipe = make_recipe_db()
         bean = make_bean_db()
         save_brew(conn, "user-1", _brew_record("b1", bean, recipe))
+        # A coffee bag and a session are also the user's data — "everything"
+        # must include them. The FK from coffee_bags → users means missing the
+        # bag delete raises on PostgreSQL (caught by the restart-survival test).
+        create_bag(
+            conn,
+            "user-1",
+            CoffeeBag(
+                bag_id="bag-1",
+                roaster="Test Roaster",
+                name="Yirgacheffe",
+                bean_profile=bean,
+                bag_size_g=250.0,
+            ),
+        )
+        create_session(conn, "tok-1", "user-1", "2999-01-01T00:00:00+00:00")
 
         delete_user_data(conn, "user-1")
 
         assert load_user(conn, "user-1") is None
         assert load_brew_history(conn, "user-1") == []
+        assert list_active_bags(conn, "user-1") == []
+        assert get_session_user(conn, "tok-1") is None
 
     def test_delete_nonexistent_user_is_safe(self, conn):
         """Deleting a user that doesn't exist must not raise."""

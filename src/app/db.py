@@ -922,8 +922,17 @@ def get_user_stats(conn: sqlite3.Connection, user_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def delete_user_data(conn: sqlite3.Connection, user_id: str) -> None:
-    """DELETE all data for a user (brews + user row)."""
+    """DELETE all data for a user (brews, bags, sessions, then the user row).
+
+    Child rows MUST be deleted before the user row: PostgreSQL enforces the
+    foreign keys from brew_history / coffee_bags / sessions back to users, so
+    deleting the user first raises a ForeignKeyViolation. (SQLite does not
+    enforce these by default, but the same order keeps both backends correct
+    and leaves no orphaned rows behind.)
+    """
     conn.execute("DELETE FROM brew_history WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM coffee_bags WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
     conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
 

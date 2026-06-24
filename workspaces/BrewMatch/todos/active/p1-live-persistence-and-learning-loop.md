@@ -62,11 +62,13 @@ when Streamlit restarts the app.
       the live app reads/writes the permanent Supabase database instead of its
       temporary memory.
 
-- [ ] **A4. Prove it survives a restart.** _(only open Goal-A item; same work as C2)_
-      In practice the live app is already persisting to Supabase, but this has
-      not been **explicitly proven and recorded**: create a test account,
-      restart the live app, log back in, confirm the account and history are
-      still there. Recording an automated version of this is C2.
+- [x] **A4. Prove it survives a restart.** _(done 2026-06-24 — automated proof; same work as C2)_
+      Proven by the automated restart-survival test (see C2): it writes an
+      account + onboarding + coffee bag + brews to a real PostgreSQL database,
+      simulates the restart (drops all in-process state), reconnects from
+      scratch, and confirms everything is still there. A one-time manual
+      click-through against the live Supabase app is the optional human-witnessed
+      companion (Option B) and can still be recorded if desired.
 
 **Goal A is done when:** you can log into the live app, close it, come back the
 next day, and everything is still there.
@@ -121,14 +123,22 @@ The point of this goal: nothing breaks, and your data is always yours.
   independent of any host. **Decision (2026-06-18):** not important now;
   shelved for later. Nice-to-have safety feature, not blocking Phase 1.
 
-- [~] **C2. Automated checks for the permanent database.** _(partial)_
-  Existing regression tests already cover in-memory survival across
-  connection cycles (`tests/regression/test_demo_mode_persistence.py`) and
-  that the personalization phase persists on login
-  (`tests/regression/test_phase_persists_on_login.py`), and the full suite
-  stays green. The **gap** is a test that writes to a real PostgreSQL
-  database, simulates a restart, and proves the data is still there — the
-  automated form of A4.
+- [x] **C2. Automated checks for the permanent database.** _(done 2026-06-24)_
+      The gap is now closed: `tests/regression/test_postgres_restart_survival.py`
+      writes an account + onboarding + coffee bag + brews to a **real, disposable
+      PostgreSQL** (spun up by the `pgserver` dev dependency — bundles its own
+      Postgres binary, no Docker, never touches production Supabase), simulates a
+      restart by dropping all in-process state, reconnects from scratch, and asserts
+      every record survived. It runs through the app's own `db.py` Postgres path
+      (`DATABASE_URL` → `get_connection`). Full suite green (750 passing).
+
+  **Bonus bug found + fixed along the way:** the real-Postgres test surfaced a
+  latent bug in `delete_user_data` — it deleted brews and the user row but not
+  the user's coffee bags or sessions. On SQLite (no enforced foreign keys) this
+  silently left orphans; on the live Supabase backend it would raise a foreign-key
+  error for any user who deleted their data while owning a coffee bag. Fixed to
+  delete all child rows in FK-safe order, and the `delete_user_data` unit test was
+  strengthened to cover a bag + session so it actually guards "removes everything".
 
 **Goal C is done when:** there's a passing test proving data survives a
 restart, and you can download your full brew history any time.
@@ -141,6 +151,12 @@ To keep this focused and trackable, these are deliberately left for later:
 
 - The new look-and-feel / UI redesign → **Phase 2**
 - Moving off Streamlit to a new host → **Phase 2**
+  - **Decision (2026-06-18):** the Phase-2 UI direction is a proper React/Next
+    front-end (hosted on Vercel) with the Python ML split out into a separate
+    API on a Python-friendly host. NOT a Streamlit re-host — Vercel does not run
+    Streamlit. User confirmed: finish Phase 1 first, then do this rebuild
+    deliberately as the Phase-2 centerpiece. Optional interim: light Streamlit
+    theming as a stopgap, not the destination.
 - Real login (social sign-in, password reset, email verification) → **Phase 2**
   (ties into the UI redesign; the current basic login keeps working until then)
 - Recipe-sharing / community / multiple users → **Phase 3**
@@ -150,13 +166,18 @@ To keep this focused and trackable, these are deliberately left for later:
 
 ---
 
-## What's actually left in Phase 1 (post-reconciliation, 2026-06-15)
+## What's actually left in Phase 1 (post-reconciliation, 2026-06-15; updated 2026-06-24)
 
-Goal A (stop resetting) and B1 (logging flow) are done; the learning engine
-already runs automatically. The genuinely outstanding work is small:
+**Nothing blocking remains — Phase 1 is functionally complete.** Goal A (stop
+resetting) and B1 (logging flow) are done, the learning engine runs
+automatically, and as of 2026-06-24 the restart-survival proof (C2 / A4) is
+landed and green. The only optional, deliberately-deferred item is C1 (one-click
+export). Phase 2 (the React/Vercel rebuild) can begin.
 
-1. **C2 / A4 — a recorded restart-survival proof** against the real PostgreSQL
-   database (the two are the same underlying test).
+_C2 / A4 (recorded restart-survival proof) was done 2026-06-24 — an automated
+test writes to a real disposable PostgreSQL, simulates a restart, and proves
+every record survives; it also surfaced and fixed a `delete_user_data`
+foreign-key bug that would have hit real users on Supabase._
 
 _B2 (explicit retrain button) was resolved 2026-06-16: skipped — the model
 already retrains on every logged brew, so a button adds no behavior._

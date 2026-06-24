@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BrewMatch — Phase 2 Look &amp; Feel Mockup</title>
+<style>
+  :root {
+    --coffee:      #B65E2E;
+    --coffee-deep: #7A3B1C;
+    --cream:       #FBF8F3;
+    --card:        #FFFFFF;
+    --sand:        #F1EAE0;
+    --line:        #E6DCCF;
+    --ink:         #2A2422;
+    --muted:       #8A7F76;
+    --good:        #2E7D5B;
+    --warn:        #C2410C;
+    --gold:        #C89B3C;
+    --radius:      20px;
+    --shadow:      0 10px 30px rgba(70,45,25,.10), 0 2px 8px rgba(70,45,25,.06);
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 500px at 50% -200px, #F3E7D8 0%, rgba(243,231,216,0) 70%),
+      var(--cream);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+
+  /* icon defaults */
+  .ic { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
+
+  .page-head { text-align: center; padding: 40px 20px 8px; }
+  .brandmark { display:inline-flex; align-items:center; gap:10px; color: var(--coffee-deep); }
+  .brandmark svg { width: 34px; height: 34px; color: var(--coffee); }
+  .page-head .logo { font-weight: 800; letter-spacing: -.5px; font-size: 30px; }
+  .page-head .logo span { color: var(--coffee); }
+  .page-head p { color: var(--muted); max-width: 620px; margin: 8px auto 0; font-size: 15px; }
+  .legend {
+    max-width: 760px; margin: 18px auto 0; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px 18px; color: var(--muted); font-size: 13.5px; box-shadow: var(--shadow);
+  }
+  .legend b { color: var(--ink); }
+
+  .stage {
+    display: flex; flex-wrap: wrap; gap: 36px 28px; justify-content: center;
+    padding: 36px 20px 80px; max-width: 1320px; margin: 0 auto; align-items: flex-start;
+  }
+  .frame-wrap { width: 320px; }
+  .frame-label { text-align: center; font-weight: 700; color: var(--coffee-deep); margin: 0 0 12px; font-size: 14px; }
+  .frame-label small { display:block; font-weight: 500; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .phone { background: #1c1614; border-radius: 44px; padding: 12px; box-shadow: var(--shadow); }
+  .screen { background: var(--cream); border-radius: 34px; height: 668px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+  .statusbar { height: 26px; display:flex; align-items:center; justify-content:center; }
+  .notch { width: 110px; height: 22px; background:#1c1614; border-radius: 0 0 14px 14px; }
+  .topbar { display:flex; align-items:center; gap:10px; padding: 6px 18px 12px; }
+  .topbar .back { color: var(--muted); font-size: 20px; }
+  .topbar .title { font-weight: 800; font-size: 18px; color: var(--coffee-deep); }
+  .topbar .brand { margin-left:auto; display:flex; align-items:center; gap:6px; font-weight: 800; color: var(--coffee); font-size: 15px; }
+  .topbar .brand svg { width: 20px; height: 20px; }
+
+  .body { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
+  .body::-webkit-scrollbar { width: 0; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(70,45,25,.05); }
+  .card.tight { padding: 14px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 1.2px; font-size: 11px; color: var(--muted); font-weight: 700; }
+  h2.scr { font-size: 22px; margin: 4px 0 2px; letter-spacing:-.3px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; }
+
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--sand); color: var(--coffee-deep); }
+  .badge svg { width: 13px; height: 13px; }
+  .badge.gold { background: #FBF1D6; color: #8A6A14; }
+  .badge.pro  { background: #EFE7DC; color: var(--coffee-deep); }
+  .badge.good { background: #E3F2EA; color: var(--good); }
+
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; text-align:center; padding: 13px; border-radius: 14px; font-weight: 700; font-size: 15px; border: none; cursor: default; margin-top: 4px; }
+  .btn svg { width: 17px; height: 17px; }
+  .btn.primary { background: var(--coffee); color: #fff; box-shadow: 0 6px 16px rgba(182,94,46,.35); }
+  .btn.ghost   { background: transparent; color: var(--coffee-deep); border: 1.5px solid var(--line); }
+  .btn-row { display:flex; gap: 10px; }
+  .btn-row .btn { margin-top: 0; }
+
+  .pill-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pill { background: var(--sand); border-radius: 14px; padding: 11px 12px; }
+  .pill .k { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing:.5px;}
+  .pill .v { font-size: 17px; font-weight: 800; color: var(--ink); }
+
+  /* flavor flags */
+  .flag { display:flex; align-items:center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+  .flag:last-child { border-bottom: none; }
+  .flag .dot { width: 38px; height: 38px; border-radius: 11px; background: var(--sand); display:flex; align-items:center; justify-content:center; color: var(--coffee-deep); }
+  .flag .dot svg { width: 21px; height: 21px; }
+  .flag .t { font-weight: 700; font-size: 14.5px; }
+  .flag .d { color: var(--muted); font-size: 12.5px; }
+  .flag .chev { margin-left:auto; color: var(--muted); }
+
+  .adjust { display:flex; align-items:center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--sand); margin-bottom: 10px; }
+  .adjust .lab { font-weight: 700; font-size: 14px; }
+  .adjust .rsn { color: var(--muted); font-size: 12px; }
+  .adjust .mv { margin-left: auto; font-weight: 800; font-size: 13px; white-space:nowrap; }
+
+  /* dripper hero artwork */
+  .hero-art { display:flex; justify-content:center; padding: 6px 0 2px; color: var(--coffee); }
+  .hero-art svg { width: 132px; height: 120px; }
+
+  /* pour list */
+  .pour { display:flex; align-items:center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .pour:last-child { border-bottom:none; }
+  .pour .n { width: 26px; height: 26px; border-radius: 50%; background: var(--coffee); color:#fff; font-weight:800; font-size:13px; display:flex;align-items:center;justify-content:center;}
+  .pour .meta { font-size: 13.5px; }
+  .pour .tot { margin-left:auto; color: var(--muted); font-size: 12.5px; font-weight:700;}
+
+  .focus-progress { height: 4px; background: var(--sand); margin: 0 16px; border-radius: 999px; overflow: hidden; }
+  .focus-progress > i { display:block; height: 100%; background: var(--coffee); border-radius: 999px; }
+  .timer-ring { width: 152px; height: 152px; border-radius: 50%; margin: 6px auto 14px; background: conic-gradient(var(--coffee) 0deg 234deg, var(--sand) 234deg 360deg); display:flex; align-items:center; justify-content:center; }
+  .timer-ring .inner { width: 124px; height: 124px; border-radius: 50%; background: var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .timer-ring .big { font-size: 30px; font-weight: 800; letter-spacing:-1px; }
+  .timer-ring .cap { font-size: 11px; color: var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px;}
+
+  /* history */
+  .hist { display:flex; align-items:center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .hist:last-child { border-bottom:none; }
+  .hist .score { width: 40px; height: 40px; border-radius: 12px; display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;}
+  .hist .score.hi { background:#E3F2EA; color: var(--good);}
+  .hist .score.mid{ background:#FBF1D6; color:#8A6A14;}
+  .hist .score.lo { background:#FBE6DA; color: var(--warn);}
+  .hist .t { font-weight: 700; font-size: 14px;}
+  .hist .d { color: var(--muted); font-size: 12px;}
+
+  .learn-banner { position:relative; overflow:hidden; background: linear-gradient(135deg, var(--coffee) 0%, var(--coffee-deep) 100%); color: #fff; border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .learn-banner .bean-bg { position:absolute; right:-14px; top:-10px; width: 96px; height: 96px; color: rgba(255,255,255,.16); }
+  .learn-banner .n { font-size: 30px; font-weight: 800; letter-spacing:-1px; position:relative;}
+  .learn-banner .l { font-size: 13px; opacity: .9; position:relative;}
+  .learn-banner .row { display:flex; gap: 14px; margin-top: 10px; position:relative;}
+  .learn-banner .row div { font-size: 12.5px; opacity:.95;}
+  .learn-banner .row b { display:block; font-size: 15px; }
+
+  .origin { display:flex; align-items:center; gap:7px; color: var(--muted); font-size: 13.5px; margin-top:2px; margin-bottom: 10px;}
+  .origin svg { width: 15px; height: 15px; color: var(--coffee); }
+
+  .tabbar { display:flex; border-top: 1px solid var(--line); background: var(--card); }
+  .tabbar a { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding: 9px 0 13px; color: var(--muted); font-size: 10.5px; font-weight: 700; text-decoration:none;}
+  .tabbar a svg { width: 21px; height: 21px; }
+  .tabbar a.on { color: var(--coffee); }
+
+  /* coffee bags */
+  .bag { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(70,45,25,.05); }
+  .bag .top { display:flex; align-items:flex-start; gap: 12px; }
+  .bag .icn { width: 42px; height: 42px; border-radius: 12px; background: var(--sand); color: var(--coffee-deep); display:flex; align-items:center; justify-content:center; flex:none; }
+  .bag .icn svg { width: 24px; height: 24px; }
+  .bag .nm { font-weight: 800; font-size: 15px; }
+  .bag .rs { color: var(--muted); font-size: 12.5px; }
+  .bag .age { margin-left:auto; text-align:right; font-size: 11px; color: var(--muted); font-weight:700; }
+  .level { height: 9px; background: var(--sand); border-radius: 999px; overflow:hidden; margin: 12px 0 7px; }
+  .level > i { display:block; height:100%; border-radius:999px; }
+  .level > i.ok  { background: var(--good); }
+  .level > i.low { background: var(--warn); }
+  .bag .lvtxt { display:flex; justify-content:space-between; font-size: 12px; }
+  .bag .lvtxt .left { font-weight: 800; }
+  .bag .lvtxt .left.low { color: var(--warn); }
+  .bag .lvtxt .right { color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); }
+  .foot { text-align:center; color: var(--muted); font-size: 13px; padding: 0 20px 60px; }
+</style>
+</head>
+<body>
+
+<!-- ============ SVG SPRITE (all artwork lives here, drawn as code) ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- dripper mark (logo / tab) -->
+  <symbol id="i-drip" viewBox="0 0 24 24">
+    <path class="ic" d="M5 6h14l-4.5 8h-5z"/>
+    <path class="ic" d="M4.5 6c0-1.2 3.4-2 7.5-2s7.5.8 7.5 2"/>
+    <path class="ic" d="M12 14v3.5"/>
+    <path class="ic" d="M8.5 20.5h7"/>
+  </symbol>
+  <!-- big pour-over dripper + cup + drips (hero) -->
+  <symbol id="i-pourover" viewBox="0 0 120 110">
+    <path class="ic" d="M30 24h60l-18 34H48z"/>
+    <path class="ic" d="M28 24c0-4 14-7 32-7s32 3 32 7"/>
+    <ellipse class="ic" cx="60" cy="24" rx="32" ry="7"/>
+    <path class="ic" d="M60 58v9"/>
+    <path class="ic" d="M60 73c2 0 3.5-1.5 3.5-3.2 0-2-3.5-5.8-3.5-5.8s-3.5 3.8-3.5 5.8C56.5 71.5 58 73 60 73z" fill="currentColor" stroke="none"/>
+    <path class="ic" d="M40 80h40l-4 18a6 6 0 0 1-6 5H50a6 6 0 0 1-6-5z"/>
+    <path class="ic" d="M80 84h7a5 5 0 0 1 0 10h-5"/>
+  </symbol>
+  <!-- coffee cup + steam -->
+  <symbol id="i-cup" viewBox="0 0 24 24">
+    <path class="ic" d="M5 10h11v4.5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 14.5z"/>
+    <path class="ic" d="M16 11h2.2a2.3 2.3 0 0 1 0 4.6H16"/>
+    <path class="ic" d="M9 3.5c1 1-1 2 0 3.2M12.5 3.5c1 1-1 2 0 3.2"/>
+  </symbol>
+  <!-- coffee bean -->
+  <symbol id="i-bean" viewBox="0 0 24 24">
+    <ellipse class="ic" cx="12" cy="12" rx="6" ry="9" transform="rotate(-35 12 12)"/>
+    <path class="ic" d="M9.5 6.5c2.2 3 2.2 8 0 11" transform="rotate(-35 12 12)"/>
+  </symbol>
+  <!-- chart bars -->
+  <symbol id="i-chart" viewBox="0 0 24 24">
+    <path class="ic" d="M4 20h16"/>
+    <path class="ic" d="M6.5 20v-6M11 20V8M15.5 20v-9M20 20v-4"/>
+  </symbol>
+  <!-- recipe card / book -->
+  <symbol id="i-book" viewBox="0 0 24 24">
+    <path class="ic" d="M6 4h12a1 1 0 0 1 1 1v15H8a2 2 0 0 0-2 2z"/>
+    <path class="ic" d="M6 4a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2"/>
+    <path class="ic" d="M10 9h6M10 12.5h4"/>
+  </symbol>
+  <!-- flavor: sour (lemon) -->
+  <symbol id="i-sour" viewBox="0 0 24 24">
+    <circle class="ic" cx="12" cy="12" r="7.5"/>
+    <path class="ic" d="M12 12V4.7M12 12l6.3 3.6M12 12l-6.3 3.6"/>
+  </symbol>
+  <!-- flavor: bitter (filled bean) -->
+  <symbol id="i-bitter" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="12" rx="6" ry="9" transform="rotate(-35 12 12)" fill="currentColor"/>
+    <path d="M9.5 6.5c2.2 3 2.2 8 0 11" transform="rotate(-35 12 12)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+  <!-- flavor: weak (droplet) -->
+  <symbol id="i-weak" viewBox="0 0 24 24">
+    <path class="ic" d="M12 3.5c3.4 5 5.5 7.6 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.9 2.1-5.5 5.5-10.5z"/>
+  </symbol>
+  <!-- flavor: astringent (dry waves) -->
+  <symbol id="i-astringent" viewBox="0 0 24 24">
+    <path class="ic" d="M4 8.5c2-2 4 2 6 0s4-2 6 0 4-2 4-2"/>
+    <path class="ic" d="M4 13c2-2 4 2 6 0s4-2 6 0 4-2 4-2"/>
+    <path class="ic" d="M4 17.5c2-2 4 2 6 0s4-2 6 0 4-2 4-2"/>
+  </symbol>
+  <!-- trophy -->
+  <symbol id="i-trophy" viewBox="0 0 24 24">
+    <path class="ic" d="M7 4h10v5a5 5 0 0 1-10 0z"/>
+    <path class="ic" d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10"/>
+    <path class="ic" d="M12 14v3M9 20h6M10 17h4l.5 3h-5z"/>
+  </symbol>
+  <!-- play / start -->
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+  <!-- sliders / tune -->
+  <symbol id="i-tune" viewBox="0 0 24 24">
+    <path class="ic" d="M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3"/>
+    <circle class="ic" cx="6" cy="12" r="2"/><circle class="ic" cx="12" cy="9" r="2"/><circle class="ic" cx="18" cy="15" r="2"/>
+  </symbol>
+  <!-- pin / origin -->
+  <symbol id="i-pin" viewBox="0 0 24 24">
+    <path class="ic" d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z"/>
+    <circle class="ic" cx="12" cy="10" r="2.5"/>
+  </symbol>
+  <!-- check -->
+  <symbol id="i-check" viewBox="0 0 24 24"><path class="ic" d="M5 12.5l4.5 4.5L19 7"/></symbol>
+</svg>
+
+  <div class="page-head">
+    <div class="brandmark">
+      <svg><use href="#i-pourover"/></svg>
+      <div class="logo">Brew<span>Match</span></div>
+    </div>
+    <p>Phase&nbsp;2 look-and-feel mockup. This is a picture of the planned new app, not the real thing yet —
+       all artwork is drawn into the file, so it opens anywhere offline. Tell me what to change before we build.</p>
+  </div>
+
+  <div class="legend">
+    <b>How to read this:</b> four key screens in phone frames — diagnose, recommendations, guided brewing, history &amp; learning.
+    Every icon and the dripper drawings are hand-built vector graphics (no photos, no internet needed). Buttons don't click — it's a still mockup.
+  </div>
+
+  <div class="stage">
+
+    <!-- SCREEN 1 — DIAGNOSIS (HOME) -->
+    <div class="frame-wrap">
+      <div class="frame-label">1 · Diagnose a brew <small>the home screen — start here</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div></div>
+        <div class="topbar"><div class="title">Good morning</div><div class="brand"><svg><use href="#i-drip"/></svg>BrewMatch</div></div>
+        <div class="body">
+          <div class="hero-art"><svg><use href="#i-pourover"/></svg></div>
+          <div class="card">
+            <div class="eyebrow">How did it taste?</div>
+            <h2 class="scr">What went wrong?</h2>
+            <p class="sub">Tap what you noticed. We'll tell you why — and exactly what to change next time.</p>
+            <div class="flag"><div class="dot"><svg><use href="#i-sour"/></svg></div><div><div class="t">Too sour</div><div class="d">Sharp, tangy, empty finish</div></div><div class="chev">›</div></div>
+            <div class="flag"><div class="dot"><svg><use href="#i-bitter"/></svg></div><div><div class="t">Too bitter</div><div class="d">Harsh, drying aftertaste</div></div><div class="chev">›</div></div>
+            <div class="flag"><div class="dot"><svg><use href="#i-weak"/></svg></div><div><div class="t">Too weak</div><div class="d">Watery, thin, not enough</div></div><div class="chev">›</div></div>
+            <div class="flag"><div class="dot"><svg><use href="#i-astringent"/></svg></div><div><div class="t">Astringent</div><div class="d">Mouth-puckering, dry</div></div><div class="chev">›</div></div>
+          </div>
+          <button class="btn ghost"><svg><use href="#i-book"/></svg>Get a recipe for new beans</button>
+        </div>
+        <div class="tabbar">
+          <a class="on"><svg><use href="#i-cup"/></svg>Diagnose</a>
+          <a><svg><use href="#i-book"/></svg>Recipes</a>
+          <a><svg><use href="#i-bean"/></svg>Coffees</a>
+          <a><svg><use href="#i-chart"/></svg>History</a>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 2 — RECOMMENDATIONS -->
+    <div class="frame-wrap">
+      <div class="frame-label">2 · Recommended recipes <small>ranked for your beans &amp; taste</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div></div>
+        <div class="topbar"><div class="back">‹</div><div class="title">Recipes</div><div class="brand"><svg><use href="#i-drip"/></svg>BrewMatch</div></div>
+        <div class="body">
+          <div class="origin"><svg><use href="#i-pin"/></svg>Ethiopia · Washed · Light roast · V60</div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="badge gold"><svg><use href="#i-trophy"/></svg>Championship</span>
+              <span class="badge good" style="margin-left:auto;"><svg><use href="#i-check"/></svg>9.1 / 10</span>
+            </div>
+            <h2 class="scr" style="font-size:19px;">Best match · Tetsu 4:6</h2>
+            <div class="pill-grid" style="margin:12px 0;">
+              <div class="pill"><div class="k">Dose</div><div class="v">15.0 g</div></div>
+              <div class="pill"><div class="k">Ratio</div><div class="v">1:15</div></div>
+              <div class="pill"><div class="k">Grind</div><div class="v">Medium · 5/10</div></div>
+              <div class="pill"><div class="k">Water</div><div class="v">92°C</div></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn primary"><svg><use href="#i-play"/></svg>Start brewing</button>
+              <button class="btn ghost"><svg><use href="#i-tune"/></svg>Tune to me</button>
+            </div>
+          </div>
+
+          <div class="card tight">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="badge pro"><svg><use href="#i-cup"/></svg>Pro recipe</span>
+              <span class="badge" style="margin-left:auto;">8.4 / 10</span>
+            </div>
+            <h2 class="scr" style="font-size:17px;margin-top:8px;">Runner-up · Hoffmann V60</h2>
+            <p class="note">1:16 · Medium-fine · 94°C · 2:45 total</p>
+          </div>
+        </div>
+        <div class="tabbar">
+          <a><svg><use href="#i-cup"/></svg>Diagnose</a>
+          <a class="on"><svg><use href="#i-book"/></svg>Recipes</a>
+          <a><svg><use href="#i-bean"/></svg>Coffees</a>
+          <a><svg><use href="#i-chart"/></svg>History</a>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 3 — GUIDED BREW -->
+    <div class="frame-wrap">
+      <div class="frame-label">3 · Guided brew <small>full-focus while you pour — no bottom bar</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div></div>
+        <div class="topbar"><div class="back">‹</div><div class="title">Tetsu 4:6</div><div style="margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);">Step 2 of 4</div></div>
+        <div class="focus-progress"><i style="width:42%"></i></div>
+        <div class="body" style="display:flex;flex-direction:column;padding-top:14px;">
+          <div style="text-align:center;">
+            <div class="eyebrow">Pour 2 · bloom complete</div>
+            <div class="timer-ring" style="width:206px;height:206px;margin:14px auto 18px;"><div class="inner" style="width:170px;height:170px;"><div class="big" style="font-size:44px;">1:05</div><div class="cap">pour now</div></div></div>
+            <h2 class="scr" style="font-size:24px;">Pour to 150 g</h2>
+            <p class="sub">Slow spiral from the centre out. Keep the bed flat.</p>
+          </div>
+          <div class="card tight" style="margin-top:auto;">
+            <div class="pour"><div class="n">1</div><div class="meta"><b>Bloom</b> · 45 g · 0:00</div><div class="tot">✓ done</div></div>
+            <div class="pour" style="background:var(--sand);border-radius:10px;margin:2px -6px;padding:10px 6px;"><div class="n">2</div><div class="meta"><b>Pour now</b> · 105 g · 0:45</div><div class="tot">→ 150 g</div></div>
+            <div class="pour"><div class="n">3</div><div class="meta"><b>Pour</b> · 60 g · 1:30</div><div class="tot">210 g</div></div>
+            <div class="pour"><div class="n">4</div><div class="meta"><b>Pour</b> · 15 g · 2:00</div><div class="tot">225 g</div></div>
+          </div>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn ghost" style="flex:0 0 38%;">Pause</button>
+            <button class="btn primary"><svg><use href="#i-check"/></svg>Finish &amp; rate</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 4 — HISTORY + LEARNING -->
+    <div class="frame-wrap">
+      <div class="frame-label">4 · History &amp; learning <small>what the app has picked up about you</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div></div>
+        <div class="topbar"><div class="title">Your coffee</div><div class="brand"><svg><use href="#i-drip"/></svg>BrewMatch</div></div>
+        <div class="body">
+          <div class="learn-banner">
+            <svg class="bean-bg"><use href="#i-bean"/></svg>
+            <div class="n">12 brews</div>
+            <div class="l">learned from — recommendations are now tuned to you</div>
+            <div class="row">
+              <div><b>Sweeter</b>you lean sweet</div>
+              <div><b>92°C</b>your sweet spot</div>
+              <div><b>1:15</b>favourite ratio</div>
+            </div>
+          </div>
+          <div class="card tight">
+            <div class="hist"><div class="score hi">9</div><div><div class="t">Ethiopia · Tetsu 4:6</div><div class="d">Today · sweet, floral, clean</div></div></div>
+            <div class="hist"><div class="score hi">8</div><div><div class="t">Colombia · Hoffmann V60</div><div class="d">Yesterday · balanced</div></div></div>
+            <div class="hist"><div class="score mid">6</div><div><div class="t">Kenya · Kalita 185</div><div class="d">Mon · a little sharp</div></div><div class="chev" style="margin-left:auto;color:var(--muted)">›</div></div>
+            <div class="hist"><div class="score lo">4</div><div><div class="t">Brazil · V60</div><div class="d">Sun · too bitter · diagnosed</div></div></div>
+          </div>
+          <p class="note" style="text-align:center;">Running low: <b>Ethiopia bag — ~3 brews left</b></p>
+        </div>
+        <div class="tabbar">
+          <a><svg><use href="#i-cup"/></svg>Diagnose</a>
+          <a><svg><use href="#i-book"/></svg>Recipes</a>
+          <a><svg><use href="#i-bean"/></svg>Coffees</a>
+          <a class="on"><svg><use href="#i-chart"/></svg>History</a>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 5 — YOUR COFFEE BAGS -->
+    <div class="frame-wrap">
+      <div class="frame-label">5 · Your coffees <small>every open bag, with how much is left</small></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div></div>
+        <div class="topbar"><div class="title">Your coffees</div><div class="brand"><svg><use href="#i-drip"/></svg>BrewMatch</div></div>
+        <div class="body">
+          <p class="sub" style="margin-top:2px;">2 bags open right now. Pick one before you brew, or just track what's running low.</p>
+
+          <div class="bag">
+            <div class="top">
+              <div class="icn"><svg><use href="#i-bean"/></svg></div>
+              <div>
+                <div class="nm">Yirgacheffe</div>
+                <div class="rs">Onyx Coffee Lab · Ethiopia · Washed</div>
+              </div>
+              <div class="age">opened<br>5 days ago</div>
+            </div>
+            <div class="level"><i class="low" style="width:18%"></i></div>
+            <div class="lvtxt"><span class="left low">~3 brews left</span><span class="right">45 g of 250 g</span></div>
+          </div>
+
+          <div class="bag">
+            <div class="top">
+              <div class="icn"><svg><use href="#i-bean"/></svg></div>
+              <div>
+                <div class="nm">Las Brisas</div>
+                <div class="rs">Sey Coffee · Colombia · Honey</div>
+              </div>
+              <div class="age">opened<br>2 days ago</div>
+            </div>
+            <div class="level"><i class="ok" style="width:72%"></i></div>
+            <div class="lvtxt"><span class="left">~12 brews left</span><span class="right">180 g of 250 g</span></div>
+          </div>
+
+          <button class="btn ghost"><svg><use href="#i-bean"/></svg>Add a new bag</button>
+        </div>
+        <div class="tabbar">
+          <a><svg><use href="#i-cup"/></svg>Diagnose</a>
+          <a><svg><use href="#i-book"/></svg>Recipes</a>
+          <a class="on"><svg><use href="#i-bean"/></svg>Coffees</a>
+          <a><svg><use href="#i-chart"/></svg>History</a>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    Still mockup of the planned Phase&nbsp;2 look — all graphics drawn in vector, opens offline anywhere.
+    Want a different colour, layout, wording, or screen order? Tell me and I'll redraw it before any code gets written.
+  </div>
+
+</body>
+</html>

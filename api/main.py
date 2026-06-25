@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 from contextlib import asynccontextmanager
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +24,7 @@ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from fastapi import FastAPI, HTTPException
@@ -105,7 +105,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tightened once the Vercel domain is known
-    allow_credentials=True,
+    # The API authenticates via the user_id in the path, not cookies, so it
+    # needs no credentialed requests. allow_credentials MUST stay False while
+    # allow_origins is "*" — browsers reject the wildcard+credentials combo.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -311,16 +314,25 @@ def save_brew(user_id: str, body: dict):
         bag_id    : str | None
         actual_dose_g: float | None
     """
+    from src.app.db import ensure_schema, get_db
+    from src.app.db import save_brew as db_save_brew
     from src.app.utils import dict_to_bean_profile, dict_to_recipe
-    from src.app.db import get_db, save_brew as db_save_brew, ensure_schema
     from src.data_models import BrewRecord, Feedback
 
     try:
         bean = dict_to_bean_profile(body.get("bean", {}))
         recipe = dict_to_recipe(body.get("recipe", {}))
         fb_raw = body.get("feedback", {})
+        # thumbs_up is a required bool. Honour an explicit value; otherwise
+        # derive it from the score (>= 7 reads as a thumbs-up) so older
+        # front-ends that only send a score still produce a valid record.
+        score = fb_raw.get("score")
+        thumbs_up = fb_raw.get("thumbs_up")
+        if thumbs_up is None:
+            thumbs_up = bool(score is not None and score >= 7)
         feedback = Feedback(
-            score=fb_raw.get("score"),
+            thumbs_up=thumbs_up,
+            score=score,
             directional_flags=fb_raw.get("directional_flags", []),
             notes=fb_raw.get("notes", ""),
         )
@@ -351,9 +363,10 @@ def save_brew(user_id: str, body: dict):
 @app.get("/brews/{user_id}")
 def get_brews(user_id: str, limit: int = 50):
     """Return recent brews for a user, newest first."""
-    from src.app.db import get_db, load_brew_history, ensure_schema
-    from src.app.utils import bean_to_dict, recipe_to_dict
     from dataclasses import asdict
+
+    from src.app.db import ensure_schema, get_db, load_brew_history
+    from src.app.utils import bean_to_dict, recipe_to_dict
 
     try:
         with get_db() as conn:
@@ -382,71 +395,34 @@ def get_brews(user_id: str, limit: int = 50):
 # Learn — re-train predictor from a user's brew history
 # ---------------------------------------------------------------------------
 
+@app.get("/learn/{user_id}")
 @app.post("/learn/{user_id}")
 def learn(user_id: str):
-    """Re-train the taste predictor from a user's brew history.
+    """Return a user's personalization phase from their brew history.
 
-    Returns the user's updated personalization phase and brew count.
+    BrewMatch's taste predictor is a single global pre-trained model — it is
+    NOT retrained per user. Personalization is derived from how many brews a
+    user has logged (the same rule the Streamlit sidebar uses):
+
+        0 brews   → bean_aware      (global model only)
+        1-4       → directional     (bias from directional flags)
+        5-9       → content_based   (full user features)
+        10+       → full_hybrid     (collaborative-filtering signals)
+
+    The per-user signal is applied at prediction time via the ``user_id``
+    passed to ``/recommend`` and ``/diagnose`` — there is nothing to retrain.
     """
-    predictor = _state.get("predictor")
-    if predictor is None:
-        raise HTTPException(503, "Predictor not initialised")
-
-    from src.app.db import get_db, load_brew_history, count_brews, ensure_schema
-    from src.app.utils import dict_to_bean_profile, dict_to_recipe
+    from src.app.db import count_brews, ensure_schema, get_db
     from src.personalization.engine import PersonalizationEngine
 
     try:
         with get_db() as conn:
             ensure_schema(conn)
             brew_count = count_brews(conn, user_id)
-            history = load_brew_history(conn, user_id, limit=200)
     except Exception as exc:
         logger.exception("learn: DB read failed")
         raise HTTPException(500, f"DB read failed: {exc}") from exc
 
-    if not history:
-        return {"phase": "bean_aware", "brew_count": 0, "retrained": False}
-
-    # Convert DB rows back to BrewRecord objects for the PersonalizationEngine.
-    from src.data_models import BrewRecord
-    brew_records = []
-    for record in history:
-        try:
-            brew_records.append(BrewRecord(
-                brew_id=record["brew_id"],
-                timestamp=record["timestamp"],
-                bean_profile=record["bean_profile"],
-                recipe_used=record["recipe_used"],
-                feedback=record["feedback"],
-                bag_id=record.get("bag_id"),
-                actual_dose_g=record.get("actual_dose_g"),
-            ))
-        except Exception:
-            pass
-
-    # Train predictor on full history.
-    retrained = False
-    if len(brew_records) >= 5:
-        try:
-            predictor.train(brew_records)
-            predictor.save()
-            retrained = True
-            # Refresh diagnosis engine with freshly trained predictor.
-            from src.diagnosis.engine import DiagnosisEngine
-            _state["diagnosis_engine"] = DiagnosisEngine(predictor)
-            logger.info("learn: retrained predictor for user=%s brews=%d", user_id, brew_count)
-        except Exception as exc:
-            logger.warning("learn: training failed: %s", exc)
-
-    # Compute personalization phase.
-    if brew_count == 0:
-        phase = "bean_aware"
-    elif brew_count < 5:
-        phase = "directional"
-    elif brew_count < 10:
-        phase = "content_based"
-    else:
-        phase = "full_hybrid"
-
-    return {"phase": phase, "brew_count": brew_count, "retrained": retrained}
+    phase = PersonalizationEngine.get_phase_for_count(brew_count)
+    logger.info("learn: user=%s brews=%d phase=%s", user_id, brew_count, phase)
+    return {"phase": phase, "brew_count": brew_count}

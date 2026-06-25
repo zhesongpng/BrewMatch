@@ -36,7 +36,7 @@ phone-first feel is the whole point — and that's exactly where React wins.
 
 These shape the build. My recommendation is given for each; you can override any.
 
-- [ ] **D1. Where the Python "brain" lives online.** _(MEASURED 2026-06-24 → Render)_
+- [x] **D1. Where the Python "brain" lives online.** _(DECIDED + LIVE 2026-06-25 → Render, free tier, lite mode)_
       Correction (2026-06-24): Vercel **can** run Python (size limit raised to 500 MB
       in Feb 2026; "Fluid Compute" reduces cold-start lag). So the question was never
       "can Vercel run Python" — it was whether BrewMatch's _heavy_ ML libraries fit
@@ -79,17 +79,23 @@ The point: take the recommendation/diagnosis/learning code that's currently
 mixed into the Streamlit app and run it as a small web service the new front-end
 can call over the internet.
 
-- [ ] **A1. Wrap the existing Python functions in a small web service.**
+- [x] **A1. Wrap the existing Python functions in a small web service.**
       No rewrite of the logic — just put a thin "front door" on the functions you
       already have (get recommendations, run diagnosis, save a brew, learn from
       brews, fetch history) so other programs can call them.
-- [ ] **A2. Point it at the same Supabase database.** Same data, same accounts —
+      _Done: FastAPI brain at `api/main.py`, 6 endpoints, 761 tests passing._
+- [x] **A2. Point it at the same Supabase database.** Same data, same accounts —
       the brain reads and writes exactly where the app does today.
-- [ ] **A3. Put it online (D1's host) and confirm it answers.** A recorded check
+      _Done: reads `DATABASE_URL` (Supabase) on the host._
+- [x] **A3. Put it online (D1's host) and confirm it answers.** A recorded check
       that calling it returns real recommendations from the real database.
+      _Done 2026-06-25: live at https://brewmatch-iki5.onrender.com (Render, free
+      tier, lite mode). `/health` all green; live `/recommend` returned ranked
+      V60 recipes and `/diagnose` returned ML-mode fixes against real data._
 
-**Goal A is done when:** the brain runs on its own, online, and returns real
-answers from your real data — provable without opening the app.
+**Goal A is DONE ✅** — the brain runs on its own, online, and returns real
+answers from your real data, proven without opening the app (live API calls
+2026-06-25).
 
 ---
 
@@ -97,8 +103,16 @@ answers from your real data — provable without opening the app.
 
 The point: the screens people actually use, rebuilt to feel like a real product.
 
-- [ ] **B1. Set up the React (Next.js) project and put it on Vercel.** Get a live
-      web address showing a real (if empty) BrewMatch as the foundation to build on.
+- [~] **B1. Set up the React (Next.js) project and put it on Vercel.** Get a live
+  web address showing a real (if empty) BrewMatch as the foundation to build on.
+  _Built 2026-06-25: Next.js (App Router) + TypeScript + Tailwind v4 app at
+  `apps/web/`. Coffee-palette design system ported from the approved mockup;
+  mobile-first shell with a working bottom tab bar (Diagnose / Recipes /
+  Coffees / History). Diagnose home is built out; the other three are honest
+  "coming next" shells. `npm run build` is clean (lint + types pass; all 4
+  routes prerender). Screenshots verified against the mockup. REMAINING: the
+  Vercel deploy itself needs your Vercel login — see `apps/web/README.md`
+  § "Deploying to Vercel" (import repo, set Root Directory = `apps/web`)._
 - [ ] **B2. Connect the front-end to the brain (Goal A).** When someone taps
       something, the screen asks the Python brain and shows the answer — smoothly,
       no full-page reload.

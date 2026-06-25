@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: brewmatch-brain
+    runtime: python
+    buildCommand: pip install -e ".[api]"
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false # set manually in Render dashboard — points at Supabase
+      - key: OPENAI_API_KEY
+        sync: false # needed by the bean extractor
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: CUDA_VISIBLE_DEVICES
+        value: ""
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
+    disk:
+      name: brewmatch-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 2 # stores the ChromaDB index and recipe JSON files

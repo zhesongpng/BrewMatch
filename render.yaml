@@ -15,7 +15,6 @@ services:
         value: ""
       - key: TOKENIZERS_PARALLELISM
         value: "false"
-    disk:
-      name: brewmatch-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 2 # stores the ChromaDB index and recipe JSON files
+    # No persistent disk: recipe files ship in the repo (data/recipes/) and the
+    # ChromaDB search index is rebuilt from them at every startup (~seconds).
+    # A disk mounted over data/ would shadow the committed recipes and break boot.

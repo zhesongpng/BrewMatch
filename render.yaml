@@ -7,8 +7,12 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false # set manually in Render dashboard — points at Supabase
-      - key: OPENAI_API_KEY
-        sync: false # needed by the bean extractor
+      # Optional: only the bean-label extractor reads these; the brain API
+      # (recommend/diagnose/brew-log/learn) boots and runs without them.
+      - key: LLM_API_KEY
+        sync: false # OpenAI-compatible key for the bean extractor (optional)
+      - key: LLM_MODEL
+        sync: false # model name for the bean extractor, e.g. gpt-4o-mini (optional)
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: CUDA_VISIBLE_DEVICES

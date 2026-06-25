@@ -1,12 +1,12 @@
 streamlit>=1.35.0
 lightgbm>=4.3.0
 optuna>=3.6.0
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
 rank-bm25>=0.2.2
-scikit-learn>=1.5.0
+# Pinned to the versions that trained models/taste_predictor.joblib — newer
+# scikit-learn/numpy cannot unpickle the saved GradientBoostingRegressor.
+scikit-learn==1.8.0
 pandas>=2.2.0
-numpy>=1.26.0
+numpy==2.2.6
 shap>=0.45.0
 joblib>=1.4.0
 python-dotenv>=1.0.0
@@ -19,3 +19,10 @@ psycopg2-binary>=2.9
 # FastAPI brain service (api/main.py) — required by the Render web service
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
+# NOTE: chromadb + sentence-transformers (and the PyTorch they pull in) are
+# intentionally omitted. The deployed brain runs in lite mode (BREWMATCH_LITE
+# defaults to true) and serves recipe retrieval from BM25 keyword search +
+# structured reranking, which keeps the build small and startup fast on a
+# 512 MB host. To re-enable dense semantic search on a larger instance, add
+# `chromadb>=0.5.0` and `sentence-transformers>=3.0.0` back and set
+# BREWMATCH_LITE=false. Full local/dev installs still get them via pyproject.toml.

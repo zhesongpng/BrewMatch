@@ -395,7 +395,15 @@ class RecipeRetriever:
         self,
         embedding_model: str = "all-MiniLM-L6-v2",
         chroma_persist_dir: Optional[str] = None,
+        lite: Optional[bool] = None,
     ) -> None:
+        # Lite mode skips the PyTorch/ChromaDB dense index entirely and serves
+        # recipe retrieval from BM25 keyword search + structured reranking only.
+        # This keeps startup fast and memory small enough for 512 MB hosts.
+        # Defaults from the BREWMATCH_LITE env var when not passed explicitly.
+        if lite is None:
+            lite = os.environ.get("BREWMATCH_LITE", "").lower() in ("1", "true", "yes")
+        self._lite = lite
         self._embedding_model_name = embedding_model
         self._chroma_persist_dir = chroma_persist_dir or os.path.join(
             tempfile.gettempdir(), "brewmatch_chroma"
@@ -484,6 +492,9 @@ class RecipeRetriever:
         by the hash of the input text.  Repeated calls with the same query
         text return the cached embedding without calling the model.
         """
+        if self._lite:
+            return []
+
         cache_key = hash(text)
 
         if cache_key in self._embedding_cache:
@@ -528,6 +539,12 @@ class RecipeRetriever:
         # sentence-transformers model can fail to load (meta-tensor error),
         # and that MUST degrade to keyword search, not break the feature.
         self._build_sparse_index()
+        if self._lite:
+            logger.info(
+                "Lite mode — skipping dense (PyTorch/ChromaDB) index; "
+                "serving BM25 keyword retrieval + structured reranking"
+            )
+            return
         try:
             self._build_dense_index()
         except Exception as exc:
@@ -586,19 +603,22 @@ class RecipeRetriever:
         self, query_text: str, query_emb: list[float], top_k: int = 20
     ) -> dict[str, float]:
         """Dense + sparse retrieval fused via RRF."""
-        # Dense retrieval
+        # Dense retrieval (skipped in lite mode or when no query embedding is
+        # available — guards the chromadb import so retrieval degrades to BM25
+        # rather than raising when the dense stack is unavailable).
         dense_ids: list[str] = []
-        collection = self._get_collection()
-        try:
-            results = collection.query(
-                query_embeddings=[query_emb],
-                n_results=min(top_k, len(self._recipes)),
-                include=["documents"],
-            )
-            if results and results.get("ids"):
-                dense_ids = results["ids"][0]
-        except Exception:
-            logger.warning("ChromaDB query failed", exc_info=True)
+        if not self._lite and query_emb:
+            try:
+                collection = self._get_collection()
+                results = collection.query(
+                    query_embeddings=[query_emb],
+                    n_results=min(top_k, len(self._recipes)),
+                    include=["documents"],
+                )
+                if results and results.get("ids"):
+                    dense_ids = results["ids"][0]
+            except Exception:
+                logger.warning("Dense retrieval unavailable — using BM25 only", exc_info=True)
 
         # Sparse retrieval
         sparse_ids: list[str] = []

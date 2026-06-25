@@ -71,8 +71,13 @@ def _load_models() -> None:
     # --- Recipe retriever (chromadb + sentence-transformers) ---
     try:
         from src.recipe_retriever.retriever import RecipeRetriever
+        # Default to lite mode (BM25 + structured reranking, no PyTorch) so the
+        # service starts fast and fits a 512 MB host. Set BREWMATCH_LITE=false to
+        # re-enable the dense semantic index on a larger instance.
+        lite_mode = os.environ.get("BREWMATCH_LITE", "true").lower() != "false"
         retriever = RecipeRetriever(
             chroma_persist_dir=str(data_dir / "chroma"),
+            lite=lite_mode,
         )
         retriever.index_recipes(str(data_dir / "recipes"))
         _state["retriever"] = retriever

@@ -129,7 +129,17 @@ The point: the screens people actually use, rebuilt to feel like a real product.
       write endpoints wired yet)._
 - [ ] **B3. Build the core screens** with the agreed look (D3): home/diagnosis,
       recommendation/recipe view, log-a-brew, your coffees/bags, history + "what
-      it's learned."
+      it's learned." - [ ] **B3-grinder. Grinder-specific grind guidance (USER WANTS — every
+      grinder model differs).** Add a "pick your grinder" step (setup or
+      profile) covering the 9 grinders in `src/grinder_catalog.py`
+      (Comandante C40, Timemore C2/C3, Kingrinder K6, 1Zpresso K-Max/J-Max,
+      Baratza Encore, Fellow Ode Gen 2, Niche Zero, + Other). Grind advice
+      then shows in that grinder's real units (clicks/rotations/setting),
+      e.g. "~28 clicks on Comandante C40", not just "finer". Decision: the
+      brain keeps the catalog and exposes the translation over its web
+      service (single source of truth — do NOT copy the table into the
+      front-end). Depends on recipe-aware diagnosis (a real grind number to
+      translate).\_
 
 **Goal B is done when:** the new app is live at a real web address, looks like a
 real product, and talks to your brain.

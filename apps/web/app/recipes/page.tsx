@@ -1,4 +1,5 @@
-import { BookIcon, DripIcon } from "@/components/icons";
+import { DripIcon } from "@/components/icons";
+import RecipesFlow from "@/components/RecipesFlow";
 
 export default function RecipesPage() {
   return (
@@ -11,18 +12,7 @@ export default function RecipesPage() {
         </div>
       </header>
 
-      <main className="app-body">
-        <div className="empty">
-          <span className="icn">
-            <BookIcon />
-          </span>
-          <h3>Recipes are on the way</h3>
-          <p>
-            Soon this screen will rank pour-over recipes for your beans and
-            taste — pulled live from the BrewMatch brain.
-          </p>
-        </div>
-      </main>
+      <RecipesFlow />
     </>
   );
 }

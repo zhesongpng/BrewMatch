@@ -579,6 +579,187 @@ h2.scr {
   margin: 0 0 6px;
 }
 
+/* ---- Forms (bean input, log-a-brew) ---- */
+.field {
+  margin-bottom: 14px;
+}
+.field > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--coffee-deep);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 13px;
+  background: var(--cream);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--coffee);
+}
+.textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 1.1em, calc(100% - 13px) 1.1em;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* ---- Choice chips (flavour notes, grinder pick) ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--cream);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.chip.on {
+  background: var(--coffee);
+  border-color: var(--coffee);
+  color: #fff;
+}
+
+/* ---- Dose stepper ---- */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--sand);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin: 4px 0 12px;
+}
+.stepper .lab {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stepper .ctl {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.stepper button {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: var(--card);
+  color: var(--coffee-deep);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(70, 45, 25, 0.08);
+}
+.stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.stepper .val {
+  font-size: 18px;
+  font-weight: 800;
+  min-width: 56px;
+  text-align: center;
+}
+
+/* ---- Pour schedule ---- */
+.pours {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.pour {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pour:last-child {
+  border-bottom: none;
+}
+.pour .num {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--sand);
+  color: var(--coffee-deep);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.pour .pt {
+  font-weight: 700;
+  font-size: 14px;
+}
+.pour .pd {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.pour .ptime {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--coffee-deep);
+  font-size: 14px;
+}
+
+/* ---- Badge row ---- */
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+/* ---- Recipe summary line on result cards ---- */
+.bag .rs strong {
+  color: var(--coffee-deep);
+}
+
+/* ---- Instructions block ---- */
+.steps {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
 /* ---- Bottom tab bar (fixed within the column) ---- */
 .tabbar {
   position: fixed;

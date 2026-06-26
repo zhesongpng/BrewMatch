@@ -14,6 +14,119 @@ const REQUEST_TIMEOUT_MS = 90_000;
 /** The taste problems a user can flag on the Diagnose screen. */
 export type FlagId = "too_sour" | "too_bitter" | "too_weak" | "astringent";
 
+// ---------------------------------------------------------------------------
+// Recommend — describe beans, get ranked pour-over recipes
+// ---------------------------------------------------------------------------
+
+/** Brew methods the brain knows (matches BrewMethod in the Python brain). */
+export type BrewMethodId = "V60" | "Kalita Wave" | "Origami";
+
+/** Coffee processing methods (matches Process enum). */
+export type ProcessId =
+  | "washed"
+  | "natural"
+  | "honey"
+  | "anaerobic"
+  | "wet-hulled"
+  | "unknown";
+
+/** Roast levels (matches RoastLevel enum). */
+export type RoastLevelId =
+  | "light"
+  | "medium-light"
+  | "medium"
+  | "medium-dark"
+  | "dark"
+  | "unknown";
+
+/** The fixed flavour vocabulary the brain accepts (matches FLAVOR_CLUSTERS). */
+export const FLAVOR_CLUSTERS = [
+  "Floral",
+  "Berry",
+  "Citrus",
+  "Stone Fruit",
+  "Tropical",
+  "Sweet",
+  "Chocolate",
+  "Nutty",
+  "Spice",
+  "Roasted",
+  "Vegetal",
+  "Tea-like",
+  "Fermented",
+  "Syrupy",
+  "Balanced",
+] as const;
+
+/** What the user tells us about a bag of beans before we recommend. */
+export interface BeanInput {
+  origin_country: string;
+  process: ProcessId;
+  roast_level: RoastLevelId;
+  flavor_clusters: string[];
+  /** Free-text the brain stores as the bean's source description. */
+  source_text: string;
+}
+
+/** One step of the pour schedule. */
+export interface PourStep {
+  step: number;
+  time_offset_s: number;
+  water_g: number;
+}
+
+/** A full recipe as the brain returns it. */
+export interface Recipe {
+  recipe_id: string;
+  source: string;
+  method: BrewMethodId;
+  dose_g: number;
+  water_total_g: number;
+  ratio: number;
+  /** Generic 1-10 grind scale; B3-grinder translates this per grinder. */
+  grind_setting: number;
+  water_temp_c: number;
+  bloom_time_s: number;
+  total_time_s: number;
+  pours: PourStep[];
+  instructions: string;
+  source_url?: string | null;
+  source_tier?: "champion" | "barista" | "enthusiast" | null;
+}
+
+/** One ranked recipe in a recommendation result. */
+export interface RankedRecipe {
+  recipe: Recipe;
+  rank: number;
+  score: number;
+  /** The taste predictor's guess, when a trained model is loaded. */
+  predicted_score?: number | null;
+}
+
+/** The brain's full answer to a /recommend request. */
+export interface RecommendResult {
+  recipes: RankedRecipe[];
+  total_candidates: number;
+}
+
+/**
+ * Ask the brain to rank pour-over recipes for a bean and brew method.
+ *
+ * The bean fields map straight onto the Python BeanProfile; we send a
+ * non-empty source_text because the brain requires one.
+ */
+export async function recommend(
+  bean: BeanInput,
+  method: BrewMethodId = "V60",
+  topK = 3,
+): Promise<RecommendResult> {
+  return postJson<RecommendResult>("/recommend", {
+    bean,
+    preferences: { brew_methods: [method] },
+    top_k: topK,
+  });
+}
+
 /** One concrete change the brain suggests for the next brew. */
 export interface DiagnoseSuggestion {
   parameter: string;
@@ -51,6 +164,21 @@ export interface DiagnoseResult {
  * the ML engine personalises the suggestions.
  */
 export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
+  return postJson<DiagnoseResult>("/diagnose", { flags });
+}
+
+// ---------------------------------------------------------------------------
+// Shared transport — one place for the brain URL, timeout, and plain-language
+// error messages so every endpoint behaves the same way.
+// ---------------------------------------------------------------------------
+
+/**
+ * POST a JSON body to a brain endpoint and parse the JSON answer.
+ *
+ * Centralises the wake-up timeout and turns low-level fetch failures into
+ * messages a user can act on (the brain is asleep, the network is down, etc.).
+ */
+async function postJson<T>(path: string, body: unknown): Promise<T> {
   if (!API_URL) {
     throw new Error(
       "BrewMatch isn't configured to reach the brain yet (missing API URL).",
@@ -61,10 +189,10 @@ export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${API_URL}/diagnose`, {
+    const res = await fetch(`${API_URL}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ flags }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
@@ -74,7 +202,7 @@ export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
       );
     }
 
-    return (await res.json()) as DiagnoseResult;
+    return (await res.json()) as T;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error(

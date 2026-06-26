@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DripIcon, PinIcon, TrophyIcon, TuneIcon } from "@/components/icons";
 import {
   FLAVOR_CLUSTERS,
+  getGrinders,
   recommend,
   type BeanInput,
   type BrewMethodId,
+  type Grinder,
   type ProcessId,
   type RankedRecipe,
   type RecommendResult,
@@ -15,9 +17,15 @@ import {
 import {
   clockFormat,
   grams,
+  grindForGrinder,
   poursWithRunningTotal,
   rescaleToDose,
 } from "@/lib/recipe";
+
+// Where the chosen grinder is remembered. Until accounts exist (Goal C) this
+// on-device value is the user's identity for grind preferences — pick once and
+// every recipe shows settings in that grinder's own units.
+const GRINDER_KEY = "brewmatch.grinder_id";
 
 // ---- Plain-language option labels for the bean form ----
 
@@ -54,6 +62,31 @@ export default function RecipesFlow() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [chosen, setChosen] = useState<RankedRecipe | null>(null);
+
+  // Grinder catalog + the user's saved choice. Fetched once; translation is a
+  // local lookup after that. The saved choice is read lazily from on-device
+  // storage so it survives reloads (the detail view isn't rendered on first
+  // paint, so there's no hydration mismatch).
+  const [grinders, setGrinders] = useState<Grinder[]>([]);
+  const [grinderId, setGrinderId] = useState<string>(() =>
+    typeof window === "undefined"
+      ? ""
+      : (window.localStorage.getItem(GRINDER_KEY) ?? ""),
+  );
+
+  useEffect(() => {
+    // The catalog needs no model warm-up, so this returns fast even on a cold
+    // brain. A failure just leaves the generic 1-10 scale in place.
+    getGrinders()
+      .then(setGrinders)
+      .catch(() => {});
+  }, []);
+
+  function chooseGrinder(id: string) {
+    setGrinderId(id);
+    if (id) window.localStorage.setItem(GRINDER_KEY, id);
+    else window.localStorage.removeItem(GRINDER_KEY);
+  }
 
   // Bean form state.
   const [origin, setOrigin] = useState("");
@@ -133,7 +166,15 @@ export default function RecipesFlow() {
   }
 
   if (view === "detail" && chosen) {
-    return <RecipeDetail ranked={chosen} onBack={() => setView("results")} />;
+    return (
+      <RecipeDetail
+        ranked={chosen}
+        grinders={grinders}
+        grinderId={grinderId}
+        onChooseGrinder={chooseGrinder}
+        onBack={() => setView("results")}
+      />
+    );
   }
 
   if (view === "results" && result) {
@@ -333,9 +374,15 @@ function ResultCard({
 
 function RecipeDetail({
   ranked,
+  grinders,
+  grinderId,
+  onChooseGrinder,
   onBack,
 }: {
   ranked: RankedRecipe;
+  grinders: Grinder[];
+  grinderId: string;
+  onChooseGrinder: (id: string) => void;
   onBack: () => void;
 }) {
   const base = ranked.recipe;
@@ -344,6 +391,12 @@ function RecipeDetail({
   const recipe = dose === base.dose_g ? base : rescaleToDose(base, dose);
   const pours = poursWithRunningTotal(recipe.pours);
   const tier = recipe.source_tier ?? "barista";
+
+  // Translate the generic grind into the chosen grinder's own dial, if any.
+  const grinder = grinders.find((g) => g.id === grinderId) ?? null;
+  const grind = grinder ? grindForGrinder(grinder, recipe.grind_setting) : null;
+  const handGrinders = grinders.filter((g) => g.type === "hand");
+  const electricGrinders = grinders.filter((g) => g.type === "electric");
   const match =
     ranked.predicted_score != null
       ? `${Math.round((ranked.predicted_score / 10) * 100)}% match`
@@ -410,7 +463,16 @@ function RecipeDetail({
           </div>
           <div className="pill">
             <div className="k">Grind</div>
-            <div className="v">{recipe.grind_setting} / 10</div>
+            {grind ? (
+              <>
+                <div className="v">{grind.dial}</div>
+                <div className="vsub">
+                  {grind.grinderName} · {recipe.grind_setting}/10
+                </div>
+              </>
+            ) : (
+              <div className="v">{recipe.grind_setting} / 10</div>
+            )}
           </div>
           <div className="pill">
             <div className="k">Water temp</div>
@@ -424,6 +486,41 @@ function RecipeDetail({
             <div className="k">Total time</div>
             <div className="v">{clockFormat(recipe.total_time_s)}</div>
           </div>
+        </div>
+
+        <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
+          <label htmlFor="grinder">Your grinder</label>
+          <select
+            id="grinder"
+            className="select"
+            value={grinderId}
+            onChange={(e) => onChooseGrinder(e.target.value)}
+          >
+            <option value="">Generic scale (1–10)</option>
+            {handGrinders.length > 0 && (
+              <optgroup label="Hand grinders">
+                {handGrinders.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.brand} {g.model}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {electricGrinders.length > 0 && (
+              <optgroup label="Electric grinders">
+                {electricGrinders.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.brand} {g.model}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          <p className="sub" style={{ marginTop: 8 }}>
+            {grind
+              ? "Grind shows in your grinder's own dial. We'll remember it."
+              : "Pick yours to see the grind in clicks or rotations, not just 1–10."}
+          </p>
         </div>
       </section>
 

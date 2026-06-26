@@ -15,6 +15,33 @@ const REQUEST_TIMEOUT_MS = 90_000;
 export type FlagId = "too_sour" | "too_bitter" | "too_weak" | "astringent";
 
 // ---------------------------------------------------------------------------
+// Grinders — translate the generic 1-10 grind scale into a grinder's own dial
+// ---------------------------------------------------------------------------
+
+/** One grinder from the brain's catalog. */
+export interface Grinder {
+  id: string;
+  brand: string;
+  model: string;
+  type: "hand" | "electric";
+  /** The grinder's own unit: "clicks", "rotations", or "setting". */
+  scale: string;
+  /** Maps each "1".."10" generic step to this grinder's dial value. */
+  mapping: Record<string, number>;
+}
+
+/**
+ * Fetch the grinder catalog from the brain.
+ *
+ * The catalog rarely changes, so callers should fetch it once and cache it —
+ * each grind translation is then a local lookup with no further network call.
+ */
+export async function getGrinders(): Promise<Grinder[]> {
+  const res = await getJson<{ grinders: Grinder[] }>("/grinders");
+  return res.grinders;
+}
+
+// ---------------------------------------------------------------------------
 // Recommend — describe beans, get ranked pour-over recipes
 // ---------------------------------------------------------------------------
 
@@ -172,13 +199,27 @@ export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
 // error messages so every endpoint behaves the same way.
 // ---------------------------------------------------------------------------
 
+/** POST a JSON body to a brain endpoint and parse the JSON answer. */
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/** GET a brain endpoint and parse the JSON answer. */
+async function getJson<T>(path: string): Promise<T> {
+  return request<T>(path, { method: "GET" });
+}
+
 /**
- * POST a JSON body to a brain endpoint and parse the JSON answer.
+ * Send a request to a brain endpoint and parse the JSON answer.
  *
  * Centralises the wake-up timeout and turns low-level fetch failures into
  * messages a user can act on (the brain is asleep, the network is down, etc.).
  */
-async function postJson<T>(path: string, body: unknown): Promise<T> {
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   if (!API_URL) {
     throw new Error(
       "BrewMatch isn't configured to reach the brain yet (missing API URL).",
@@ -190,9 +231,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 
   try {
     const res = await fetch(`${API_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      ...init,
       signal: controller.signal,
     });
 

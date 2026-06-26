@@ -131,6 +131,30 @@ def get_grinder_display(
     return f"~{value_str} {scale} on {brand} {model}"
 
 
+def get_grinder_catalog() -> list[dict]:
+    """Return the full catalog as JSON-serializable dicts for the HTTP API.
+
+    Each entry carries the per-step mapping so a client can translate any
+    1-10 grind setting locally without a round-trip. Ordered hand grinders
+    first, then electric — the same order the picker uses. This keeps the
+    catalog (the actual click/rotation/setting numbers) owned by Python; the
+    web only mirrors the trivial display string in get_grinder_display.
+    """
+    return [
+        {
+            "id": gid,
+            "brand": g["brand"],
+            "model": g["model"],
+            "type": g["type"],
+            "scale": g["scale"],
+            # JSON object keys are strings, so the 1-10 steps serialize as
+            # "1".."10"; the client reads them back by string key.
+            "mapping": {str(step): value for step, value in g["mapping"].items()},
+        }
+        for gid, g in GRINDERS.items()
+    ]
+
+
 def get_grinder_options() -> list[tuple[str, str]]:
     """Return (grinder_id, display_label) pairs for UI selectboxes.
 

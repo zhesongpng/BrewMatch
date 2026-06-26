@@ -151,6 +151,23 @@ def health():
 
 
 # ---------------------------------------------------------------------------
+# Grinders
+# ---------------------------------------------------------------------------
+
+@app.get("/grinders")
+def grinders():
+    """Return the grinder catalog so the front-end can translate the generic
+    1-10 grind scale into a specific grinder's dial setting.
+
+    Needs no database or ML models — answers instantly even while the heavy
+    models are still loading. The catalog (the actual click/rotation numbers)
+    stays owned here; the client only formats the display string.
+    """
+    from src.grinder_catalog import get_grinder_catalog
+    return {"grinders": get_grinder_catalog()}
+
+
+# ---------------------------------------------------------------------------
 # Recommend
 # ---------------------------------------------------------------------------
 

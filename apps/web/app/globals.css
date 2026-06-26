@@ -239,6 +239,12 @@ h2.scr {
   font-weight: 800;
   color: var(--ink);
 }
+.pill .vsub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
 /* ---- Flavour flags ---- */
 .flag {

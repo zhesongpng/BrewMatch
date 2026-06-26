@@ -72,6 +72,25 @@ def test_health_reports_all_components_ready(client):
     assert body["predictor_trained"] is True
 
 
+def test_grinders_returns_catalog(client):
+    r = client.get("/grinders")
+    assert r.status_code == 200
+    grinders = r.json()["grinders"]
+    # The catalog ships 9 grinders (6 hand, 3 electric).
+    assert len(grinders) == 9
+    assert {g["type"] for g in grinders} == {"hand", "electric"}
+
+    # Each grinder maps all 10 generic steps to a dial value, keyed by string.
+    for g in grinders:
+        assert set(g["mapping"].keys()) == {str(i) for i in range(1, 11)}
+        assert {"id", "brand", "model", "scale"} <= g.keys()
+
+    # Spot-check a known mapping so a future catalog edit can't silently drift.
+    by_id = {g["id"]: g for g in grinders}
+    assert by_id["kingrinder-k6"]["mapping"]["7"] == 74
+    assert by_id["kingrinder-k6"]["scale"] == "clicks"
+
+
 def test_recommend_returns_ranked_recipes(client, bean):
     r = client.post("/recommend", json={"bean": bean, "preferences": {"brew_methods": ["V60"]}, "top_k": 3})
     assert r.status_code == 200

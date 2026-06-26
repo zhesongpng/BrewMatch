@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DripIcon, PinIcon, TrophyIcon, TuneIcon } from "@/components/icons";
+import LogBrew from "@/components/LogBrew";
 import {
   FLAVOR_CLUSTERS,
   getGrinders,
@@ -62,6 +63,9 @@ export default function RecipesFlow() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [chosen, setChosen] = useState<RankedRecipe | null>(null);
+  // The bean we recommended for — kept so the recipe detail can log a brew
+  // against it without the user re-entering anything.
+  const [submittedBean, setSubmittedBean] = useState<BeanInput | null>(null);
 
   // Grinder catalog + the user's saved choice. Fetched once; translation is a
   // local lookup after that. The saved choice is read lazily from on-device
@@ -118,6 +122,7 @@ export default function RecipesFlow() {
       source_text: sourceText,
     };
 
+    setSubmittedBean(bean);
     setView("loading");
     setError(null);
     try {
@@ -169,6 +174,7 @@ export default function RecipesFlow() {
     return (
       <RecipeDetail
         ranked={chosen}
+        bean={submittedBean}
         grinders={grinders}
         grinderId={grinderId}
         onChooseGrinder={chooseGrinder}
@@ -374,12 +380,14 @@ function ResultCard({
 
 function RecipeDetail({
   ranked,
+  bean,
   grinders,
   grinderId,
   onChooseGrinder,
   onBack,
 }: {
   ranked: RankedRecipe;
+  bean: BeanInput | null;
   grinders: Grinder[];
   grinderId: string;
   onChooseGrinder: (id: string) => void;
@@ -567,6 +575,8 @@ function RecipeDetail({
           )}
         </section>
       )}
+
+      {bean && <LogBrew bean={bean} recipe={recipe} />}
 
       <button type="button" className="btn ghost" onClick={onBack}>
         Back to recipes

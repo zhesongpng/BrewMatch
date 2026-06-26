@@ -102,6 +102,18 @@ export interface PourStep {
   water_g: number;
 }
 
+/**
+ * Which beans a recipe suits. The web doesn't display this, but it's part of
+ * the recipe the brain returns and the brain requires it back when saving a
+ * brew — so we carry it through verbatim rather than dropping it.
+ */
+export interface SuitableFor {
+  roast_levels: string[];
+  origins: string[];
+  processes: string[];
+  flavor_profiles: string[];
+}
+
 /** A full recipe as the brain returns it. */
 export interface Recipe {
   recipe_id: string;
@@ -116,6 +128,7 @@ export interface Recipe {
   bloom_time_s: number;
   total_time_s: number;
   pours: PourStep[];
+  suitable_for: SuitableFor;
   instructions: string;
   source_url?: string | null;
   source_tier?: "champion" | "barista" | "enthusiast" | null;
@@ -192,6 +205,95 @@ export interface DiagnoseResult {
  */
 export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
   return postJson<DiagnoseResult>("/diagnose", { flags });
+}
+
+// ---------------------------------------------------------------------------
+// Brews — log a brew and read it back as history
+// ---------------------------------------------------------------------------
+
+/** Taste problems a user can flag when rating a brew (matches DIRECTIONAL_FLAGS). */
+export const BREW_FLAGS = [
+  { id: "too_sour", label: "Too sour" },
+  { id: "too_bitter", label: "Too bitter" },
+  { id: "too_weak", label: "Too weak" },
+  { id: "too_harsh", label: "Too harsh" },
+  { id: "astringent", label: "Astringent" },
+] as const;
+
+export type BrewFlagId = (typeof BREW_FLAGS)[number]["id"];
+
+/** How a brew tasted. */
+export interface BrewFeedback {
+  thumbs_up: boolean;
+  /** Optional 1-10 rating. */
+  score?: number;
+  directional_flags?: BrewFlagId[];
+  notes?: string;
+}
+
+/**
+ * Save a brew: the beans used, the recipe followed, and how it tasted.
+ *
+ * Feeds the History screen and the learning loop. The full recipe (including
+ * suitable_for) is sent back verbatim so the brain can reconstruct it.
+ */
+export async function saveBrew(
+  userId: string,
+  bean: BeanInput,
+  recipe: Recipe,
+  feedback: BrewFeedback,
+): Promise<{ saved: boolean; brew_id: string }> {
+  return postJson(`/brews/${encodeURIComponent(userId)}`, {
+    brew_id: `brew-${crypto.randomUUID()}`,
+    timestamp: new Date().toISOString(),
+    bean,
+    recipe,
+    feedback,
+    actual_dose_g: recipe.dose_g,
+  });
+}
+
+/** The bean fields the History screen reads back (a subset of the stored profile). */
+export interface BrewBean {
+  origin_country?: string;
+  roast_level?: string;
+  process?: string;
+}
+
+/** One saved brew as the brain returns it. */
+export interface BrewRecord {
+  brew_id: string;
+  timestamp: string;
+  bean: BrewBean;
+  recipe: Recipe;
+  feedback: BrewFeedback;
+  bag_id?: string | null;
+  actual_dose_g?: number | null;
+}
+
+/** A user's recent brews, newest first. */
+export async function getBrews(
+  userId: string,
+  limit = 50,
+): Promise<BrewRecord[]> {
+  const res = await getJson<{ brews: BrewRecord[]; count: number }>(
+    `/brews/${encodeURIComponent(userId)}?limit=${limit}`,
+  );
+  return res.brews;
+}
+
+/**
+ * The personalization state for a user: how many brews they've logged and which
+ * learning phase that puts them in. Drives the "what BrewMatch has learned"
+ * line on the History screen.
+ */
+export interface LearnState {
+  phase: string;
+  brew_count: number;
+}
+
+export async function getLearnState(userId: string): Promise<LearnState> {
+  return getJson<LearnState>(`/learn/${encodeURIComponent(userId)}`);
 }
 
 // ---------------------------------------------------------------------------

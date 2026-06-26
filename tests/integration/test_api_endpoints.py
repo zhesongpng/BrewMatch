@@ -138,6 +138,37 @@ def test_save_and_load_brew_round_trip(client, bean, recipe):
     assert r.json()["count"] >= 1
 
 
+def test_brews_response_has_history_display_fields(client, bean, recipe):
+    """The web History screen reads specific fields off each saved brew. Lock
+    them so a backend rename can't silently blank the screen."""
+    brew = {
+        "brew_id": "hist-fields-1",
+        "timestamp": "2026-06-26T08:30:00+00:00",
+        "bean": bean,
+        "recipe": recipe,
+        "feedback": {
+            "thumbs_up": True,
+            "score": 8,
+            "directional_flags": ["too_sour"],
+            "notes": "bright",
+        },
+        "actual_dose_g": 15.0,
+    }
+    assert client.post("/brews/histuser", json=brew).status_code == 200
+
+    items = client.get("/brews/histuser").json()["brews"]
+    item = next(b for b in items if b["brew_id"] == "hist-fields-1")
+    # Fields HistoryFlow.tsx / LogBrew round-trip depend on:
+    assert item["timestamp"] == "2026-06-26T08:30:00+00:00"
+    assert item["recipe"]["method"] and item["recipe"]["source"]
+    assert item["bean"]["origin_country"]
+    fb = item["feedback"]
+    assert fb["thumbs_up"] is True
+    assert fb["score"] == 8
+    assert fb["directional_flags"] == ["too_sour"]
+    assert fb["notes"] == "bright"
+
+
 def test_save_brew_missing_id_returns_422(client, bean, recipe):
     r = client.post("/brews/rtuser", json={"bean": bean, "recipe": recipe, "feedback": {"thumbs_up": True}})
     assert r.status_code == 422

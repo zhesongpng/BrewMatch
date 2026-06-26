@@ -56,7 +56,9 @@ These shape the build. My recommendation is given for each; you can override any
       small per-use cost, and an outside dependency for a core feature. Only worth it
       if "one platform / no local ML" is independently desirable.
 
-- [ ] **D2. Real login, or keep the current basic login?**
+- [x] **D2. Real login, or keep the current basic login?** _(DECIDED 2026-06-25 →
+      turn on real Supabase login. Build it step by step, AFTER the front-end is
+      connected to the brain — i.e. Goal C comes after B2/B3.)_
       Supabase (already your database) comes with a proper, production-grade login
       system — "sign in with Google," password reset, email verification. My
       recommendation: **turn on real login now**, since the foundation is already
@@ -113,9 +115,18 @@ The point: the screens people actually use, rebuilt to feel like a real product.
   routes prerender). Screenshots verified against the mockup. REMAINING: the
   Vercel deploy itself needs your Vercel login — see `apps/web/README.md`
   § "Deploying to Vercel" (import repo, set Root Directory = `apps/web`)._
-- [ ] **B2. Connect the front-end to the brain (Goal A).** When someone taps
+- [x] **B2. Connect the front-end to the brain (Goal A).** When someone taps
       something, the screen asks the Python brain and shows the answer — smoothly,
       no full-page reload.
+      _Done 2026-06-26: the Diagnose screen's four taste flags are tappable and
+      POST to the live brain's `/diagnose`; the cause + concrete fixes render
+      inline with loading/error/retry states. New `apps/web/lib/api.ts` client
+      (brain URL from `NEXT_PUBLIC_BREWMATCH_API_URL`). Brain CORS locked from
+      `*` to the Vercel site + localhost (env-overridable via
+      `BREWMATCH_ALLOWED_ORIGINS`). Red-teamed (L5): caught + fixed a
+      deploy-breaking `.gitignore` `lib/` rule that hid the client from git; see
+      `04-validate/b2-diagnose-wire.md`. API-key-on-writes deferred to B3 (no
+      write endpoints wired yet)._
 - [ ] **B3. Build the core screens** with the agreed look (D3): home/diagnosis,
       recommendation/recipe view, log-a-brew, your coffees/bags, history + "what
       it's learned."

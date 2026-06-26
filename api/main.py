@@ -107,12 +107,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Browser origins allowed to call the brain. Defaults to the production Vercel
+# site plus local dev; override with BREWMATCH_ALLOWED_ORIGINS (comma-separated)
+# on the host — e.g. to add a Vercel preview URL. A locked allowlist replaces the
+# previous wide-open "*" now that the React front-end makes real cross-origin
+# calls from the browser.
+_DEFAULT_ALLOWED_ORIGINS = [
+    "https://brewmatch-sepia.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+_origins_env = os.environ.get("BREWMATCH_ALLOWED_ORIGINS", "")
+allowed_origins = [o.strip() for o in _origins_env.split(",") if o.strip()] or _DEFAULT_ALLOWED_ORIGINS
+logger.info("brain.cors: allowed_origins=%s", allowed_origins)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tightened once the Vercel domain is known
+    allow_origins=allowed_origins,
     # The API authenticates via the user_id in the path, not cookies, so it
-    # needs no credentialed requests. allow_credentials MUST stay False while
-    # allow_origins is "*" — browsers reject the wildcard+credentials combo.
+    # needs no credentialed requests. allow_credentials MUST stay False so the
+    # browser does not send cookies cross-origin.
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -45,7 +45,10 @@ export function PourOverIcon(props: IconProps) {
 export function CupIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
-      <path {...stroke} d="M5 10h11v4.5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 14.5z" />
+      <path
+        {...stroke}
+        d="M5 10h11v4.5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 14.5z"
+      />
       <path {...stroke} d="M16 11h2.2a2.3 2.3 0 0 1 0 4.6H16" />
       <path {...stroke} d="M9 3.5c1 1-1 2 0 3.2M12.5 3.5c1 1-1 2 0 3.2" />
     </svg>
@@ -55,8 +58,19 @@ export function CupIcon(props: IconProps) {
 export function BeanIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
-      <ellipse {...stroke} cx="12" cy="12" rx="6" ry="9" transform="rotate(-35 12 12)" />
-      <path {...stroke} d="M9.5 6.5c2.2 3 2.2 8 0 11" transform="rotate(-35 12 12)" />
+      <ellipse
+        {...stroke}
+        cx="12"
+        cy="12"
+        rx="6"
+        ry="9"
+        transform="rotate(-35 12 12)"
+      />
+      <path
+        {...stroke}
+        d="M9.5 6.5c2.2 3 2.2 8 0 11"
+        transform="rotate(-35 12 12)"
+      />
     </svg>
   );
 }
@@ -92,7 +106,14 @@ export function SourIcon(props: IconProps) {
 export function BitterIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
-      <ellipse cx="12" cy="12" rx="6" ry="9" transform="rotate(-35 12 12)" fill="currentColor" />
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="6"
+        ry="9"
+        transform="rotate(-35 12 12)"
+        fill="currentColor"
+      />
       <path
         d="M9.5 6.5c2.2 3 2.2 8 0 11"
         transform="rotate(-35 12 12)"
@@ -108,7 +129,10 @@ export function BitterIcon(props: IconProps) {
 export function WeakIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
-      <path {...stroke} d="M12 3.5c3.4 5 5.5 7.6 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.9 2.1-5.5 5.5-10.5z" />
+      <path
+        {...stroke}
+        d="M12 3.5c3.4 5 5.5 7.6 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.9 2.1-5.5 5.5-10.5z"
+      />
     </svg>
   );
 }
@@ -123,11 +147,24 @@ export function AstringentIcon(props: IconProps) {
   );
 }
 
+export function HomeIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path {...stroke} d="M4 11l8-6.5 8 6.5" />
+      <path {...stroke} d="M6 9.8V19h12V9.8" />
+      <path {...stroke} d="M10 19v-5h4v5" />
+    </svg>
+  );
+}
+
 export function TrophyIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
       <path {...stroke} d="M7 4h10v5a5 5 0 0 1-10 0z" />
-      <path {...stroke} d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10" />
+      <path
+        {...stroke}
+        d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10"
+      />
       <path {...stroke} d="M12 14v3M9 20h6M10 17h4l.5 3h-5z" />
     </svg>
   );

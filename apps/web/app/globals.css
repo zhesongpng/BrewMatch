@@ -579,6 +579,82 @@ h2.scr {
   margin: 0 0 6px;
 }
 
+/* ---- Home hub (two-path choice) ---- */
+.hub-lead {
+  padding: 10px 2px 6px;
+}
+.hub-lead h2.scr {
+  font-size: 24px;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 0.06s ease;
+}
+.choice:active {
+  transform: scale(0.99);
+}
+.choice.primary {
+  background: linear-gradient(135deg, var(--coffee) 0%, var(--coffee-deep) 100%);
+  border: none;
+  color: #fff;
+}
+.choice .ic {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--sand);
+  color: var(--coffee-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.choice.primary .ic {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.choice .ic svg {
+  width: 25px;
+  height: 25px;
+}
+.choice .ct {
+  display: flex;
+  flex-direction: column;
+}
+.choice .cs {
+  font-size: 12.5px;
+  opacity: 0.8;
+  font-weight: 600;
+}
+.choice.primary .cs {
+  opacity: 0.92;
+}
+.choice .cm {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.choice .chev {
+  margin-left: auto;
+  font-size: 24px;
+  color: var(--muted);
+}
+.choice.primary .chev {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* ---- Forms (bean input, log-a-brew) ---- */
 .field {
   margin-bottom: 14px;

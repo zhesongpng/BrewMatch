@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { BookIcon, DripIcon, PourOverIcon } from "@/components/icons";
-import DiagnoseFlags from "@/components/DiagnoseFlags";
+import { BookIcon, CupIcon, DripIcon } from "@/components/icons";
 
-export default function DiagnosePage() {
+export default function HomePage() {
   return (
     <>
       <header className="topbar">
@@ -14,15 +13,34 @@ export default function DiagnosePage() {
       </header>
 
       <main className="app-body">
-        <div className="hero-art">
-          <PourOverIcon />
-        </div>
+        <section className="hub-lead">
+          <h2 className="scr">What are you up to?</h2>
+          <p className="sub">
+            Starting fresh or fixing a cup — pick where you are and BrewMatch
+            takes it from there.
+          </p>
+        </section>
 
-        <DiagnoseFlags />
+        <Link href="/recipes" className="choice primary">
+          <span className="ic">
+            <BookIcon />
+          </span>
+          <span className="ct">
+            <span className="cs">Brewing new beans?</span>
+            <span className="cm">Get a recipe</span>
+          </span>
+          <span className="chev">›</span>
+        </Link>
 
-        <Link href="/recipes" className="btn ghost">
-          <BookIcon />
-          Get a recipe for new beans
+        <Link href="/diagnose" className="choice">
+          <span className="ic">
+            <CupIcon />
+          </span>
+          <span className="ct">
+            <span className="cs">Last brew tasted off?</span>
+            <span className="cm">Fix it</span>
+          </span>
+          <span className="chev">›</span>
         </Link>
       </main>
     </>

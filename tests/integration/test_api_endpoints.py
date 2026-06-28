@@ -38,6 +38,10 @@ def client():
     tmpdir = tempfile.mkdtemp()
     tmpdb = os.path.join(tmpdir, "test_api.db")
     db.get_db_path = lambda: tmpdb
+    # The "schema created" flag is a process-global keyed on one DB (correct in
+    # production). Reset it so the lazy schema-init fires for THIS module's DB
+    # even when another test module already initialised against a different file.
+    db._db_initialized = False
     assert db.active_backend() == "sqlite", "test must not hit production"
     with TestClient(app) as c:
         yield c

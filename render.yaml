@@ -7,6 +7,14 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false # set manually in Render dashboard — points at Supabase
+      # Supabase login-token verification (Goal C). Until ONE of these is set,
+      # the brain stays open (anonymous on-device flow only). Setting it turns
+      # on per-account enforcement: real account ids then require a valid token.
+      # Use EITHER the legacy shared secret OR the project URL (asymmetric keys):
+      - key: SUPABASE_JWT_SECRET
+        sync: false # Supabase → Settings → API → JWT Secret (HS256 projects)
+      - key: SUPABASE_URL
+        sync: false # e.g. https://<project>.supabase.co (asymmetric-key projects)
       # Optional: only the bean-label extractor reads these; the brain API
       # (recommend/diagnose/brew-log/learn) boots and runs without them.
       - key: LLM_API_KEY

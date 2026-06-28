@@ -34,6 +34,10 @@ dependencies = [
 api = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
+    # Verifies Supabase-issued login tokens (Goal C). [crypto] pulls in the
+    # cryptography backend for asymmetric (RS256/ES256) project signing keys;
+    # HS256 shared-secret verification needs no extra backend.
+    "PyJWT[crypto]>=2.8.0",
 ]
 dev = [
     "pytest>=7.2.0",

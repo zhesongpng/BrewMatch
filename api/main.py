@@ -12,7 +12,7 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 # Ensure repo root is importable so `from src.*` works on Render.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -27,8 +27,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+from api.auth import AuthError, auth_configured, verify_token
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -131,6 +133,71 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Identity gate (Goal C — step 1)
+#
+# Per-user endpoints take a {user_id} in the path. This gate decides whether
+# that id may be served for a given request:
+#
+#   * Anonymous on-device users send NO token and a "device-..." id; served as
+#     before (the id is a client-only secret, same posture as pre-login).
+#   * Signed-in users send a Supabase token; it is verified and MUST match the
+#     path id, so nobody can read another account's data by changing the URL.
+#   * While the brain is auth-unconfigured (no Supabase env yet), it stays fully
+#     open so the existing anonymous flow keeps working during rollout.
+#
+# The "device-" prefix is the contract with the front-end's identity helper
+# (apps/web/lib/identity.ts) — anonymous ids start with it; account ids (Supabase
+# UUIDs) do not.
+# ---------------------------------------------------------------------------
+
+_ANON_ID_PREFIX = "device-"
+
+
+def _bearer_token(authorization: Optional[str]) -> Optional[str]:
+    """Extract the token from an ``Authorization: Bearer <token>`` header.
+
+    Returns None when no header is present; raises 401 when the header is
+    present but malformed.
+    """
+    if not authorization:
+        return None
+    parts = authorization.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1].strip():
+        raise HTTPException(401, "malformed Authorization header")
+    return parts[1].strip()
+
+
+def resolve_user(user_id: str, authorization: Optional[str]) -> str:
+    """Authorize a per-user request and return the canonical user id to use.
+
+    Raises 401 if a presented token can't be verified or an account id is
+    requested without one; 403 if a valid token doesn't match the path id.
+    """
+    token = _bearer_token(authorization)
+
+    if token is not None:
+        # A token was sent — always verify and require it to match the path id,
+        # regardless of whether per-account enforcement is otherwise on.
+        try:
+            token_user = verify_token(token)
+        except AuthError as exc:
+            raise HTTPException(401, str(exc)) from exc
+        if token_user != user_id:
+            raise HTTPException(403, "token does not match the requested user")
+        return token_user
+
+    # No token presented.
+    if not auth_configured():
+        # Brain not yet wired to Supabase — stay open (no real accounts exist).
+        return user_id
+    if user_id.startswith(_ANON_ID_PREFIX):
+        # Anonymous on-device data: no token required.
+        return user_id
+    # An account id with no token — must sign in.
+    raise HTTPException(401, "sign-in required for this account")
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +405,7 @@ def diagnose(body: dict):
 # ---------------------------------------------------------------------------
 
 @app.post("/brews/{user_id}")
-def save_brew(user_id: str, body: dict):
+def save_brew(user_id: str, body: dict, authorization: Optional[str] = Header(None)):
     """Save a brew record for a user.
 
     Request body mirrors the BrewRecord dataclass fields:
@@ -354,6 +421,8 @@ def save_brew(user_id: str, body: dict):
     from src.app.db import save_brew as db_save_brew
     from src.app.utils import dict_to_bean_profile, dict_to_recipe
     from src.data_models import BrewRecord, Feedback
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         bean = dict_to_bean_profile(body.get("bean", {}))
@@ -397,12 +466,16 @@ def save_brew(user_id: str, body: dict):
 
 
 @app.get("/brews/{user_id}")
-def get_brews(user_id: str, limit: int = 50):
+def get_brews(
+    user_id: str, limit: int = 50, authorization: Optional[str] = Header(None)
+):
     """Return recent brews for a user, newest first."""
     from dataclasses import asdict
 
     from src.app.db import ensure_schema, get_db, load_brew_history
     from src.app.utils import bean_to_dict, recipe_to_dict
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         with get_db() as conn:
@@ -460,7 +533,7 @@ def _bag_to_dict(bag: Any, grams_used: float) -> dict:
 
 
 @app.get("/bags/{user_id}")
-def get_bags(user_id: str):
+def get_bags(user_id: str, authorization: Optional[str] = Header(None)):
     """Return a user's active (unfinished) coffee bags, newest first.
 
     Each bag carries its running-low estimate so the Coffees screen renders the
@@ -472,6 +545,8 @@ def get_bags(user_id: str):
         grams_used_for_bag,
         list_active_bags,
     )
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         with get_db() as conn:
@@ -489,7 +564,7 @@ def get_bags(user_id: str):
 
 
 @app.post("/bags/{user_id}")
-def create_bag(user_id: str, body: dict):
+def create_bag(user_id: str, body: dict, authorization: Optional[str] = Header(None)):
     """Save a new coffee bag for a user.
 
     Request body:
@@ -516,6 +591,8 @@ def create_bag(user_id: str, body: dict):
     from src.app.db import ensure_schema, get_db
     from src.bean_extractor.extractor import create_manual_profile
     from src.data_models import CoffeeBag, create_bag_id
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         roaster = str(body.get("roaster", "")).strip()
@@ -560,9 +637,13 @@ def create_bag(user_id: str, body: dict):
 
 
 @app.post("/bags/{user_id}/{bag_id}/finish")
-def finish_bag(user_id: str, bag_id: str):
+def finish_bag(
+    user_id: str, bag_id: str, authorization: Optional[str] = Header(None)
+):
     """Mark a bag finished so it drops off the user's active list."""
     from src.app.db import ensure_schema, get_db, mark_bag_finished
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         with get_db() as conn:
@@ -581,7 +662,7 @@ def finish_bag(user_id: str, bag_id: str):
 # ---------------------------------------------------------------------------
 
 @app.get("/stats/{user_id}")
-def get_stats(user_id: str):
+def get_stats(user_id: str, authorization: Optional[str] = Header(None)):
     """Return a user's aggregate brew stats for the Profile screen.
 
     Wraps the existing ``get_user_stats`` helper (total brews, average score,
@@ -589,6 +670,8 @@ def get_stats(user_id: str):
     empty lists, never an error.
     """
     from src.app.db import ensure_schema, get_db, get_user_stats
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         with get_db() as conn:
@@ -607,7 +690,7 @@ def get_stats(user_id: str):
 
 @app.get("/learn/{user_id}")
 @app.post("/learn/{user_id}")
-def learn(user_id: str):
+def learn(user_id: str, authorization: Optional[str] = Header(None)):
     """Return a user's personalization phase from their brew history.
 
     BrewMatch's taste predictor is a single global pre-trained model — it is
@@ -624,6 +707,8 @@ def learn(user_id: str):
     """
     from src.app.db import count_brews, ensure_schema, get_db
     from src.personalization.engine import PersonalizationEngine
+
+    user_id = resolve_user(user_id, authorization)
 
     try:
         with get_db() as conn:

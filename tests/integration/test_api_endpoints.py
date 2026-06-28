@@ -291,6 +291,34 @@ def test_bags_are_scoped_per_user(client):
     assert client.get("/bags/owner-b").json()["count"] == 0
 
 
+def test_stats_empty_user_returns_zeroes(client):
+    body = client.get("/stats/nobody-stats").json()
+    assert body["total_brews"] == 0
+    assert body["avg_score"] == 0.0
+    assert body["favorite_origins"] == []
+    assert body["favorite_clusters"] == []
+
+
+def test_stats_reflect_logged_brews(client, bean, recipe):
+    """The Profile screen reads these fields; lock the shape + aggregation."""
+    user = "stats-user"
+    for i in range(3):
+        brew = {
+            "brew_id": f"st-{i}",
+            "timestamp": "2026-06-28T10:00:00+00:00",
+            "bean": bean,  # Ethiopia / Floral+Citrus
+            "recipe": recipe,
+            "feedback": {"thumbs_up": True, "score": 8},
+        }
+        assert client.post(f"/brews/{user}", json=brew).status_code == 200
+
+    s = client.get(f"/stats/{user}").json()
+    assert s["total_brews"] == 3
+    assert s["avg_score"] == 8.0
+    assert "Ethiopia" in s["favorite_origins"]
+    assert "Floral" in s["favorite_clusters"]
+
+
 def test_cors_allows_cross_origin_without_credentials():
     """Regression: wildcard origin must not be paired with credentials."""
     from api.main import app as fastapi_app

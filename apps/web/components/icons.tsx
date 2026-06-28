@@ -14,6 +14,15 @@ const stroke = {
 
 type IconProps = SVGProps<SVGSVGElement>;
 
+export function UserIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <circle {...stroke} cx="12" cy="8" r="3.5" />
+      <path {...stroke} d="M5 19.5c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5" />
+    </svg>
+  );
+}
+
 export function DripIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>

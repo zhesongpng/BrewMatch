@@ -577,6 +577,31 @@ def finish_bag(user_id: str, bag_id: str):
 
 
 # ---------------------------------------------------------------------------
+# Stats — aggregate brew stats for the Profile screen
+# ---------------------------------------------------------------------------
+
+@app.get("/stats/{user_id}")
+def get_stats(user_id: str):
+    """Return a user's aggregate brew stats for the Profile screen.
+
+    Wraps the existing ``get_user_stats`` helper (total brews, average score,
+    top origins, favourite flavours). A user with no brews yet gets zeroes and
+    empty lists, never an error.
+    """
+    from src.app.db import ensure_schema, get_db, get_user_stats
+
+    try:
+        with get_db() as conn:
+            ensure_schema(conn)
+            stats = get_user_stats(conn, user_id)
+    except Exception as exc:
+        logger.exception("get_stats: DB read failed")
+        raise HTTPException(500, f"Failed to load stats: {exc}") from exc
+
+    return stats
+
+
+# ---------------------------------------------------------------------------
 # Learn — re-train predictor from a user's brew history
 # ---------------------------------------------------------------------------
 

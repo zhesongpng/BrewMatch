@@ -290,6 +290,18 @@ export async function getLearnState(userId: string): Promise<LearnState> {
   return getJson<LearnState>(`/learn/${encodeURIComponent(userId)}`);
 }
 
+/** Aggregate brew stats for the Profile screen (matches the brain's UserStats). */
+export interface UserStats {
+  total_brews: number;
+  avg_score: number;
+  favorite_origins: string[];
+  favorite_clusters: string[];
+}
+
+export async function getStats(userId: string): Promise<UserStats> {
+  return getJson<UserStats>(`/stats/${encodeURIComponent(userId)}`);
+}
+
 // ---------------------------------------------------------------------------
 // Coffee bags — the coffees a user owns
 // ---------------------------------------------------------------------------

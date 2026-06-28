@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DripIcon, PinIcon, TrophyIcon, TuneIcon } from "@/components/icons";
 import LogBrew from "@/components/LogBrew";
 import { takePendingBag } from "@/lib/bagHandoff";
+import { readGrinderId, writeGrinderId } from "@/lib/grinderPref";
 import {
   FLAVOR_CLUSTERS,
   getGrinders,
@@ -23,11 +24,6 @@ import {
   poursWithRunningTotal,
   rescaleToDose,
 } from "@/lib/recipe";
-
-// Where the chosen grinder is remembered. Until accounts exist (Goal C) this
-// on-device value is the user's identity for grind preferences — pick once and
-// every recipe shows settings in that grinder's own units.
-const GRINDER_KEY = "brewmatch.grinder_id";
 
 // ---- Plain-language option labels for the bean form ----
 
@@ -77,11 +73,7 @@ export default function RecipesFlow() {
   // storage so it survives reloads (the detail view isn't rendered on first
   // paint, so there's no hydration mismatch).
   const [grinders, setGrinders] = useState<Grinder[]>([]);
-  const [grinderId, setGrinderId] = useState<string>(() =>
-    typeof window === "undefined"
-      ? ""
-      : (window.localStorage.getItem(GRINDER_KEY) ?? ""),
-  );
+  const [grinderId, setGrinderId] = useState<string>(() => readGrinderId());
 
   useEffect(() => {
     // The catalog needs no model warm-up, so this returns fast even on a cold
@@ -93,8 +85,7 @@ export default function RecipesFlow() {
 
   function chooseGrinder(id: string) {
     setGrinderId(id);
-    if (id) window.localStorage.setItem(GRINDER_KEY, id);
-    else window.localStorage.removeItem(GRINDER_KEY);
+    writeGrinderId(id);
   }
 
   // Bean form state.

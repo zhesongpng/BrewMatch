@@ -428,6 +428,155 @@ def get_brews(user_id: str, limit: int = 50):
 
 
 # ---------------------------------------------------------------------------
+# Coffee bags — the coffees a user owns
+# ---------------------------------------------------------------------------
+
+# Nominal dose used ONLY to estimate "brews left" for display, mirroring the
+# Streamlit page. Always shown with a leading "≈" so the number reads as an
+# estimate, never a precise count.
+_NOMINAL_DOSE_G = 15.0
+
+
+def _bag_to_dict(bag: Any, grams_used: float) -> dict:
+    """Shape one CoffeeBag for the web Coffees screen.
+
+    Includes the running-low estimate (bag size minus the grams already brewed
+    from it) so the front-end can show "≈N brews left" without re-deriving it.
+    """
+    from src.app.utils import bean_to_dict
+
+    remaining = bag.bag_size_g - grams_used
+    brews_left = max(0, int(remaining // _NOMINAL_DOSE_G))
+    return {
+        "bag_id": bag.bag_id,
+        "roaster": bag.roaster,
+        "name": bag.name,
+        "bag_size_g": bag.bag_size_g,
+        "date_opened": bag.date_opened,
+        "bean": bean_to_dict(bag.bean_profile),
+        "grams_used": round(grams_used, 1),
+        "brews_left": brews_left,
+    }
+
+
+@app.get("/bags/{user_id}")
+def get_bags(user_id: str):
+    """Return a user's active (unfinished) coffee bags, newest first.
+
+    Each bag carries its running-low estimate so the Coffees screen renders the
+    list with no further calls.
+    """
+    from src.app.db import (
+        ensure_schema,
+        get_db,
+        grams_used_for_bag,
+        list_active_bags,
+    )
+
+    try:
+        with get_db() as conn:
+            ensure_schema(conn)
+            bags = list_active_bags(conn, user_id)
+            out = [
+                _bag_to_dict(bag, grams_used_for_bag(conn, user_id, bag.bag_id))
+                for bag in bags
+            ]
+    except Exception as exc:
+        logger.exception("get_bags: DB read failed")
+        raise HTTPException(500, f"Failed to load bags: {exc}") from exc
+
+    return {"bags": out, "count": len(out)}
+
+
+@app.post("/bags/{user_id}")
+def create_bag(user_id: str, body: dict):
+    """Save a new coffee bag for a user.
+
+    Request body:
+        roaster        : str       (required)
+        name           : str       (required) — the coffee's product name
+        bag_size_g     : float     (default 250)
+        origin_country : str       (required)
+        process        : str       (required) — a Process enum value
+        roast_level    : str       (required) — a RoastLevel enum value
+        flavor_clusters: list[str] (required, >= 1, from FLAVOR_CLUSTERS)
+        region         : str | None
+        variety        : str | None
+        altitude_min_m : int | None
+        altitude_max_m : int | None
+
+    Builds the bean half with the same manual-entry helper the Streamlit page
+    uses, attaches the bag identity, and persists it. The bean/bag dataclasses
+    validate their own fields, so a malformed body raises ValueError → 422.
+    Returns the saved bag in the same shape as GET /bags.
+    """
+    from datetime import datetime, timezone
+
+    from src.app.db import create_bag as db_create_bag
+    from src.app.db import ensure_schema, get_db
+    from src.bean_extractor.extractor import create_manual_profile
+    from src.data_models import CoffeeBag, create_bag_id
+
+    try:
+        roaster = str(body.get("roaster", "")).strip()
+        name = str(body.get("name", "")).strip()
+        result = create_manual_profile(
+            origin_country=str(body.get("origin_country", "")).strip(),
+            process=body.get("process", "unknown"),
+            roast_level=body.get("roast_level", "unknown"),
+            flavor_clusters=body.get("flavor_clusters", []),
+            source_text="manual entry",
+            origin_region=(body.get("region") or "").strip() or None,
+            variety=(body.get("variety") or "").strip() or None,
+            altitude_min_m=body.get("altitude_min_m"),
+            altitude_max_m=body.get("altitude_max_m"),
+        )
+        profile = result.bean_profile
+        profile.roaster = roaster
+        profile.name = name
+        bag = CoffeeBag(
+            bag_id=create_bag_id(),
+            roaster=roaster,
+            name=name,
+            bean_profile=profile,
+            bag_size_g=float(body.get("bag_size_g", 250.0)),
+            date_opened=datetime.now(timezone.utc).date().isoformat(),
+            active=True,
+        )
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, f"Invalid bag: {exc}") from exc
+
+    try:
+        with get_db() as conn:
+            ensure_schema(conn)
+            db_create_bag(conn, user_id, bag)
+    except Exception as exc:
+        logger.exception("create_bag: DB write failed")
+        raise HTTPException(500, f"Failed to save bag: {exc}") from exc
+
+    logger.info("create_bag: user=%s bag=%s", user_id, bag.bag_id)
+    # A brand-new bag has nothing brewed from it yet, so grams_used is 0.
+    return _bag_to_dict(bag, 0.0)
+
+
+@app.post("/bags/{user_id}/{bag_id}/finish")
+def finish_bag(user_id: str, bag_id: str):
+    """Mark a bag finished so it drops off the user's active list."""
+    from src.app.db import ensure_schema, get_db, mark_bag_finished
+
+    try:
+        with get_db() as conn:
+            ensure_schema(conn)
+            mark_bag_finished(conn, user_id, bag_id)
+    except Exception as exc:
+        logger.exception("finish_bag: DB write failed")
+        raise HTTPException(500, f"Failed to finish bag: {exc}") from exc
+
+    logger.info("finish_bag: user=%s bag=%s", user_id, bag_id)
+    return {"finished": True, "bag_id": bag_id}
+
+
+# ---------------------------------------------------------------------------
 # Learn — re-train predictor from a user's brew history
 # ---------------------------------------------------------------------------
 

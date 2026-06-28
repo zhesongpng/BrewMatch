@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DripIcon, PinIcon, TrophyIcon, TuneIcon } from "@/components/icons";
 import LogBrew from "@/components/LogBrew";
+import { takePendingBag } from "@/lib/bagHandoff";
 import {
   FLAVOR_CLUSTERS,
   getGrinders,
@@ -66,6 +67,10 @@ export default function RecipesFlow() {
   // The bean we recommended for — kept so the recipe detail can log a brew
   // against it without the user re-entering anything.
   const [submittedBean, setSubmittedBean] = useState<BeanInput | null>(null);
+  // Set when this flow was opened by "Brew this" on a saved bag, so the logged
+  // brew records against that bag (drives its running-low countdown). null for
+  // an ordinary "describe your beans" recommendation.
+  const [bagId, setBagId] = useState<string | null>(null);
 
   // Grinder catalog + the user's saved choice. Fetched once; translation is a
   // local lookup after that. The saved choice is read lazily from on-device
@@ -106,6 +111,40 @@ export default function RecipesFlow() {
     );
   }
 
+  // Core recommend call, shared by the bean form and the "Brew this" hand-off.
+  // `bag` is the originating bag id (null for a form recommendation); it's held
+  // so the recipe detail can log the brew against that bag. useCallback keeps a
+  // stable reference for the pending-bag effect below.
+  const runRecommend = useCallback(
+    async (beanInput: BeanInput, m: BrewMethodId, bag: string | null) => {
+      setSubmittedBean(beanInput);
+      setBagId(bag);
+      setView("loading");
+      setError(null);
+      try {
+        const res = await recommend(beanInput, m, 3);
+        setResult(res);
+        setView("results");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setView("error");
+      }
+    },
+    [],
+  );
+
+  // If the Coffees screen sent us here via "Brew this", recommend for that bag's
+  // beans straight away (no form step) and remember the bag id for logging.
+  // Deferred to a microtask so the loading-state updates land in an async
+  // continuation, not synchronously in the effect body (cascading-render lint).
+  useEffect(() => {
+    const pending = takePendingBag();
+    if (!pending) return;
+    void Promise.resolve().then(() =>
+      runRecommend(pending.bean, "V60", pending.bagId),
+    );
+  }, [runRecommend]);
+
   async function submit() {
     const cleanOrigin = origin.trim() || "Unknown";
     // The brain requires a non-empty flavour list and source description.
@@ -122,17 +161,8 @@ export default function RecipesFlow() {
       source_text: sourceText,
     };
 
-    setSubmittedBean(bean);
-    setView("loading");
-    setError(null);
-    try {
-      const res = await recommend(bean, method, 3);
-      setResult(res);
-      setView("results");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-      setView("error");
-    }
+    // A form recommendation is not tied to a saved bag.
+    await runRecommend(bean, method, null);
   }
 
   // ---- Render ----
@@ -162,7 +192,15 @@ export default function RecipesFlow() {
         <section className="card error">
           <div className="t">Couldn&apos;t get recipes</div>
           <p className="sub">{error}</p>
-          <button type="button" className="btn ghost" onClick={submit}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() =>
+              submittedBean
+                ? runRecommend(submittedBean, method, bagId)
+                : submit()
+            }
+          >
             Try again
           </button>
         </section>
@@ -175,6 +213,7 @@ export default function RecipesFlow() {
       <RecipeDetail
         ranked={chosen}
         bean={submittedBean}
+        bagId={bagId}
         grinders={grinders}
         grinderId={grinderId}
         onChooseGrinder={chooseGrinder}
@@ -381,6 +420,7 @@ function ResultCard({
 function RecipeDetail({
   ranked,
   bean,
+  bagId,
   grinders,
   grinderId,
   onChooseGrinder,
@@ -388,6 +428,7 @@ function RecipeDetail({
 }: {
   ranked: RankedRecipe;
   bean: BeanInput | null;
+  bagId: string | null;
   grinders: Grinder[];
   grinderId: string;
   onChooseGrinder: (id: string) => void;
@@ -576,7 +617,7 @@ function RecipeDetail({
         </section>
       )}
 
-      {bean && <LogBrew bean={bean} recipe={recipe} />}
+      {bean && <LogBrew bean={bean} recipe={recipe} bagId={bagId} />}
 
       <button type="button" className="btn ghost" onClick={onBack}>
         Back to recipes

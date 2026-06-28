@@ -202,6 +202,95 @@ def test_learn_accepts_get(client):
     assert r.json()["phase"] == "bean_aware"
 
 
+def _bag_body(**overrides):
+    """A valid POST /bags body; override any field per test."""
+    body = {
+        "roaster": "Onyx",
+        "name": "Ethiopia Guji",
+        "bag_size_g": 250,
+        "origin_country": "Ethiopia",
+        "process": "washed",
+        "roast_level": "light",
+        "flavor_clusters": ["Floral", "Citrus"],
+        "region": "Guji",
+        "variety": "Heirloom",
+        "altitude_min_m": 1800,
+        "altitude_max_m": 2000,
+    }
+    body.update(overrides)
+    return body
+
+
+def test_create_and_list_bag_round_trip(client):
+    user = "baguser1"
+    created = client.post(f"/bags/{user}", json=_bag_body())
+    assert created.status_code == 200, created.text
+    bag = created.json()
+    assert bag["roaster"] == "Onyx"
+    assert bag["name"] == "Ethiopia Guji"
+    assert bag["bean"]["origin_country"] == "Ethiopia"
+    # Brand-new 250 g bag at a 15 g nominal dose → ~16 brews, nothing used yet.
+    assert bag["grams_used"] == 0.0
+    assert bag["brews_left"] == 16
+    assert bag["bag_id"]
+
+    listed = client.get(f"/bags/{user}").json()
+    assert listed["count"] == 1
+    assert listed["bags"][0]["bag_id"] == bag["bag_id"]
+
+
+def test_create_bag_rejects_missing_roaster(client):
+    r = client.post("/bags/baguser-bad", json=_bag_body(roaster=""))
+    assert r.status_code == 422
+
+
+def test_create_bag_rejects_bad_process(client):
+    r = client.post("/bags/baguser-bad", json=_bag_body(process="not_a_process"))
+    assert r.status_code == 422
+
+
+def test_brews_left_decrements_when_brew_logged_against_bag(client, bean, recipe):
+    """A brew that records bag_id + dose must reduce the bag's running-low count."""
+    user = "baguser2"
+    bag = client.post(f"/bags/{user}", json=_bag_body(bag_size_g=100)).json()
+    # 100 g bag → 6 brews at a 15 g nominal dose, before any brew.
+    assert bag["brews_left"] == 6
+
+    brew = {
+        "brew_id": "bag-brew-1",
+        "timestamp": "2026-06-28T09:00:00+00:00",
+        "bean": bean,
+        "recipe": recipe,
+        "feedback": {"thumbs_up": True, "score": 8},
+        "bag_id": bag["bag_id"],
+        "actual_dose_g": 30.0,
+    }
+    assert client.post(f"/brews/{user}", json=brew).status_code == 200
+
+    after = client.get(f"/bags/{user}").json()["bags"][0]
+    assert after["grams_used"] == 30.0
+    # (100 - 30) // 15 = 4 brews left.
+    assert after["brews_left"] == 4
+
+
+def test_finish_bag_removes_it_from_active_list(client):
+    user = "baguser3"
+    bag = client.post(f"/bags/{user}", json=_bag_body()).json()
+    assert client.get(f"/bags/{user}").json()["count"] == 1
+
+    r = client.post(f"/bags/{user}/{bag['bag_id']}/finish")
+    assert r.status_code == 200
+    assert r.json()["finished"] is True
+
+    assert client.get(f"/bags/{user}").json()["count"] == 0
+
+
+def test_bags_are_scoped_per_user(client):
+    """A bag saved by one user must not appear in another user's list."""
+    client.post("/bags/owner-a", json=_bag_body(name="A's coffee"))
+    assert client.get("/bags/owner-b").json()["count"] == 0
+
+
 def test_cors_allows_cross_origin_without_credentials():
     """Regression: wildcard origin must not be paired with credentials."""
     from api.main import app as fastapi_app

@@ -24,9 +24,12 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 export default function LogBrew({
   bean,
   recipe,
+  bagId,
 }: {
   bean: BeanInput;
   recipe: Recipe;
+  /** Set when this brew came from a saved bag, so it records against that bag. */
+  bagId?: string | null;
 }) {
   const [thumbsUp, setThumbsUp] = useState(true);
   const [score, setScore] = useState(7);
@@ -49,12 +52,18 @@ export default function LogBrew({
     setState("saving");
     setError(null);
     try {
-      await saveBrew(getUserId(), bean, recipe, {
-        thumbs_up: thumbsUp,
-        score,
-        directional_flags: flags,
-        notes: notes.trim() || undefined,
-      });
+      await saveBrew(
+        getUserId(),
+        bean,
+        recipe,
+        {
+          thumbs_up: thumbsUp,
+          score,
+          directional_flags: flags,
+          notes: notes.trim() || undefined,
+        },
+        bagId,
+      );
       setState("saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save your brew.");

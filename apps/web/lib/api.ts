@@ -50,21 +50,11 @@ export type BrewMethodId = "V60" | "Kalita Wave" | "Origami";
 
 /** Coffee processing methods (matches Process enum). */
 export type ProcessId =
-  | "washed"
-  | "natural"
-  | "honey"
-  | "anaerobic"
-  | "wet-hulled"
-  | "unknown";
+  "washed" | "natural" | "honey" | "anaerobic" | "wet-hulled" | "unknown";
 
 /** Roast levels (matches RoastLevel enum). */
 export type RoastLevelId =
-  | "light"
-  | "medium-light"
-  | "medium"
-  | "medium-dark"
-  | "dark"
-  | "unknown";
+  "light" | "medium-light" | "medium" | "medium-dark" | "dark" | "unknown";
 
 /** The fixed flavour vocabulary the brain accepts (matches FLAVOR_CLUSTERS). */
 export const FLAVOR_CLUSTERS = [
@@ -242,6 +232,7 @@ export async function saveBrew(
   bean: BeanInput,
   recipe: Recipe,
   feedback: BrewFeedback,
+  bagId?: string | null,
 ): Promise<{ saved: boolean; brew_id: string }> {
   return postJson(`/brews/${encodeURIComponent(userId)}`, {
     brew_id: `brew-${crypto.randomUUID()}`,
@@ -249,6 +240,9 @@ export async function saveBrew(
     bean,
     recipe,
     feedback,
+    // Present only when the brew came from a saved bag, so the bag's running-low
+    // countdown can sum the dose against it. One-off brews send null.
+    bag_id: bagId ?? null,
     actual_dose_g: recipe.dose_g,
   });
 }
@@ -294,6 +288,61 @@ export interface LearnState {
 
 export async function getLearnState(userId: string): Promise<LearnState> {
   return getJson<LearnState>(`/learn/${encodeURIComponent(userId)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Coffee bags — the coffees a user owns
+// ---------------------------------------------------------------------------
+
+/** What the user enters when adding a bag (mirrors the brain's POST /bags body). */
+export interface BagInput {
+  roaster: string;
+  name: string;
+  bag_size_g: number;
+  origin_country: string;
+  process: ProcessId;
+  roast_level: RoastLevelId;
+  flavor_clusters: string[];
+  region?: string;
+  variety?: string;
+  altitude_min_m?: number;
+  altitude_max_m?: number;
+}
+
+/** A saved bag as the brain returns it, with the running-low estimate. */
+export interface Bag {
+  bag_id: string;
+  roaster: string;
+  name: string;
+  bag_size_g: number;
+  date_opened?: string | null;
+  /** Full bean profile — fed straight into recommend() when you brew this bag. */
+  bean: BeanInput;
+  /** Total grams already brewed from this bag. */
+  grams_used: number;
+  /** Estimated brews remaining (grams left ÷ a nominal dose). Show with "≈". */
+  brews_left: number;
+}
+
+/** A user's active (unfinished) bags, newest first. */
+export async function getBags(userId: string): Promise<Bag[]> {
+  const res = await getJson<{ bags: Bag[]; count: number }>(
+    `/bags/${encodeURIComponent(userId)}`,
+  );
+  return res.bags;
+}
+
+/** Save a new bag; returns it with its running-low estimate. */
+export async function createBag(userId: string, input: BagInput): Promise<Bag> {
+  return postJson<Bag>(`/bags/${encodeURIComponent(userId)}`, input);
+}
+
+/** Mark a bag finished so it drops off the active list. */
+export async function finishBag(userId: string, bagId: string): Promise<void> {
+  await postJson(
+    `/bags/${encodeURIComponent(userId)}/${encodeURIComponent(bagId)}/finish`,
+    {},
+  );
 }
 
 // ---------------------------------------------------------------------------

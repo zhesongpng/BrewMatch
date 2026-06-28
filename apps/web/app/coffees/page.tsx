@@ -1,4 +1,5 @@
-import { BeanIcon, DripIcon } from "@/components/icons";
+import { DripIcon } from "@/components/icons";
+import CoffeesFlow from "@/components/CoffeesFlow";
 
 export default function CoffeesPage() {
   return (
@@ -12,16 +13,7 @@ export default function CoffeesPage() {
       </header>
 
       <main className="app-body">
-        <div className="empty">
-          <span className="icn">
-            <BeanIcon />
-          </span>
-          <h3>No bags yet</h3>
-          <p>
-            This is where every open bag will live, with how much is left and
-            what&apos;s running low. Adding bags comes in the next build.
-          </p>
-        </div>
+        <CoffeesFlow />
       </main>
     </>
   );

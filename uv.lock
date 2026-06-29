@@ -188,6 +188,7 @@ source = { editable = "." }
 dependencies = [
     { name = "bcrypt" },
     { name = "chromadb" },
+    { name = "fastapi" },
     { name = "joblib" },
     { name = "lightgbm" },
     { name = "numpy" },
@@ -196,6 +197,7 @@ dependencies = [
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "psycopg2-binary" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dotenv" },
     { name = "rank-bm25" },
     { name = "scikit-learn" },
@@ -203,14 +205,10 @@ dependencies = [
     { name = "shap" },
     { name = "streamlit" },
     { name = "streamlit-cookies-manager" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
-api = [
-    { name = "fastapi" },
-    { name = "pyjwt", extra = ["crypto"] },
-    { name = "uvicorn", extra = ["standard"] },
-]
 dev = [
     { name = "mypy" },
     { name = "pgserver" },
@@ -223,7 +221,7 @@ dev = [
 requires-dist = [
     { name = "bcrypt", specifier = ">=4.0.0" },
     { name = "chromadb", specifier = ">=0.5.0" },
-    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.111.0" },
+    { name = "fastapi", specifier = ">=0.111.0" },
     { name = "joblib", specifier = ">=1.4.0" },
     { name = "lightgbm", specifier = ">=4.3.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
@@ -233,7 +231,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "pgserver", marker = "extra == 'dev'", specifier = ">=0.1.4" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
-    { name = "pyjwt", extras = ["crypto"], marker = "extra == 'api'", specifier = ">=2.8.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.2.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -244,9 +242,9 @@ requires-dist = [
     { name = "shap", specifier = ">=0.45.0" },
     { name = "streamlit", specifier = ">=1.35.0" },
     { name = "streamlit-cookies-manager", specifier = ">=0.2.0" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'api'", specifier = ">=0.29.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.29.0" },
 ]
-provides-extras = ["api", "dev"]
+provides-extras = ["dev"]
 
 [[package]]
 name = "build"

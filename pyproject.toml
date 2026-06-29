@@ -28,10 +28,10 @@ dependencies = [
     "bcrypt>=4.0.0",
     "streamlit-cookies-manager>=0.2.0",
     "psycopg2-binary>=2.9",
-]
-
-[project.optional-dependencies]
-api = [
+    # API server (the Render brain runs `uvicorn api.main:app`). These live in
+    # the main list, not an optional extra, because Render installs with
+    # `uv sync`, which skips optional extras — leaving the server's own
+    # packages (esp. PyJWT) uninstalled and crashing the brain at startup.
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
     # Verifies Supabase-issued login tokens (Goal C). [crypto] pulls in the
@@ -39,6 +39,8 @@ api = [
     # HS256 shared-secret verification needs no extra backend.
     "PyJWT[crypto]>=2.8.0",
 ]
+
+[project.optional-dependencies]
 dev = [
     "pytest>=7.2.0",
     "pytest-cov>=4.0",

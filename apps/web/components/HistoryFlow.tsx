@@ -9,7 +9,7 @@ import {
   type BrewRecord,
   type LearnState,
 } from "@/lib/api";
-import { getUserId } from "@/lib/identity";
+import { useAuth } from "@/lib/auth";
 
 // Plain-language names for the brain's learning phases (see /learn docstring).
 const PHASE_LABEL: Record<string, string> = {
@@ -22,14 +22,16 @@ const PHASE_LABEL: Record<string, string> = {
 type Status = "loading" | "ready" | "error";
 
 export default function HistoryFlow() {
+  const { ready, userId } = useAuth();
   const [status, setStatus] = useState<Status>("loading");
   const [brews, setBrews] = useState<BrewRecord[]>([]);
   const [learn, setLearn] = useState<LearnState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Refetch when the signed-in user changes so the right person's brews show.
   useEffect(() => {
+    if (!ready || !userId) return;
     let cancelled = false;
-    const userId = getUserId();
 
     Promise.all([getBrews(userId), getLearnState(userId)])
       .then(([b, l]) => {
@@ -49,7 +51,7 @@ export default function HistoryFlow() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ready, userId]);
 
   if (status === "loading") {
     return (

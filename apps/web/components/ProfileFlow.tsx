@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getGrinders, getStats, type Grinder, type UserStats } from "@/lib/api";
 import { readGrinderId, writeGrinderId } from "@/lib/grinderPref";
-import { getUserId } from "@/lib/identity";
+import { useAuth } from "@/lib/auth";
 
 type Status = "loading" | "ready" | "error";
 
 export default function ProfileFlow() {
+  const router = useRouter();
+  const { ready, userId, email, configured, signOut } = useAuth();
   const [status, setStatus] = useState<Status>("loading");
   const [grinders, setGrinders] = useState<Grinder[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -17,9 +20,12 @@ export default function ProfileFlow() {
   // mismatch (this screen isn't server-rendered with the value).
   const [grinderId, setGrinderId] = useState<string>(() => readGrinderId());
 
+  // Refetch when the signed-in user changes (sign-in / sign-out) so the right
+  // person's stats show without a manual refresh.
   useEffect(() => {
+    if (!ready || !userId) return;
     let cancelled = false;
-    Promise.all([getGrinders(), getStats(getUserId())])
+    Promise.all([getGrinders(), getStats(userId)])
       .then(([g, s]) => {
         if (cancelled) return;
         setGrinders(g);
@@ -36,7 +42,7 @@ export default function ProfileFlow() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ready, userId]);
 
   function chooseGrinder(id: string) {
     setGrinderId(id);
@@ -177,15 +183,49 @@ export default function ProfileFlow() {
         </div>
       </section>
 
-      {/* Account note — real accounts arrive with login (Goal C) */}
+      {/* Account — sign in to carry data across devices (Goal C) */}
       <section className="card">
         <div className="eyebrow">Your account</div>
-        <h2 className="scr">Saved on this device</h2>
-        <p className="sub">
-          Right now your coffees, brews, and grinder live on this device. Real
-          accounts — sign in, and your history follows you to any device — are
-          coming next.
-        </p>
+        {email ? (
+          <>
+            <h2 className="scr">Signed in</h2>
+            <p className="sub">
+              Signed in as <strong>{email}</strong>. Your coffees, brews, and
+              grinder follow you to any device.
+            </p>
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={async () => {
+                await signOut();
+                router.refresh();
+              }}
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 className="scr">Saved on this device</h2>
+            {configured ? (
+              <>
+                <p className="sub">
+                  Right now your coffees, brews, and grinder live on this
+                  device. Sign in and your history follows you to any device.
+                </p>
+                <Link className="btn primary" href="/signin">
+                  Sign in or create an account
+                </Link>
+              </>
+            ) : (
+              <p className="sub">
+                Right now your coffees, brews, and grinder live on this device.
+                Real accounts — sign in, and your history follows you to any
+                device — are coming next.
+              </p>
+            )}
+          </>
+        )}
       </section>
     </>
   );

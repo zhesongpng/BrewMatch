@@ -13,7 +13,7 @@ import {
   type RoastLevelId,
 } from "@/lib/api";
 import { setPendingBag } from "@/lib/bagHandoff";
-import { getUserId } from "@/lib/identity";
+import { useAuth } from "@/lib/auth";
 
 // Plain-language option labels, matching the Recipes bean form.
 const PROCESSES: { id: ProcessId; label: string }[] = [
@@ -57,6 +57,7 @@ type Status = "loading" | "ready" | "error";
 
 export default function CoffeesFlow() {
   const router = useRouter();
+  const { ready, userId } = useAuth();
 
   const [status, setStatus] = useState<Status>("loading");
   const [bags, setBags] = useState<Bag[]>([]);
@@ -79,9 +80,11 @@ export default function CoffeesFlow() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
+  // Refetch when the signed-in user changes so the right person's coffees show.
   useEffect(() => {
+    if (!ready || !userId) return;
     let cancelled = false;
-    getBags(getUserId())
+    getBags(userId)
       .then((b) => {
         if (cancelled) return;
         setBags(b);
@@ -98,14 +101,14 @@ export default function CoffeesFlow() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ready, userId]);
 
   // Re-fetch after a change (e.g. finishing a bag). Called from a handler, never
   // an effect, so setting the loading state here is safe.
   async function refresh() {
     setStatus("loading");
     try {
-      const b = await getBags(getUserId());
+      const b = await getBags(userId);
       setBags(b);
       setShowForm(b.length === 0);
       setStatus("ready");
@@ -132,7 +135,7 @@ export default function CoffeesFlow() {
 
   async function finish(bag: Bag) {
     try {
-      await finishBag(getUserId(), bag.bag_id);
+      await finishBag(userId, bag.bag_id);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Couldn't update that bag.",
@@ -156,7 +159,7 @@ export default function CoffeesFlow() {
     const { min, max } = parseAltitude(altitude);
     setSaving(true);
     try {
-      const saved = await createBag(getUserId(), {
+      const saved = await createBag(userId, {
         roaster: roaster.trim(),
         name: name.trim(),
         bag_size_g: bagSize,

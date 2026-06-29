@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import TabBar from "@/components/TabBar";
+import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "BrewMatch",
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="app-shell">
-          {children}
-          <TabBar />
-        </div>
+        <AuthProvider>
+          <div className="app-shell">
+            {children}
+            <TabBar />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

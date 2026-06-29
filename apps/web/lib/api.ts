@@ -5,6 +5,7 @@
 // production by changing one environment variable. See apps/web/.env.example.
 
 import { getAccessToken } from "@/lib/supabase";
+import { getUserId } from "@/lib/identity";
 
 const API_URL = process.env.NEXT_PUBLIC_BREWMATCH_API_URL;
 
@@ -394,11 +395,14 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  // When signed in, prove identity to the brain. Anonymous users send no token
-  // and keep their on-device id; the brain serves them exactly as before. The
-  // token's subject always matches the account id used in per-user paths, so
-  // the brain's identity gate accepts it.
-  const token = await getAccessToken();
+  // Prove identity to the brain ONLY for account-id requests. Anonymous
+  // "device-" ids never carry a token: the brain 403s a token whose subject
+  // doesn't match the path id, so attaching one to a device path (even briefly
+  // during the sign-in/out transition) would fail. Gating on the same id source
+  // the per-user paths use keeps the token and the path id consistent.
+  const currentId = getUserId();
+  const isAccountRequest = currentId !== "" && !currentId.startsWith("device-");
+  const token = isAccountRequest ? await getAccessToken() : "";
   const authHeaders: Record<string, string> = token
     ? { Authorization: `Bearer ${token}` }
     : {};

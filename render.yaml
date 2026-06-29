@@ -2,10 +2,12 @@ services:
   - type: web
     name: brewmatch-brain
     runtime: python
-    # Render auto-detects uv.lock and installs with `uv sync`. Keep the build
-    # command aligned with that so server deps (fastapi/uvicorn/PyJWT, now in
-    # the main dependency list) land in the same .venv the start command runs.
-    buildCommand: uv sync
+    # Install the lean deploy set (requirements.txt), NOT the full pyproject —
+    # the deployed brain runs in lite mode and deliberately omits the heavy ML
+    # packages (chromadb/sentence-transformers/torch) to fit a small instance.
+    # requirements.txt MUST carry every package api/main.py + api/auth.py import
+    # (incl. PyJWT) — uv.lock/pyproject are dev-only and Render does not read them.
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL

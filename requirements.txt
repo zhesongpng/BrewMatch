@@ -19,6 +19,10 @@ psycopg2-binary>=2.9
 # FastAPI brain service (api/main.py) — required by the Render web service
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
+# Verifies Supabase login tokens on per-user endpoints (Goal C). Imported by
+# api/auth.py as `import jwt`. [crypto] adds the cryptography backend for the
+# asymmetric (JWKS) signing path; HS256 shared-secret needs no extra backend.
+PyJWT[crypto]>=2.8.0
 # NOTE: chromadb + sentence-transformers (and the PyTorch they pull in) are
 # intentionally omitted. The deployed brain runs in lite mode (BREWMATCH_LITE
 # defaults to true) and serves recipe retrieval from BM25 keyword search +

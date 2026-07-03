@@ -45,11 +45,39 @@ export async function getGrinders(): Promise<Grinder[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Recommend — describe beans, get ranked pour-over recipes
+// Brewers — the pour-over gear a user owns and picks between
 // ---------------------------------------------------------------------------
 
 /** Brew methods the brain knows (matches BrewMethod in the Python brain). */
 export type BrewMethodId = "V60" | "Kalita Wave" | "Origami";
+
+/** One brewer from the brain's catalog. A brewer is gear, not a bean attribute. */
+export interface Brewer {
+  id: string;
+  name: string;
+  /** The exact BrewMethod the recommend engine keys on for this brewer. */
+  method: BrewMethodId;
+  /** Dripper shape: "conical", "flat-bottom", or "hybrid". */
+  style: string;
+  /** Short plain-language description of how the brewer behaves. */
+  blurb: string;
+}
+
+/**
+ * Fetch the brewer catalog from the brain.
+ *
+ * The catalog rarely changes, so callers fetch it once and cache it. It's the
+ * one source of truth for which brewers a user can own — the website only ever
+ * offers brewers the engine has recipes for.
+ */
+export async function getBrewers(): Promise<Brewer[]> {
+  const res = await getJson<{ brewers: Brewer[] }>("/brewers");
+  return res.brewers;
+}
+
+// ---------------------------------------------------------------------------
+// Recommend — describe beans, get ranked pour-over recipes
+// ---------------------------------------------------------------------------
 
 /** Coffee processing methods (matches Process enum). */
 export type ProcessId =

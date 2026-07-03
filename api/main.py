@@ -235,6 +235,23 @@ def grinders():
 
 
 # ---------------------------------------------------------------------------
+# Brewers
+# ---------------------------------------------------------------------------
+
+@app.get("/brewers")
+def brewers():
+    """Return the brewer catalog so the front-end can offer the brewers a user
+    can own and map a chosen brewer back to its BrewMethod for /recommend.
+
+    A brewer is gear, not a bean attribute — this is the one source of truth for
+    which brewers the engine has recipes for. Needs no database or ML models, so
+    it answers instantly even while the heavy models are still loading.
+    """
+    from src.brewer_catalog import get_brewer_catalog
+    return {"brewers": get_brewer_catalog()}
+
+
+# ---------------------------------------------------------------------------
 # Recommend
 # ---------------------------------------------------------------------------
 

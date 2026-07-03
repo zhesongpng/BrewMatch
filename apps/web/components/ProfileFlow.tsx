@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getGrinders, getStats, type Grinder, type UserStats } from "@/lib/api";
+import {
+  getBrewers,
+  getGrinders,
+  getStats,
+  type Brewer,
+  type Grinder,
+  type UserStats,
+} from "@/lib/api";
 import { readGrinderId, writeGrinderId } from "@/lib/grinderPref";
+import { readBrewerIds, writeBrewerIds } from "@/lib/brewerPref";
 import { useAuth } from "@/lib/auth";
 
 type Status = "loading" | "ready" | "error";
@@ -14,21 +22,24 @@ export default function ProfileFlow() {
   const { ready, userId, email, configured, signOut } = useAuth();
   const [status, setStatus] = useState<Status>("loading");
   const [grinders, setGrinders] = useState<Grinder[]>([]);
+  const [brewers, setBrewers] = useState<Brewer[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Read the saved grinder lazily so it survives reloads without a hydration
-  // mismatch (this screen isn't server-rendered with the value).
+  // Read the saved gear lazily so it survives reloads without a hydration
+  // mismatch (this screen isn't server-rendered with the values).
   const [grinderId, setGrinderId] = useState<string>(() => readGrinderId());
+  const [brewerIds, setBrewerIds] = useState<string[]>(() => readBrewerIds());
 
   // Refetch when the signed-in user changes (sign-in / sign-out) so the right
   // person's stats show without a manual refresh.
   useEffect(() => {
     if (!ready || !userId) return;
     let cancelled = false;
-    Promise.all([getGrinders(), getStats(userId)])
-      .then(([g, s]) => {
+    Promise.all([getGrinders(), getBrewers(), getStats(userId)])
+      .then(([g, b, s]) => {
         if (cancelled) return;
         setGrinders(g);
+        setBrewers(b);
         setStats(s);
         setStatus("ready");
       })
@@ -47,6 +58,18 @@ export default function ProfileFlow() {
   function chooseGrinder(id: string) {
     setGrinderId(id);
     writeGrinderId(id);
+  }
+
+  // Tick a brewer on or off. Users own several, so this toggles membership in
+  // the owned-brewers list rather than replacing a single value.
+  function toggleBrewer(id: string) {
+    setBrewerIds((cur) => {
+      const next = cur.includes(id)
+        ? cur.filter((x) => x !== id)
+        : [...cur, id];
+      writeBrewerIds(next);
+      return next;
+    });
   }
 
   if (status === "loading") {
@@ -179,6 +202,60 @@ export default function ProfileFlow() {
             {grinderId
               ? "Saved — every recipe now uses this grinder's dial."
               : "Optional. You can also set this from any recipe."}
+          </p>
+        </div>
+      </section>
+
+      {/* Brewers — gear you own, not a bean attribute. Own several; pick which
+          one you're using when you get a recipe. */}
+      <section className="card">
+        <div className="eyebrow">Your gear</div>
+        <h2 className="scr">Your brewers</h2>
+        <p className="sub">
+          Tick the brewers you own. When you get a recipe you&apos;ll pick which
+          one you&apos;re using — the same beans can go through any of them.
+        </p>
+        <div className="field" style={{ marginBottom: 0 }}>
+          {brewers.map((b) => {
+            const owned = brewerIds.includes(b.id);
+            return (
+              <label
+                key={b.id}
+                className="check-row"
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "10px 0",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={owned}
+                  onChange={() => toggleBrewer(b.id)}
+                  style={{ marginTop: 3 }}
+                />
+                <span>
+                  <span className="t" style={{ fontWeight: 600 }}>
+                    {b.name}
+                  </span>
+                  <span
+                    className="sub"
+                    style={{ display: "block", marginTop: 2 }}
+                  >
+                    {b.blurb}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+          <p className="sub" style={{ marginTop: 8 }}>
+            {brewerIds.length > 0
+              ? `Saved — you own ${brewerIds.length} ${
+                  brewerIds.length === 1 ? "brewer" : "brewers"
+                }.`
+              : "Optional. Pick the brewers you actually own."}
           </p>
         </div>
       </section>

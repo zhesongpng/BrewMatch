@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DripIcon, PinIcon, TrophyIcon, TuneIcon } from "@/components/icons";
 import LogBrew from "@/components/LogBrew";
-import { takePendingBag } from "@/lib/bagHandoff";
+import { takePendingBag, type PendingBag } from "@/lib/bagHandoff";
+import { readBrewerIds } from "@/lib/brewerPref";
 import { readGrinderId, writeGrinderId } from "@/lib/grinderPref";
 import {
   FLAVOR_CLUSTERS,
+  getBrewers,
   getGrinders,
   recommend,
   type BeanInput,
+  type Brewer,
   type BrewMethodId,
   type Grinder,
   type ProcessId,
@@ -44,8 +47,6 @@ const ROASTS: { id: RoastLevelId; label: string }[] = [
   { id: "dark", label: "Dark" },
   { id: "unknown", label: "Not sure" },
 ];
-
-const METHODS: BrewMethodId[] = ["V60", "Kalita Wave", "Origami"];
 
 const TIER_LABELS: Record<string, string> = {
   champion: "Championship recipe",
@@ -88,11 +89,39 @@ export default function RecipesFlow() {
     writeGrinderId(id);
   }
 
+  // Brewer catalog + the brewers this user owns. The brewer is gear (like the
+  // grinder), so the recipe screen doesn't ask "which brewer?" as a bean detail
+  // — it uses the brewer you own. Own several → pick one for this brew. The
+  // owned ids are read once on mount (mirrors grinderId); the catalog maps each
+  // id to the exact BrewMethod the brain keys on, so a stale id (removed from
+  // the catalog) simply drops out and never reaches /recommend.
+  const [brewers, setBrewers] = useState<Brewer[]>([]);
+  const [catalogSettled, setCatalogSettled] = useState(false);
+  const [ownedIds] = useState<string[]>(() => readBrewerIds());
+  const [brewerId, setBrewerId] = useState<string>("");
+
+  useEffect(() => {
+    getBrewers()
+      .then(setBrewers)
+      .catch(() => {})
+      .finally(() => setCatalogSettled(true));
+  }, []);
+
+  // The brewers you own, resolved against the catalog (stale ids fall away). If
+  // you own none — or all your saved ids were retired from the catalog — fall
+  // back to the whole catalog so the screen is never a dead end.
+  const ownedBrewers = brewers.filter((b) => ownedIds.includes(b.id));
+  const selectable = ownedBrewers.length > 0 ? ownedBrewers : brewers;
+  const selectedBrewer =
+    selectable.find((b) => b.id === brewerId) ?? selectable[0] ?? null;
+  // What actually goes to the brain. "V60" is only ever used if the catalog
+  // hasn't loaded yet; once it has, this is always a real owned/selected brewer.
+  const method: BrewMethodId = selectedBrewer?.method ?? "V60";
+
   // Bean form state.
   const [origin, setOrigin] = useState("");
   const [process, setProcess] = useState<ProcessId>("washed");
   const [roast, setRoast] = useState<RoastLevelId>("medium-light");
-  const [method, setMethod] = useState<BrewMethodId>("V60");
   const [flavors, setFlavors] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
@@ -125,16 +154,35 @@ export default function RecipesFlow() {
   );
 
   // If the Coffees screen sent us here via "Brew this", recommend for that bag's
-  // beans straight away (no form step) and remember the bag id for logging.
-  // Deferred to a microtask so the loading-state updates land in an async
-  // continuation, not synchronously in the effect body (cascading-render lint).
+  // beans straight away (no form step). The bag is a one-shot hand-off, so read
+  // it once into state on mount; the brew itself waits until the brewer catalog
+  // has settled so it uses your brewer, not a hardcoded default.
+  const [pendingBag, setPendingBag] = useState<PendingBag | null>(null);
+
+  // takePendingBag() is one-shot — it clears the stash as it reads. React Strict
+  // Mode (on by default in Next dev) runs mount effects twice, so guard with a
+  // ref: the first run captures the bag, the second run must not overwrite it
+  // with the now-empty read. Without this, "Brew this" silently no-ops in dev.
+  const pendingRead = useRef(false);
+
   useEffect(() => {
-    const pending = takePendingBag();
-    if (!pending) return;
+    if (pendingRead.current) return;
+    pendingRead.current = true;
+    setPendingBag(takePendingBag());
+  }, []);
+
+  // Fire the pending brew once we know which brewer to use. Consuming the bag
+  // (setPendingBag(null)) makes this run exactly once. Deferred to a microtask
+  // so the loading-state updates land in an async continuation, not
+  // synchronously in the effect body (cascading-render lint).
+  useEffect(() => {
+    if (!pendingBag || !catalogSettled) return;
+    const bag = pendingBag;
+    setPendingBag(null);
     void Promise.resolve().then(() =>
-      runRecommend(pending.bean, "V60", pending.bagId),
+      runRecommend(bag.bean, method, bag.bagId),
     );
-  }, [runRecommend]);
+  }, [pendingBag, catalogSettled, method, runRecommend]);
 
   async function submit() {
     const cleanOrigin = origin.trim() || "Unknown";
@@ -253,6 +301,43 @@ export default function RecipesFlow() {
   // Default: the bean form.
   return (
     <main className="app-body">
+      {/* Brewer is gear, not a bean detail — so it's chosen up here, before the
+          beans, and driven by what you own. Hidden until the catalog loads. */}
+      {selectable.length > 0 && (
+        <section className="card">
+          <div className="eyebrow">Your brewer</div>
+          {ownedBrewers.length === 1 ? (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <p className="sub" style={{ marginTop: 0 }}>
+                Brewing with your <strong>{ownedBrewers[0].name}</strong>. Own
+                more than one? Add them in Profile.
+              </p>
+            </div>
+          ) : (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="brewer">Brewer</label>
+              <select
+                id="brewer"
+                className="select"
+                value={selectedBrewer?.id ?? ""}
+                onChange={(e) => setBrewerId(e.target.value)}
+              >
+                {selectable.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <p className="sub" style={{ marginTop: 8 }}>
+                {ownedBrewers.length > 1
+                  ? "Pick the brewer you're using this time."
+                  : "Set the brewers you own in Profile so this list is just yours."}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="card">
         <div className="eyebrow">New beans</div>
         <h2 className="scr">What are you brewing?</h2>
@@ -300,22 +385,6 @@ export default function RecipesFlow() {
             {ROASTS.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label htmlFor="method">Brewer</label>
-          <select
-            id="method"
-            className="select"
-            value={method}
-            onChange={(e) => setMethod(e.target.value as BrewMethodId)}
-          >
-            {METHODS.map((m) => (
-              <option key={m} value={m}>
-                {m}
               </option>
             ))}
           </select>

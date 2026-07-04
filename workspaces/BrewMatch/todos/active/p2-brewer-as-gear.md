@@ -1,7 +1,7 @@
 # Phase 2 — Brewer Becomes Gear (owned, selectable), not a bean attribute
 
 Created: 2026-07-01
-Status: **Task 1 DONE (2026-07-02). Task 2 not started.** Plan of record.
+Status: **Task 1 DONE (2026-07-02). Task 2 DONE (2026-07-04).** Plan of record.
 
 ## The idea in one sentence
 

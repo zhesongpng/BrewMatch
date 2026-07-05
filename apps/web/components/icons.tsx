@@ -156,6 +156,15 @@ export function AstringentIcon(props: IconProps) {
   );
 }
 
+export function HarshIcon(props: IconProps) {
+  // A jagged bolt — over-extraction / too-hot water reads as "sharp, harsh".
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path {...stroke} d="M13 3 5 13h5l-1 8 8-11h-5l1-7z" />
+    </svg>
+  );
+}
+
 export function HomeIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...props}>

@@ -4,10 +4,12 @@ import { useState } from "react";
 import {
   AstringentIcon,
   BitterIcon,
+  HarshIcon,
   SourIcon,
   WeakIcon,
 } from "@/components/icons";
 import { diagnose, type DiagnoseResult, type FlagId } from "@/lib/api";
+import { paramLabel, suggestionChange } from "@/lib/diagnose";
 
 const FLAGS: {
   id: FlagId;
@@ -34,37 +36,18 @@ const FLAGS: {
     desc: "Watery, thin, not enough",
   },
   {
+    id: "too_harsh",
+    Icon: HarshIcon,
+    title: "Too harsh",
+    desc: "Aggressive, rough, over-extracted",
+  },
+  {
     id: "astringent",
     Icon: AstringentIcon,
     title: "Astringent",
     desc: "Mouth-puckering, dry",
   },
 ];
-
-// Turn the brain's raw parameter keys into plain words for the user.
-const PARAM_LABELS: Record<string, string> = {
-  grind_setting: "Grind",
-  water_temp_c: "Water temperature",
-  total_time_s: "Brew time",
-  dose_g: "Coffee dose",
-  ratio: "Coffee-to-water ratio",
-};
-
-function paramLabel(key: string): string {
-  return PARAM_LABELS[key] ?? key.replace(/_/g, " ");
-}
-
-// Each suggestion is either rule-based (a direction like "finer") or ML
-// (a current → suggested value). Show whichever the brain returned.
-function suggestionChange(s: DiagnoseResult["suggestions"][number]): string {
-  if (s.direction) return s.direction;
-  if (s.suggested_value !== undefined) {
-    return s.current_value !== undefined
-      ? `${String(s.current_value)} → ${String(s.suggested_value)}`
-      : String(s.suggested_value);
-  }
-  return "";
-}
 
 export default function DiagnoseFlags() {
   const [selected, setSelected] = useState<FlagId | null>(null);

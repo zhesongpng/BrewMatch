@@ -15,7 +15,8 @@ const API_URL = process.env.NEXT_PUBLIC_BREWMATCH_API_URL;
 const REQUEST_TIMEOUT_MS = 90_000;
 
 /** The taste problems a user can flag on the Diagnose screen. */
-export type FlagId = "too_sour" | "too_bitter" | "too_weak" | "astringent";
+export type FlagId =
+  "too_sour" | "too_bitter" | "too_weak" | "too_harsh" | "astringent";
 
 // ---------------------------------------------------------------------------
 // Grinders — translate the generic 1-10 grind scale into a grinder's own dial
@@ -217,15 +218,34 @@ export interface DiagnoseResult {
   overall_assessment?: string;
 }
 
+/** Optional brew context that upgrades a diagnosis from generic to personalized. */
+export interface DiagnoseContext {
+  /** The beans that were brewed. */
+  bean?: BrewBean | BeanInput;
+  /** The recipe that was followed — the ML engine tunes fixes to its real values. */
+  recipe?: Recipe;
+  /** The user, so the ML engine can personalize to their history. */
+  userId?: string;
+}
+
 /**
  * Ask the brain to diagnose a brew from the taste problems the user noticed.
  *
- * For B2 we send only the flags; the brain answers with its rule-based table.
- * Once the log-a-brew screen exists (B3) we can also pass the bean + recipe so
- * the ML engine personalises the suggestions.
+ * Flags-only (the standalone Diagnose tab) → the brain answers with its
+ * rule-based table. Pass `context` (a bean + recipe + userId, e.g. from a logged
+ * brew in History) → the brain runs its ML engine and tunes the fixes to that
+ * brew's real grind / temperature / dose, personalized to the user.
  */
-export async function diagnose(flags: FlagId[]): Promise<DiagnoseResult> {
-  return postJson<DiagnoseResult>("/diagnose", { flags });
+export async function diagnose(
+  flags: readonly (FlagId | BrewFlagId)[],
+  context?: DiagnoseContext,
+): Promise<DiagnoseResult> {
+  return postJson<DiagnoseResult>("/diagnose", {
+    flags,
+    bean: context?.bean,
+    recipe: context?.recipe,
+    user_id: context?.userId,
+  });
 }
 
 // ---------------------------------------------------------------------------

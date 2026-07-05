@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChartIcon, DripIcon } from "@/components/icons";
 import {
+  diagnose,
   getBrews,
   getLearnState,
   type BrewRecord,
+  type DiagnoseResult,
   type LearnState,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { paramLabel, suggestionChange } from "@/lib/diagnose";
 
 // Plain-language names for the brain's learning phases (see /learn docstring).
 const PHASE_LABEL: Record<string, string> = {
@@ -110,18 +113,47 @@ export default function HistoryFlow() {
       )}
 
       {brews.map((b) => (
-        <BrewCard key={b.brew_id} brew={b} />
+        <BrewCard key={b.brew_id} brew={b} userId={userId} />
       ))}
     </>
   );
 }
 
-function BrewCard({ brew }: { brew: BrewRecord }) {
+type DiagState = "idle" | "loading" | "done" | "error";
+
+function BrewCard({ brew, userId }: { brew: BrewRecord; userId: string }) {
   const { recipe, feedback, bean } = brew;
   const origin =
     bean.origin_country && bean.origin_country !== "Unknown"
       ? bean.origin_country
       : null;
+
+  // The taste problems recorded when this brew was rated. Only these can be
+  // diagnosed — a brew logged with no problems has nothing to fix.
+  const flags = feedback.directional_flags ?? [];
+
+  const [state, setState] = useState<DiagState>("idle");
+  const [result, setResult] = useState<DiagnoseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Diagnose THIS brew: send its real recipe + beans so the brain's ML engine
+  // tunes the fix to the actual grind / temp / dose, personalized to the user.
+  async function runDiagnose() {
+    setState("loading");
+    setError(null);
+    try {
+      const res = await diagnose(flags, { bean, recipe, userId });
+      setResult(res);
+      setState("done");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't diagnose that brew.",
+      );
+      setState("error");
+    }
+  }
+
+  const assessment = result?.assessments?.[0];
 
   return (
     <div className="bag">
@@ -146,7 +178,7 @@ function BrewCard({ brew }: { brew: BrewRecord }) {
         {feedback.score != null && (
           <span className="badge">{feedback.score}/10</span>
         )}
-        {(feedback.directional_flags ?? []).map((f) => (
+        {flags.map((f) => (
           <span key={f} className="badge">
             {flagLabel(f)}
           </span>
@@ -154,6 +186,49 @@ function BrewCard({ brew }: { brew: BrewRecord }) {
       </div>
 
       {feedback.notes && <p className="sub">{feedback.notes}</p>}
+
+      {/* Recipe-aware diagnosis — only offered when the brew recorded a problem. */}
+      {flags.length > 0 && state !== "done" && (
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={runDiagnose}
+          disabled={state === "loading"}
+          style={{ marginTop: 12 }}
+        >
+          {state === "loading" ? "Reading your brew…" : "What went wrong?"}
+        </button>
+      )}
+
+      {state === "error" && error && (
+        <p className="sub" role="alert" style={{ color: "var(--warn)" }}>
+          {error}
+        </p>
+      )}
+
+      {state === "done" && result && (
+        <div className="result" style={{ marginTop: 12 }}>
+          {assessment && (
+            <div className="t" style={{ fontWeight: 600 }}>
+              {assessment.cause}
+            </div>
+          )}
+          <p className="sub" style={{ marginTop: 4 }}>
+            {assessment?.assessment ??
+              result.overall_assessment ??
+              "Here's what to change next time."}
+          </p>
+          <div className="fix-list">
+            {result.suggestions.map((s) => (
+              <div className="fix" key={s.parameter}>
+                <div className="fix-k">{paramLabel(s.parameter)}</div>
+                <div className="fix-v">{suggestionChange(s)}</div>
+                <div className="fix-r">{s.reason}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

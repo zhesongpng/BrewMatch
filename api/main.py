@@ -434,7 +434,7 @@ def save_brew(user_id: str, body: dict, authorization: Optional[str] = Header(No
         bag_id    : str | None
         actual_dose_g: float | None
     """
-    from src.app.db import ensure_schema, get_db
+    from src.app.db import ensure_schema, ensure_user_exists, get_db
     from src.app.db import save_brew as db_save_brew
     from src.app.utils import dict_to_bean_profile, dict_to_recipe
     from src.data_models import BrewRecord, Feedback
@@ -473,6 +473,9 @@ def save_brew(user_id: str, body: dict, authorization: Optional[str] = Header(No
     try:
         with get_db() as conn:
             ensure_schema(conn)
+            # Anonymous device users have no users row until their first save;
+            # the brew's foreign key needs the parent to exist first.
+            ensure_user_exists(conn, user_id)
             db_save_brew(conn, user_id, brew)
     except Exception as exc:
         logger.exception("save_brew: DB write failed")
@@ -605,7 +608,7 @@ def create_bag(user_id: str, body: dict, authorization: Optional[str] = Header(N
     from datetime import datetime, timezone
 
     from src.app.db import create_bag as db_create_bag
-    from src.app.db import ensure_schema, get_db
+    from src.app.db import ensure_schema, ensure_user_exists, get_db
     from src.bean_extractor.extractor import create_manual_profile
     from src.data_models import CoffeeBag, create_bag_id
 
@@ -643,6 +646,9 @@ def create_bag(user_id: str, body: dict, authorization: Optional[str] = Header(N
     try:
         with get_db() as conn:
             ensure_schema(conn)
+            # Anonymous device users have no users row until their first save;
+            # the bag's foreign key needs the parent to exist first.
+            ensure_user_exists(conn, user_id)
             db_create_bag(conn, user_id, bag)
     except Exception as exc:
         logger.exception("create_bag: DB write failed")

@@ -472,6 +472,39 @@ def save_user(
     conn.commit()
 
 
+def ensure_user_exists(conn: sqlite3.Connection, user_id: str) -> None:
+    """Guarantee a ``users`` row exists for ``user_id`` before any child write.
+
+    Bags, brews, and sessions all carry a foreign key to ``users(user_id)``.
+    Anonymous on-device users (``device-*`` ids) never pass through the
+    onboarding or registration flows that create a user row, so their first
+    save — a bag or a brew — would violate that foreign key and fail with a
+    500. This inserts a minimal placeholder row (idempotent via
+    ``ON CONFLICT DO NOTHING``) so the child write always has a parent to
+    reference. A registered account or an onboarded user already has a row, so
+    this is a no-op for them.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    # Same placeholder onboarding register_user writes; overwritten if the user
+    # later completes the onboarding wizard.
+    default_onboarding = json.dumps({
+        "preferred_clusters": ["Balanced"],
+        "roast_preference": "medium-light",
+        "experience_level": "beginner",
+        "grinder_id": None,
+    })
+    conn.execute(
+        """
+        INSERT INTO users
+            (user_id, onboarding_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO NOTHING
+        """,
+        (user_id, default_onboarding, now, now),
+    )
+    conn.commit()
+
+
 def load_user(conn: sqlite3.Connection, user_id: str) -> Optional[dict]:
     """Return a user dict or ``None`` if the user does not exist."""
     row = conn.execute(

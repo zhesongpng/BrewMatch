@@ -209,7 +209,7 @@ export default function CoffeesFlow() {
   async function save() {
     const origin =
       originSelect === "Other" ? customOrigin.trim() : originSelect;
-    const errs = validateBag({ roaster, name, origin, flavors });
+    const errs = validateBag({ roaster, name, origin, flavors, bagSize });
     if (errs.length > 0) {
       setFormErrors(errs);
       return;
@@ -588,23 +588,30 @@ function BagCard({
 
 // ---- Pure helpers ----
 
-/** Validate the add-bag form. Returns a list of plain-language error messages. */
+/** Validate the bag form. Returns a list of plain-language error messages. */
 function validateBag({
   roaster,
   name,
   origin,
   flavors,
+  bagSize,
 }: {
   roaster: string;
   name: string;
   origin: string;
   flavors: string[];
+  bagSize: number;
 }): string[] {
   const errors: string[] = [];
   if (!roaster.trim()) errors.push("Roaster is required.");
   if (!name.trim()) errors.push("Coffee name is required.");
   if (!origin.trim()) errors.push("Origin country is required.");
   if (flavors.length === 0) errors.push("Pick at least one flavour profile.");
+  // A cleared number field reads as 0; catch it here with a plain message
+  // instead of letting the server reject it with an opaque "try again" error.
+  if (!Number.isFinite(bagSize) || bagSize <= 0) {
+    errors.push("Bag size must be a number greater than 0 (grams).");
+  }
   return errors;
 }
 

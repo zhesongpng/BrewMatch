@@ -1,0 +1,15 @@
+{
+  "_comment": "Canonical grind table shared by the Python brain (src/grinder_catalog.py: microns_for_generic + coarseness_label) and the web app (apps/web/lib/recipe.ts: genericMicrons + genericGrindBand). BOTH sides are tested against this fixture. To change grind behaviour on purpose, edit this file AND both implementations so all three agree. If one implementation drifts, its own parity test fails against this file.",
+  "steps": [
+    { "step": 1, "microns": 300, "band": "Fine (espresso)" },
+    { "step": 2, "microns": 400, "band": "Fine (espresso)" },
+    { "step": 3, "microns": 500, "band": "Medium (pour-over)" },
+    { "step": 4, "microns": 600, "band": "Medium (pour-over)" },
+    { "step": 5, "microns": 700, "band": "Medium (pour-over)" },
+    { "step": 6, "microns": 800, "band": "Medium (pour-over)" },
+    { "step": 7, "microns": 900, "band": "Medium-coarse (4:6)" },
+    { "step": 8, "microns": 1000, "band": "Medium-coarse (4:6)" },
+    { "step": 9, "microns": 1100, "band": "Coarse (French press)" },
+    { "step": 10, "microns": 1200, "band": "Coarse (French press)" }
+  ]
+}

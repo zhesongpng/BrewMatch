@@ -72,7 +72,7 @@ function grindStep(genericSetting: number): number {
 }
 
 /** Target grind size in microns. Mirrors src/grinder_catalog.py::microns_for_generic. */
-function genericMicrons(genericSetting: number): number {
+export function genericMicrons(genericSetting: number): number {
   return 200 + grindStep(genericSetting) * 100;
 }
 

@@ -299,6 +299,79 @@ def test_bags_are_scoped_per_user(client):
     assert client.get("/bags/owner-b").json()["count"] == 0
 
 
+def test_update_bag_edits_all_fields(client):
+    """Editing a bag corrects its details in place, keeping the same bag_id."""
+    user = "bagedit1"
+    bag = client.post(f"/bags/{user}", json=_bag_body()).json()
+
+    edited_body = _bag_body(
+        roaster="Sey",
+        name="Kenya Karatu",
+        bag_size_g=340,
+        origin_country="Kenya",
+        process="natural",
+        roast_level="medium",
+        flavor_clusters=["Berry"],
+        region="Nyeri",
+        variety="SL28",
+    )
+    r = client.put(f"/bags/{user}/{bag['bag_id']}", json=edited_body)
+    assert r.status_code == 200, r.text
+    updated = r.json()
+    # Same bag, new details.
+    assert updated["bag_id"] == bag["bag_id"]
+    assert updated["roaster"] == "Sey"
+    assert updated["name"] == "Kenya Karatu"
+    assert updated["bag_size_g"] == 340
+    assert updated["bean"]["origin_country"] == "Kenya"
+    assert updated["bean"]["process"] == "natural"
+    assert updated["bean"]["roast_level"] == "medium"
+
+    # The list reflects the edit with no duplicate row.
+    listed = client.get(f"/bags/{user}").json()
+    assert listed["count"] == 1
+    assert listed["bags"][0]["roaster"] == "Sey"
+
+
+def test_update_bag_resizes_brews_left(client):
+    """Correcting a bag's size re-derives the running-low estimate."""
+    user = "bagedit2"
+    bag = client.post(f"/bags/{user}", json=_bag_body(bag_size_g=100)).json()
+    assert bag["brews_left"] == 6  # 100 g // 15 g
+
+    r = client.put(f"/bags/{user}/{bag['bag_id']}", json=_bag_body(bag_size_g=250))
+    assert r.status_code == 200, r.text
+    # 250 g // 15 g → 16 brews after the correction.
+    assert r.json()["brews_left"] == 16
+
+
+def test_update_bag_rejects_bad_process(client):
+    user = "bagedit3"
+    bag = client.post(f"/bags/{user}", json=_bag_body()).json()
+    r = client.put(
+        f"/bags/{user}/{bag['bag_id']}", json=_bag_body(process="not_a_process")
+    )
+    assert r.status_code == 422
+
+
+def test_update_bag_unknown_id_returns_404(client):
+    r = client.put("/bags/bagedit4/does-not-exist", json=_bag_body())
+    assert r.status_code == 404
+
+
+def test_update_bag_is_scoped_per_user(client):
+    """A user cannot edit another user's bag; the id is invisible to them."""
+    owner_bag = client.post("/bags/edit-owner", json=_bag_body()).json()
+    r = client.put(
+        f"/bags/edit-intruder/{owner_bag['bag_id']}",
+        json=_bag_body(roaster="Hijacked"),
+    )
+    assert r.status_code == 404
+    # The owner's bag is untouched.
+    owner_view = client.get("/bags/edit-owner").json()["bags"][0]
+    assert owner_view["roaster"] == "Onyx"
+
+
 def test_stats_empty_user_returns_zeroes(client):
     body = client.get("/stats/nobody-stats").json()
     assert body["total_brews"] == 0

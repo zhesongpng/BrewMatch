@@ -131,6 +131,14 @@ export interface BeanInput {
   flavor_clusters: string[];
   /** Free-text the brain stores as the bean's source description. */
   source_text: string;
+  /**
+   * Optional details the brain round-trips on a saved bag's bean. Present when
+   * the bean came from a saved bag, so the Coffees edit form can prefill them.
+   */
+  origin_region?: string | null;
+  variety?: string | null;
+  altitude_min_m?: number | null;
+  altitude_max_m?: number | null;
 }
 
 /** One step of the pour schedule. */
@@ -416,6 +424,18 @@ export async function createBag(userId: string, input: BagInput): Promise<Bag> {
   return postJson<Bag>(`/bags/${encodeURIComponent(userId)}`, input);
 }
 
+/** Save edits to an existing bag; returns it with a refreshed running-low estimate. */
+export async function updateBag(
+  userId: string,
+  bagId: string,
+  input: BagInput,
+): Promise<Bag> {
+  return putJson<Bag>(
+    `/bags/${encodeURIComponent(userId)}/${encodeURIComponent(bagId)}`,
+    input,
+  );
+}
+
 /** Mark a bag finished so it drops off the active list. */
 export async function finishBag(userId: string, bagId: string): Promise<void> {
   await postJson(
@@ -433,6 +453,15 @@ export async function finishBag(userId: string, bagId: string): Promise<void> {
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/** PUT a JSON body to a brain endpoint and parse the JSON answer. */
+async function putJson<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });

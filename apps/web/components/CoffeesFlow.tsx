@@ -8,6 +8,7 @@ import {
   finishBag,
   FLAVOR_CLUSTERS,
   getBags,
+  updateBag,
   type Bag,
   type ProcessId,
   type RoastLevelId,
@@ -62,8 +63,10 @@ export default function CoffeesFlow() {
   const [status, setStatus] = useState<Status>("loading");
   const [bags, setBags] = useState<Bag[]>([]);
   const [error, setError] = useState<string | null>(null);
-  // The add-bag form is open by default for a first-time user (no bags yet).
+  // The bag form is open by default for a first-time user (no bags yet).
   const [showForm, setShowForm] = useState(false);
+  // Which bag the form is editing, or null when the form is adding a new bag.
+  const [editingBagId, setEditingBagId] = useState<string | null>(null);
 
   // ---- Add-bag form state ----
   const [roaster, setRoaster] = useState("");
@@ -126,6 +129,63 @@ export default function CoffeesFlow() {
     );
   }
 
+  // Clear every form field back to its default. Used when opening a blank
+  // add-bag form and when closing the form after an edit.
+  function resetForm() {
+    setRoaster("");
+    setName("");
+    setBagSize(250);
+    setOriginSelect("Ethiopia");
+    setCustomOrigin("");
+    setRegion("");
+    setProcess("washed");
+    setRoast("medium-light");
+    setVariety("");
+    setFlavors([]);
+    setAltitude("");
+    setFormErrors([]);
+    setSaving(false);
+  }
+
+  // Open a blank form for a brand-new bag.
+  function openAddForm() {
+    resetForm();
+    setEditingBagId(null);
+    setShowForm(true);
+  }
+
+  // Close the form and forget any in-progress edit.
+  function closeForm() {
+    setShowForm(false);
+    setEditingBagId(null);
+    resetForm();
+  }
+
+  // Open the form pre-filled with an existing bag's details so the user can
+  // correct a mistake. Origin maps back to the dropdown when it's a known
+  // country, otherwise to the "Other" free-text field.
+  function startEdit(bag: Bag) {
+    const country = bag.bean.origin_country;
+    const known = ORIGINS.includes(country);
+    setRoaster(bag.roaster);
+    setName(bag.name);
+    setBagSize(bag.bag_size_g);
+    setOriginSelect(known ? country : "Other");
+    setCustomOrigin(known ? "" : country);
+    setRegion(bag.bean.origin_region ?? "");
+    setProcess(bag.bean.process);
+    setRoast(bag.bean.roast_level);
+    setVariety(bag.bean.variety ?? "");
+    setFlavors(bag.bean.flavor_clusters ?? []);
+    setAltitude(
+      formatAltitude(bag.bean.altitude_min_m, bag.bean.altitude_max_m),
+    );
+    setFormErrors([]);
+    setSaving(false);
+    setEditingBagId(bag.bag_id);
+    setShowForm(true);
+  }
+
   // Hand the bag's beans to the recipes flow and go there (mirrors the Streamlit
   // "Brew this" → recommend jump).
   function brewThis(bag: Bag) {
@@ -157,26 +217,39 @@ export default function CoffeesFlow() {
     setFormErrors([]);
 
     const { min, max } = parseAltitude(altitude);
+    const input = {
+      roaster: roaster.trim(),
+      name: name.trim(),
+      bag_size_g: bagSize,
+      origin_country: origin,
+      process,
+      roast_level: roast,
+      flavor_clusters: flavors,
+      region: region.trim() || undefined,
+      variety: variety.trim() || undefined,
+      altitude_min_m: min,
+      altitude_max_m: max,
+    };
     setSaving(true);
     try {
-      const saved = await createBag(userId, {
-        roaster: roaster.trim(),
-        name: name.trim(),
-        bag_size_g: bagSize,
-        origin_country: origin,
-        process,
-        roast_level: roast,
-        flavor_clusters: flavors,
-        region: region.trim() || undefined,
-        variety: variety.trim() || undefined,
-        altitude_min_m: min,
-        altitude_max_m: max,
-      });
-      // Per the build spec, saving a bag goes straight to recommending for it.
-      brewThis(saved);
+      if (editingBagId) {
+        // Editing corrects a mistake — save and return to the list rather than
+        // jumping into a brew (which is the right move only for a new bag).
+        await updateBag(userId, editingBagId, input);
+        closeForm();
+        await refresh();
+      } else {
+        // Per the build spec, saving a new bag goes straight to recommending.
+        const saved = await createBag(userId, input);
+        brewThis(saved);
+      }
     } catch (err) {
       setFormErrors([
-        err instanceof Error ? err.message : "Couldn't save your bag.",
+        err instanceof Error
+          ? err.message
+          : editingBagId
+            ? "Couldn't save your changes."
+            : "Couldn't save your bag.",
       ]);
       setSaving(false);
     }
@@ -231,6 +304,7 @@ export default function CoffeesFlow() {
               key={bag.bag_id}
               bag={bag}
               onBrew={() => brewThis(bag)}
+              onEdit={() => startEdit(bag)}
               onFinish={() => finish(bag)}
             />
           ))}
@@ -252,7 +326,7 @@ export default function CoffeesFlow() {
         <button
           type="button"
           className="btn ghost"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm ? closeForm() : openAddForm())}
         >
           {showForm ? "Cancel" : "Add a new bag"}
         </button>
@@ -260,8 +334,12 @@ export default function CoffeesFlow() {
 
       {showForm && (
         <section className="card">
-          <div className="eyebrow">Add a new bag</div>
-          <h2 className="scr">A new coffee</h2>
+          <div className="eyebrow">
+            {editingBagId ? "Edit bag" : "Add a new bag"}
+          </div>
+          <h2 className="scr">
+            {editingBagId ? "Edit this coffee" : "A new coffee"}
+          </h2>
           <p className="sub">
             Enter what&apos;s on the bag. Fields marked * are required.
           </p>
@@ -435,7 +513,7 @@ export default function CoffeesFlow() {
             onClick={save}
             disabled={saving}
           >
-            {saving ? "Saving…" : "Save bag"}
+            {saving ? "Saving…" : editingBagId ? "Save changes" : "Save bag"}
           </button>
         </section>
       )}
@@ -448,10 +526,12 @@ export default function CoffeesFlow() {
 function BagCard({
   bag,
   onBrew,
+  onEdit,
   onFinish,
 }: {
   bag: Bag;
   onBrew: () => void;
+  onEdit: () => void;
   onFinish: () => void;
 }) {
   const origin =
@@ -482,6 +562,16 @@ function BagCard({
           onClick={onBrew}
         >
           Brew this
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button
+          type="button"
+          className="btn ghost"
+          style={{ flex: 1 }}
+          onClick={onEdit}
+        >
+          Edit
         </button>
         <button
           type="button"
@@ -516,6 +606,19 @@ function validateBag({
   if (!origin.trim()) errors.push("Origin country is required.");
   if (flavors.length === 0) errors.push("Pick at least one flavour profile.");
   return errors;
+}
+
+/**
+ * Format a stored altitude min/max back into the single input string, the
+ * inverse of parseAltitude — so editing a bag shows what the user typed.
+ * Equal bounds collapse to one number; differing bounds show as "min-max".
+ */
+function formatAltitude(min?: number | null, max?: number | null): string {
+  if (min == null && max == null) return "";
+  if (min != null && max != null) {
+    return min === max ? String(min) : `${min}-${max}`;
+  }
+  return String(min ?? max);
 }
 
 /** Parse an altitude string like "1800" or "1500-2000" into a min/max range. */

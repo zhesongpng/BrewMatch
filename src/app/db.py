@@ -776,6 +776,37 @@ def create_bag(conn: sqlite3.Connection, user_id: str, bag: CoffeeBag) -> None:
     conn.commit()
 
 
+def update_bag(
+    conn: sqlite3.Connection, user_id: str, bag_id: str, bag: CoffeeBag
+) -> bool:
+    """Update an existing bag's editable fields (roaster, name, size, bean).
+
+    Corrects the details a user got wrong when they first entered the bag. Only
+    the editable columns change; ``date_opened``, ``created_at`` and ``active``
+    are left untouched — an edit is a correction, not a re-opening. Scoped by
+    user_id so a user can only edit their own bags (matches the create_bag /
+    mark_bag_finished convention). Returns True when a row was updated, False
+    when no bag with that id belongs to the user.
+    """
+    cur = conn.execute(
+        """
+        UPDATE coffee_bags
+        SET roaster = ?, name = ?, bag_size_g = ?, bean_json = ?
+        WHERE bag_id = ? AND user_id = ?
+        """,
+        (
+            bag.roaster,
+            bag.name,
+            bag.bag_size_g,
+            _serialize_bean(bag.bean_profile),
+            bag_id,
+            user_id,
+        ),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def list_active_bags(conn: sqlite3.Connection, user_id: str) -> list[CoffeeBag]:
     """Return a user's active (unfinished) bags, newest first."""
     rows = conn.execute(

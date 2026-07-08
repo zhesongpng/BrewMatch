@@ -24,6 +24,7 @@ from src.app.db import (
     mark_bag_finished,
     save_brew,
     save_user,
+    update_bag,
     update_preferences,
 )
 from src.data_models import (
@@ -209,6 +210,64 @@ class TestCoffeeBagCRUD:
         # Bean details round-trip through bean_json.
         assert got.bean_profile.origin_country == "Ethiopia"
         assert got.bean_profile.name == "Ethiopia Guji"
+
+    def test_update_bag_changes_editable_fields(
+        self, conn, onboarding, make_bean_db
+    ):
+        save_user(conn, "u1", onboarding)
+        create_bag(
+            conn,
+            "u1",
+            self._make_bag(
+                make_bean_db, bag_id="bag-1", bag_size_g=250.0, date_opened="2026-06-11"
+            ),
+        )
+
+        edited = CoffeeBag(
+            bag_id="bag-1",
+            roaster="Sey",
+            name="Kenya Karatu",
+            bean_profile=make_bean_db(
+                roaster="Sey", name="Kenya Karatu", origin_country="Kenya"
+            ),
+            bag_size_g=340.0,
+            # A different date/active here must NOT overwrite the stored row.
+            date_opened="1999-01-01",
+            active=False,
+        )
+        assert update_bag(conn, "u1", "bag-1", edited) is True
+
+        got = list_active_bags(conn, "u1")[0]
+        assert got.roaster == "Sey"
+        assert got.name == "Kenya Karatu"
+        assert got.bag_size_g == 340.0
+        assert got.bean_profile.origin_country == "Kenya"
+        # date_opened and active are preserved — an edit is a correction, not a
+        # re-open, so update_bag leaves those columns alone.
+        assert got.date_opened == "2026-06-11"
+        assert got.active is True
+
+    def test_update_bag_scoped_to_user(self, conn, onboarding, make_bean_db):
+        # A user must not be able to edit another user's bag.
+        save_user(conn, "u1", onboarding)
+        save_user(conn, "u2", onboarding)
+        create_bag(conn, "u1", self._make_bag(make_bean_db, bag_id="bag-1"))
+
+        wrong_owner = CoffeeBag(
+            bag_id="bag-1",
+            roaster="Hijacked",
+            name="Nope",
+            bean_profile=make_bean_db(roaster="Hijacked", name="Nope"),
+        )
+        assert update_bag(conn, "u2", "bag-1", wrong_owner) is False
+        assert list_active_bags(conn, "u1")[0].roaster == "Onyx Coffee Lab"
+
+    def test_update_bag_unknown_id_returns_false(
+        self, conn, onboarding, make_bean_db
+    ):
+        save_user(conn, "u1", onboarding)
+        ghost = self._make_bag(make_bean_db, bag_id="no-such-bag")
+        assert update_bag(conn, "u1", "no-such-bag", ghost) is False
 
     def test_list_active_excludes_finished(self, conn, onboarding, make_bean_db):
         save_user(conn, "u1", onboarding)

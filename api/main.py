@@ -659,6 +659,81 @@ def create_bag(user_id: str, body: dict, authorization: Optional[str] = Header(N
     return _bag_to_dict(bag, 0.0)
 
 
+@app.put("/bags/{user_id}/{bag_id}")
+def update_bag(
+    user_id: str,
+    bag_id: str,
+    body: dict,
+    authorization: Optional[str] = Header(None),
+):
+    """Edit an existing coffee bag — fix a wrong size, roaster, roast, etc.
+
+    Takes the same body shape as POST /bags. Rebuilds the bean half from the
+    submitted fields (so a corrected roast level flows through to the brewing
+    advice), preserves the bag's original open date, and writes the changes.
+    Returns the updated bag with a refreshed running-low estimate. A bag id that
+    isn't this user's returns 404; a malformed body raises 422.
+    """
+    from src.app.db import ensure_schema, get_bag, get_db, grams_used_for_bag
+    from src.app.db import update_bag as db_update_bag
+    from src.bean_extractor.extractor import create_manual_profile
+    from src.data_models import CoffeeBag
+
+    user_id = resolve_user(user_id, authorization)
+
+    # Build the bean/bag from the body first, so an invalid payload fails with
+    # 422 before we touch the database (mirrors create_bag's ordering).
+    try:
+        roaster = str(body.get("roaster", "")).strip()
+        name = str(body.get("name", "")).strip()
+        result = create_manual_profile(
+            origin_country=str(body.get("origin_country", "")).strip(),
+            process=body.get("process", "unknown"),
+            roast_level=body.get("roast_level", "unknown"),
+            flavor_clusters=body.get("flavor_clusters", []),
+            source_text="manual entry",
+            origin_region=(body.get("region") or "").strip() or None,
+            variety=(body.get("variety") or "").strip() or None,
+            altitude_min_m=body.get("altitude_min_m"),
+            altitude_max_m=body.get("altitude_max_m"),
+        )
+        profile = result.bean_profile
+        profile.roaster = roaster
+        profile.name = name
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, f"Invalid bag: {exc}") from exc
+
+    try:
+        with get_db() as conn:
+            ensure_schema(conn)
+            existing = get_bag(conn, user_id, bag_id)
+            if existing is None:
+                raise HTTPException(404, "No such bag for this user.")
+            try:
+                updated = CoffeeBag(
+                    bag_id=bag_id,
+                    roaster=roaster,
+                    name=name,
+                    bean_profile=profile,
+                    bag_size_g=float(body.get("bag_size_g", 250.0)),
+                    # An edit keeps the bag's original open date and active flag.
+                    date_opened=existing.date_opened,
+                    active=existing.active,
+                )
+            except (ValueError, TypeError) as exc:
+                raise HTTPException(422, f"Invalid bag: {exc}") from exc
+            db_update_bag(conn, user_id, bag_id, updated)
+            grams_used = grams_used_for_bag(conn, user_id, bag_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("update_bag: DB write failed")
+        raise HTTPException(500, f"Failed to update bag: {exc}") from exc
+
+    logger.info("update_bag: user=%s bag=%s", user_id, bag_id)
+    return _bag_to_dict(updated, grams_used)
+
+
 @app.post("/bags/{user_id}/{bag_id}/finish")
 def finish_bag(
     user_id: str, bag_id: str, authorization: Optional[str] = Header(None)

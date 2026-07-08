@@ -80,19 +80,23 @@ def test_grinders_returns_catalog(client):
     r = client.get("/grinders")
     assert r.status_code == 200
     grinders = r.json()["grinders"]
-    # The catalog ships 9 grinders (6 hand, 3 electric).
-    assert len(grinders) == 9
-    assert {g["type"] for g in grinders} == {"hand", "electric"}
+    # The catalog ships hand grinders only (electric are hidden from the picker).
+    assert len(grinders) == 7
+    assert {g["type"] for g in grinders} == {"hand"}
 
-    # Each grinder maps all 10 generic steps to a dial value, keyed by string.
+    # Each grinder maps all 10 generic steps to a native-setting cell.
     for g in grinders:
         assert set(g["mapping"].keys()) == {str(i) for i in range(1, 11)}
-        assert {"id", "brand", "model", "scale"} <= g.keys()
+        assert {"id", "brand", "model", "reading", "zero_required",
+                "how_to_set"} <= g.keys()
+        for cell in g["mapping"].values():
+            assert set(cell) == {"microns", "native", "band"}
 
     # Spot-check a known mapping so a future catalog edit can't silently drift.
     by_id = {g["id"]: g for g in grinders}
-    assert by_id["kingrinder-k6"]["mapping"]["7"] == 74
-    assert by_id["kingrinder-k6"]["scale"] == "clicks"
+    assert by_id["kingrinder-k6"]["reading"] == "rotations"
+    assert by_id["kingrinder-k6"]["mapping"]["7"]["native"] == "1.1 turns"
+    assert by_id["kingrinder-k6"]["mapping"]["7"]["band"] == "Medium-coarse (4:6)"
 
 
 def test_recommend_returns_ranked_recipes(client, bean):

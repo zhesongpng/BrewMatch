@@ -245,6 +245,13 @@ h2.scr {
   color: var(--muted);
   margin-top: 2px;
 }
+.pill .vhint {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--muted);
+  margin-top: 5px;
+}
 
 /* ---- Flavour flags ---- */
 .flag {

@@ -22,16 +22,32 @@ export type FlagId =
 // Grinders — translate the generic 1-10 grind scale into a grinder's own dial
 // ---------------------------------------------------------------------------
 
+/** One generic step translated into a grinder's own setting. */
+export interface GrindStep {
+  /** Target grind size in microns. */
+  microns: number;
+  /** Native setting in the grinder's own unit, e.g. "17 clicks", "dial 15". */
+  native: string;
+  /** Plain-language coarseness band, e.g. "Medium-coarse (4:6)". */
+  band: string;
+}
+
 /** One grinder from the brain's catalog. */
 export interface Grinder {
   id: string;
   brand: string;
   model: string;
   type: "hand" | "electric";
-  /** The grinder's own unit: "clicks", "rotations", or "setting". */
-  scale: string;
-  /** Maps each "1".."10" generic step to this grinder's dial value. */
-  mapping: Record<string, number>;
+  /** How the setting is read: "clicks", "rotations" (from zero), or "dial". */
+  reading: "clicks" | "rotations" | "dial";
+  /** Whether the grinder must be zeroed before counting (hand grinders). */
+  zero_required: boolean;
+  /** Plain-language instruction for setting this grinder. */
+  how_to_set: string;
+  /** Any caveat, e.g. variant or unit-variance note. */
+  notes: string;
+  /** Maps each "1".."10" generic step to this grinder's native setting. */
+  mapping: Record<string, GrindStep>;
 }
 
 /**

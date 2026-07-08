@@ -56,38 +56,95 @@ export function grams(value: number): string {
 
 /** A grind setting translated for one grinder, for the recipe card. */
 export interface GrindForGrinder {
-  /** The dial value alone, e.g. "~74 clicks", "~3.4 rotations". */
+  /** The native setting, e.g. "17 clicks", "dial 15". */
   dial: string;
+  /** Plain-language coarseness band, e.g. "Medium-coarse (4:6)". */
+  band: string;
   /** The grinder it's for, e.g. "Kingrinder K6". */
   grinderName: string;
+  /** How to set the grinder (zero it first, read the dial, etc.). */
+  howToSet: string;
+}
+
+/** Round/clamp a continuous grind to the whole 1–10 steps the catalog is keyed to. */
+function grindStep(genericSetting: number): number {
+  return Math.max(1, Math.min(10, Math.round(genericSetting)));
+}
+
+/** Target grind size in microns. Mirrors src/grinder_catalog.py::microns_for_generic. */
+function genericMicrons(genericSetting: number): number {
+  return 200 + grindStep(genericSetting) * 100;
+}
+
+/** Plain-language coarseness band. Mirrors src/grinder_catalog.py::coarseness_label. */
+export function genericGrindBand(genericSetting: number): string {
+  const microns = genericMicrons(genericSetting);
+  if (microns < 420) return "Fine (espresso)";
+  if (microns < 820) return "Medium (pour-over)";
+  if (microns < 1020) return "Medium-coarse (4:6)";
+  return "Coarse (French press)";
 }
 
 /**
- * Translate a recipe's generic 1-10 grind setting into a grinder's own dial.
+ * Plain-language grind label when no grinder is chosen — replaces the old
+ * meaningless "7 / 10".
+ */
+export function genericGrindLabel(genericSetting: number): string {
+  return `${genericGrindBand(genericSetting)} · ~${genericMicrons(genericSetting)} µm`;
+}
+
+/** A recipe's grind expressed relative to the user's own calibrated baseline. */
+export interface RelativeGrind {
+  /** e.g. "A bit coarser than your usual". */
+  headline: string;
+  /** The user's own reading their baseline is anchored to, e.g. "15". */
+  usual: string;
+  /** Plain-language coarseness band, e.g. "Medium-coarse (4:6)". */
+  band: string;
+}
+
+// "A pour-over you like" is a medium V60 grind — step 5 on the internal scale.
+const POUR_OVER_BASELINE_STEP = 5;
+
+/**
+ * Translate a recipe's grind into advice relative to the user's own dial.
  *
- * Mirrors src/grinder_catalog.py::get_grinder_display — the catalog numbers
- * live in Python; this only formats them. Returns null when the grinder has no
- * mapping for that step (so the card falls back to the generic "7 / 10").
+ * Hand-grinder charts can't be trusted per unit, so once the user tells us the
+ * setting that gives them a good pour-over, we only ever say how much coarser or
+ * finer THIS recipe is than that — which is true for every grinder regardless of
+ * variant. The absolute number stays the user's; we never invent one.
+ */
+export function grindRelativeToUsual(
+  genericSetting: number,
+  usual: string,
+): RelativeGrind {
+  const delta = grindStep(genericSetting) - POUR_OVER_BASELINE_STEP;
+  let headline: string;
+  if (delta <= -3) headline = "Notably finer than your usual";
+  else if (delta < 0) headline = "A bit finer than your usual";
+  else if (delta === 0) headline = "Your usual pour-over setting";
+  else if (delta <= 2) headline = "A bit coarser than your usual";
+  else headline = "Notably coarser than your usual";
+  return { headline, usual, band: genericGrindBand(genericSetting) };
+}
+
+/**
+ * Translate a recipe's generic 1-10 grind setting into a grinder's own setting.
+ *
+ * Mirrors src/grinder_catalog.py::grind_for_grinder — the calibration numbers
+ * live in Python; this only reads the precomputed per-step display. Returns null
+ * when the grinder has no mapping for that step.
  */
 export function grindForGrinder(
   grinder: Grinder,
   genericSetting: number,
 ): GrindForGrinder | null {
-  // The grind scale is whole steps 1–10 and the mappings are keyed to them.
-  // Round and clamp first so a continuous value still translates — mirrors
-  // _format_grind in the Streamlit app ("the optimizer produces continuous
-  // values"). Backend recipes are already validated ints, so this is defensive.
-  const step = Math.max(1, Math.min(10, Math.round(genericSetting)));
-  const value = grinder.mapping[String(step)];
-  if (value == null) return null;
-  // Rotations always read with one decimal (e.g. "3.4"); other scales show
-  // whole numbers unless the mapping itself is fractional (Fellow Ode "2.5").
-  const valueStr =
-    grinder.scale === "rotations" || !Number.isInteger(value)
-      ? value.toFixed(1)
-      : String(value);
+  const entry = grinder.mapping[String(grindStep(genericSetting))];
+  if (entry == null) return null;
   return {
-    dial: `~${valueStr} ${grinder.scale}`,
+    dial: entry.native,
+    band: entry.band,
     grinderName: `${grinder.brand} ${grinder.model}`,
+    howToSet: grinder.how_to_set,
   };
 }

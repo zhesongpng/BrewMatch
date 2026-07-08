@@ -12,6 +12,10 @@ import {
   type UserStats,
 } from "@/lib/api";
 import { readGrinderId, writeGrinderId } from "@/lib/grinderPref";
+import {
+  readGrinderCalibration,
+  writeGrinderCalibration,
+} from "@/lib/grinderCalibration";
 import { readBrewerIds, writeBrewerIds } from "@/lib/brewerPref";
 import { useAuth } from "@/lib/auth";
 
@@ -28,6 +32,10 @@ export default function ProfileFlow() {
   // Read the saved gear lazily so it survives reloads without a hydration
   // mismatch (this screen isn't server-rendered with the values).
   const [grinderId, setGrinderId] = useState<string>(() => readGrinderId());
+  // The user's usual pour-over reading for the chosen grinder, in their own dial.
+  const [usual, setUsual] = useState<string>(() =>
+    readGrinderCalibration(readGrinderId()),
+  );
   const [brewerIds, setBrewerIds] = useState<string[]>(() => readBrewerIds());
 
   // Refetch when the signed-in user changes (sign-in / sign-out) so the right
@@ -58,6 +66,13 @@ export default function ProfileFlow() {
   function chooseGrinder(id: string) {
     setGrinderId(id);
     writeGrinderId(id);
+    // Load this grinder's own saved baseline (each grinder keeps its own).
+    setUsual(readGrinderCalibration(id));
+  }
+
+  function saveUsual(reading: string) {
+    setUsual(reading);
+    writeGrinderCalibration(grinderId, reading);
   }
 
   // Tick a brewer on or off. Users own several, so this toggles membership in
@@ -99,6 +114,10 @@ export default function ProfileFlow() {
 
   const handGrinders = grinders.filter((g) => g.type === "hand");
   const electricGrinders = grinders.filter((g) => g.type === "electric");
+  const selected = grinders.find((g) => g.id === grinderId);
+  const selectedGrinderName = selected
+    ? `${selected.brand} ${selected.model}`
+    : "grinder";
 
   return (
     <>
@@ -167,8 +186,9 @@ export default function ProfileFlow() {
         <div className="eyebrow">Your gear</div>
         <h2 className="scr">Your grinder</h2>
         <p className="sub">
-          Pick yours and every recipe shows the grind in its own dial — clicks
-          or rotations — not just a 1–10 number.
+          Pick yours, then tell us the setting you already use for a good
+          pour-over. Every recipe then shows its grind relative to that — in
+          your own dial — instead of a number that might not match your grinder.
         </p>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="grinder">Grinder</label>
@@ -178,7 +198,7 @@ export default function ProfileFlow() {
             value={grinderId}
             onChange={(e) => chooseGrinder(e.target.value)}
           >
-            <option value="">Generic scale (1–10)</option>
+            <option value="">Generic scale</option>
             {handGrinders.length > 0 && (
               <optgroup label="Hand grinders">
                 {handGrinders.map((g) => (
@@ -198,11 +218,31 @@ export default function ProfileFlow() {
               </optgroup>
             )}
           </select>
-          <p className="sub" style={{ marginTop: 8 }}>
-            {grinderId
-              ? "Saved — every recipe now uses this grinder's dial."
-              : "Optional. You can also set this from any recipe."}
-          </p>
+
+          {grinderId ? (
+            <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+              <label htmlFor="usual">Your usual pour-over setting</label>
+              <input
+                id="usual"
+                className="input"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="e.g. 15, or 1.4 turns"
+                value={usual}
+                onChange={(e) => saveUsual(e.target.value)}
+              />
+              <p className="sub" style={{ marginTop: 8 }}>
+                {usual
+                  ? "Saved — recipes now read “a bit coarser / finer than your usual” from this."
+                  : `Whatever you dial in on your ${selectedGrinderName} for a pour-over you like — read it however your grinder shows it.`}
+              </p>
+            </div>
+          ) : (
+            <p className="sub" style={{ marginTop: 8 }}>
+              Optional. You can also set this from any recipe.
+            </p>
+          )}
         </div>
       </section>
 

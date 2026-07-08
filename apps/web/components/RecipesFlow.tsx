@@ -22,11 +22,14 @@ import {
 } from "@/lib/api";
 import {
   clockFormat,
+  genericGrindLabel,
   grams,
   grindForGrinder,
+  grindRelativeToUsual,
   poursWithRunningTotal,
   rescaleToDose,
 } from "@/lib/recipe";
+import { readGrinderCalibration } from "@/lib/grinderCalibration";
 
 // ---- Plain-language option labels for the bean form ----
 
@@ -504,6 +507,11 @@ function RecipeDetail({
   // Translate the generic grind into the chosen grinder's own dial, if any.
   const grinder = grinders.find((g) => g.id === grinderId) ?? null;
   const grind = grinder ? grindForGrinder(grinder, recipe.grind_setting) : null;
+  // If the user calibrated this grinder to their own dial, prefer showing the
+  // grind relative to their usual — trustworthy across every variant.
+  const usual = grinder ? readGrinderCalibration(grinder.id) : "";
+  const relative =
+    grinder && usual ? grindRelativeToUsual(recipe.grind_setting, usual) : null;
   const handGrinders = grinders.filter((g) => g.type === "hand");
   const electricGrinders = grinders.filter((g) => g.type === "electric");
   const match =
@@ -572,15 +580,27 @@ function RecipeDetail({
           </div>
           <div className="pill">
             <div className="k">Grind</div>
-            {grind ? (
+            {relative ? (
+              <>
+                <div className="v">{relative.headline}</div>
+                <div className="vsub">
+                  {relative.band} · your usual: {relative.usual}
+                </div>
+              </>
+            ) : grind ? (
               <>
                 <div className="v">{grind.dial}</div>
                 <div className="vsub">
-                  {grind.grinderName} · {recipe.grind_setting}/10
+                  {grind.band} · {grind.grinderName}
+                </div>
+                <div className="vhint">
+                  {grind.howToSet} Starting point — adjust to taste. Set your
+                  usual setting in Profile to see this relative to your own
+                  dial.
                 </div>
               </>
             ) : (
-              <div className="v">{recipe.grind_setting} / 10</div>
+              <div className="v">{genericGrindLabel(recipe.grind_setting)}</div>
             )}
           </div>
           <div className="pill">
@@ -605,7 +625,7 @@ function RecipeDetail({
             value={grinderId}
             onChange={(e) => onChooseGrinder(e.target.value)}
           >
-            <option value="">Generic scale (1–10)</option>
+            <option value="">Generic scale</option>
             {handGrinders.length > 0 && (
               <optgroup label="Hand grinders">
                 {handGrinders.map((g) => (
@@ -627,8 +647,8 @@ function RecipeDetail({
           </select>
           <p className="sub" style={{ marginTop: 8 }}>
             {grind
-              ? "Grind shows in your grinder's own dial. We'll remember it."
-              : "Pick yours to see the grind in clicks or rotations, not just 1–10."}
+              ? "Grind shows for your grinder. Set your usual pour-over setting in Profile to see it relative to your own dial."
+              : "Pick yours to see the grind in your grinder's own terms."}
           </p>
         </div>
       </section>

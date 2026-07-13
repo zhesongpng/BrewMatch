@@ -1,28 +1,43 @@
-streamlit>=1.35.0
-lightgbm>=4.3.0
-optuna>=3.6.0
-rank-bm25>=0.2.2
+# All versions pinned to the exact set running live and passing the full test
+# suite (verified from the working .venv on 2026-07-13). Render rebuilds install
+# THIS file; unpinned (>=) deps let each rebuild pull untested newest versions,
+# which is what silently broke the brain deploy. Bump deliberately, not by drift.
+streamlit==1.57.0
+lightgbm==4.6.0
+optuna==4.8.0
+rank-bm25==0.2.2
 # Pinned to the versions that trained models/taste_predictor.joblib — newer
 # scikit-learn/numpy cannot unpickle the saved GradientBoostingRegressor.
 scikit-learn==1.8.0
-pandas>=2.2.0
+pandas==3.0.2
 numpy==2.2.6
-shap>=0.45.0
-joblib>=1.4.0
-python-dotenv>=1.0.0
-openai>=1.0.0
-bcrypt>=4.0.0
-streamlit-cookies-manager>=0.2.0
-altair>=5.0.0
+shap==0.51.0
+joblib==1.5.3
+python-dotenv==1.2.2
+openai==2.36.0
+bcrypt==5.0.0
+streamlit-cookies-manager==0.2.0
+altair==6.1.0
 # PostgreSQL driver for permanent hosted storage (Supabase)
-psycopg2-binary>=2.9
-# FastAPI brain service (api/main.py) — required by the Render web service
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0
+psycopg2-binary==2.9.12
+# FastAPI brain service (api/main.py) — required by the Render web service.
+# starlette pinned explicitly: it is FastAPI's transitive dependency and a
+# major-version jump (0.52 → 1.x) is a leading suspect for the failed rebuild.
+fastapi==0.138.1
+uvicorn[standard]==0.43.0
+starlette==0.52.1
 # Verifies Supabase login tokens on per-user endpoints (Goal C). Imported by
 # api/auth.py as `import jwt`. [crypto] adds the cryptography backend for the
 # asymmetric (JWKS) signing path; HS256 shared-secret needs no extra backend.
-PyJWT[crypto]>=2.8.0
+PyJWT[crypto]==2.13.0
+# numba/llvmlite compile from source when no matching manylinux wheel exists;
+# newer releases are the other leading suspect for the failed rebuild (missing
+# wheel or OOM while compiling on Render's 512 MB instance). Pin them explicitly
+# even though they are transitive (via shap) so Render always draws known-good
+# wheels. pydantic is FastAPI's validation core — pin to avoid v2 minor drift.
+numba==0.61.2
+llvmlite==0.44.0
+pydantic==2.12.5
 # NOTE: chromadb + sentence-transformers (and the PyTorch they pull in) are
 # intentionally omitted. The deployed brain runs in lite mode (BREWMATCH_LITE
 # defaults to true) and serves recipe retrieval from BM25 keyword search +
@@ -30,3 +45,5 @@ PyJWT[crypto]>=2.8.0
 # 512 MB host. To re-enable dense semantic search on a larger instance, add
 # `chromadb>=0.5.0` and `sentence-transformers>=3.0.0` back and set
 # BREWMATCH_LITE=false. Full local/dev installs still get them via pyproject.toml.
+</content>
+</invoke>

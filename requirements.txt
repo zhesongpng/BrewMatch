@@ -45,5 +45,3 @@ pydantic==2.12.5
 # 512 MB host. To re-enable dense semantic search on a larger instance, add
 # `chromadb>=0.5.0` and `sentence-transformers>=3.0.0` back and set
 # BREWMATCH_LITE=false. Full local/dev installs still get them via pyproject.toml.
-</content>
-</invoke>

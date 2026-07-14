@@ -1,0 +1,57 @@
+name: Keep Brain Awake
+# ─────────────────────────────────────────────────────────────────
+# Why this exists
+#   The brain (FastAPI service on Render's FREE tier) sleeps after
+#   ~15 min of no traffic. The next real request then pays a ~50s
+#   cold-start wake-up. This job pings the brain's /health endpoint
+#   every 10 minutes so it never sits idle long enough to fall
+#   asleep — so users don't hit that wake-up delay.
+#
+# COST FOOTPRINT
+#   Cadence:        every 10 minutes (cron: "*/10 * * * *")
+#   Monthly worst:  ~4,320 runs/month × 1 min = ~4,320 min
+#   Billing:        $0 — this repo is PUBLIC, so GitHub Actions
+#                   minutes are unlimited and free.
+#   Fast-exit:      YES — a single curl; the job finishes in seconds.
+#
+# CAVEATS
+#   * GitHub's scheduled runs can be delayed a few minutes under
+#     load, so on rare occasions the brain may still nap once. This
+#     is a best-effort keep-alive, not an always-on guarantee. The
+#     always-on fix is Render's paid Starter tier (~$7/mo).
+#   * GitHub disables scheduled workflows after 60 days with NO repo
+#     activity. Any normal commit resets that clock.
+# ─────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  # Lets you run it manually from the Actions tab to test.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# If a run is somehow still going when the next one starts, drop the
+# older one — a stale ping is worthless.
+concurrency:
+  group: keep-brain-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the brain's health endpoint
+        run: |
+          set -uo pipefail
+          URL="https://brewmatch-iki5.onrender.com/health"
+          # Give the cold start room to finish: up to 90s, and treat a
+          # slow-but-successful wake-up as success (that IS the point).
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$URL")
+          echo "Pinged $URL -> HTTP $code"
+          if [ "$code" = "200" ]; then
+            echo "Brain is awake and healthy."
+          else
+            echo "::warning::Brain health check returned HTTP $code (not 200)."
+          fi

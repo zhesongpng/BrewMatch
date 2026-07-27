@@ -1,7 +1,11 @@
 # Phase 2 — Brewer Becomes Gear (owned, selectable), not a bean attribute
 
 Created: 2026-07-01
-Status: **Task 1 DONE (2026-07-02). Task 2 DONE (2026-07-04).** Plan of record.
+Status: **COMPLETE.** Task 1 DONE (2026-07-02, `03c05c7`). Task 2 DONE
+(2026-07-04, `c538e03`). Moved to `completed/` during the 2026-07-27
+reconciliation — both tasks shipped and were red-teamed (journal 0036 records a
+HIGH found and fixed in that round). The one open question below is deferred, not
+outstanding work.
 
 ## The idea in one sentence
 

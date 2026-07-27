@@ -1,6 +1,6 @@
 # BrewMatch — Master Todo List
 
-Last updated: 2026-06-15 (reconciled against actual repo state)
+Last updated: 2026-07-27 (reconciled against actual repo state)
 
 ---
 
@@ -8,8 +8,12 @@ Last updated: 2026-06-15 (reconciled against actual repo state)
 
 **The foundational build is complete.** Milestones 1–5 (data, ML
 pipeline, web app, evaluation, polish) are all complete. Their finalized
-records live in `todos/completed/`. The app is built, tested (646 tests
-passing), and deployed.
+records live in `todos/completed/`. The app is built, tested, and deployed.
+
+_Test count: last recorded at **761 passing** on 2026-06-25 (Phase 2 Goal A1).
+Not re-verified during the 2026-07-27 reconciliation — no Python test
+environment was installed in that session. This line previously claimed 646,
+which was already two counts out of date._
 
 We are now in a **new chapter with a bigger goal: grow BrewMatch into a real
 product** — reliable enough for daily use, nice enough to
@@ -21,18 +25,28 @@ nothing has to be rebuilt later:
 
 | Phase       | Goal                                                            | Status          |
 | ----------- | --------------------------------------------------------------- | --------------- |
-| **Phase 1** | Stop the live app resetting + let it learn from your real brews | 🔜 Mostly done¹ |
-| **Phase 2** | A nicer, redesigned interface + a real login, on a new host     | ⏳ Planned      |
+| **Phase 1** | Stop the live app resetting + let it learn from your real brews | ✅ Done¹        |
+| **Phase 2** | A nicer, redesigned interface + a real login, on a new host     | 🔜 Nearly done² |
 | **Phase 3** | Community: share recipes with a group of users                  | 💭 Future       |
 | **Later**   | Commercialisation, once there are real users to learn from      | 💭 Future       |
 
-¹ **Phase 1 status (reconciled 2026-06-15):** the resetting is fixed (Supabase
-chosen, created, connected — the live app persists to it), the brew-logging
-flow shipped, and the learning engine runs automatically on every logged brew.
-Genuinely outstanding: a one-click export (C1), a recorded restart-survival
-proof (C2/A4), an honest "learned from N brews" indicator (B3 polish), and a
-small decision on whether to add an explicit "retrain" button (B2). Full detail
-and an open question in `active/p1-live-persistence-and-learning-loop.md`.
+¹ **Phase 1 (complete).** The resetting is fixed (Supabase connected, the live
+app persists to it), the brew-logging flow shipped, the learning engine runs
+automatically on every logged brew, and an automated test proves data survives a
+restart. One item deliberately parked: one-click data export (C1). Detail in
+`active/p1-live-persistence-and-learning-loop.md`.
+
+² **Phase 2 status (reconciled 2026-07-27).** Much further along than this file
+previously claimed. The website is live on Vercel
+(`https://brewmatch-sepia.vercel.app`), the Python brain is live on Render
+(`https://brewmatch-iki5.onrender.com`), all screens are built, and Supabase
+email sign-in works end-to-end with the brain verifying login tokens. **Left to
+do: re-run the feature-parity check (the 2026-07-05 pass exists only as a
+reference in a commit message — its record was never committed and is
+unrecoverable), then switch over and retire the Streamlit app.** Optional
+follow-ons: "sign in with Google", an explicit password reset, and moving
+anonymous device history onto an account at sign-in. Full detail in
+`active/p2-react-vercel-rebuild.md`.
 
 The order matters: a reliable foundation (Phase 1) before a nice face and real
 accounts (Phase 2) before inviting other people in (Phase 3) before charging
@@ -66,13 +80,29 @@ actually log and rate.
 
 ---
 
-## Phase 2 — planned (not started)
+## Phase 2 — in progress (nearly done)
 
-Redesign the look-and-feel with full design control, add a **real login**
-(social sign-in, password reset, email verification — using Supabase's built-in
-accounts), and move onto a host that isn't Streamlit. We lock in the exact
-tools when we get here; all of Phase 1's work (database + learning) carries over
-unchanged. No detailed tasks yet — we plan this once Phase 1 lands.
+Redesigned look-and-feel with full design control, a **real login** using
+Supabase's built-in accounts, and a move off Streamlit. All of Phase 1's work
+(database + learning) carried over unchanged, as planned.
+
+**Built and live:** the website is a React (Next.js) app on Vercel; the Python
+brain runs as its own small service on Render; the two talk over the internet.
+Every screen is built — home, recipes, coffees, log-a-brew, history, profile —
+and email sign-in works, with the brain checking your login before it hands over
+any account data.
+
+**Still to do:** re-run the feature-parity check (prove the new app does
+everything the old Streamlit one did) and commit the result, then switch over and
+retire the old app. Optional extras: "sign in with Google", an explicit password
+reset, and carrying anonymous device history onto an account when you sign in.
+
+➡️ **Step-by-step task list:** `active/p2-react-vercel-rebuild.md`
+
+A second Phase 2 workstream — **brewer-as-gear** (your brewers are equipment you
+own and pick, not a property of the beans) — is complete; its record moved to
+`completed/p2-brewer-as-gear.md`. One deferred question from it: should the
+grinder also become multi-owned, for consistency with brewers? Not blocking.
 
 ## Phase 3 — future (community)
 

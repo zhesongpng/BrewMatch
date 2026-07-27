@@ -8,7 +8,8 @@
 | `taste-prediction.md`    | ML (Supervised)      | Taste score prediction; powers recipe ranking and diagnosis engine           |
 | `recipe-optimization.md` | ML (Optimization)    | Minimum parameter change to fix diagnosed brew issues                        |
 | `personalization.md`     | ML (Personalization) | Bean-aware to full-hybrid personalization from accumulated diagnosis history |
-| `user-interface.md`      | UI                   | Streamlit troubleshooting app: diagnosis-first workflow                      |
+| `web-frontend.md`        | UI (current)         | React/Next front-end on Vercel: screens, brain client, identity, on-device state |
+| `user-interface.md`      | UI (legacy)          | Streamlit troubleshooting app — superseded by `web-frontend.md`, pending retirement |
 | `coffee-science.md`      | Domain               | Extraction theory, SCA standards, diagnostic rules                           |
 | `synthetic-data.md`      | Data Engineering     | Synthetic data generation strategy and validation                            |
 | `evaluation.md`          | Quality              | Metrics, targets, measurement methods for all components                     |

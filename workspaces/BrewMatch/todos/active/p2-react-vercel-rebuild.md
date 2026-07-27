@@ -1,8 +1,19 @@
 # Phase 2 — Rebuild the App on a Modern Front-End (React + Vercel)
 
 Created: 2026-06-24
-Status: **DRAFT FOR YOUR REVIEW — not started.** Nothing here is built yet.
-This is the plan to read, adjust, and approve before we begin.
+Reconciled against actual repo state: 2026-07-27
+Status: **IN PROGRESS — Goals A, B and C are built and live.** Goal D (parity
+check) and Goal E (switchover) remain.
+
+> **Status reconciliation (2026-07-27).** This file had drifted badly behind the
+> code: it still described B1 as "needs your Vercel login", B3 as not started,
+> and Goal C as undecided. Verified against the repo and the running services:
+> the site is live at `https://brewmatch-sepia.vercel.app`, the brain is live at
+> `https://brewmatch-iki5.onrender.com`, all five screens are built (Home,
+> Recipes, Coffees, History, Profile, plus log-a-brew and sign-in), and Supabase
+> email sign-in is wired end-to-end with the brain verifying login tokens.
+> Boxes below are now ticked against evidence, with the honest gaps named.
+> Nothing in this reconciliation changed any code — only the record.
 
 Goal in one sentence: **give BrewMatch a polished, phone-friendly look and feel
 without throwing away the Python "brain" you've already built.**
@@ -66,12 +77,19 @@ These shape the build. My recommendation is given for each; you can override any
       it's the difference between a toy login and one real users would trust — and it
       sets up the future community/sharing features.
 
-- [ ] **D3. How much the look-and-feel changes.**
-      My recommendation: **same features, much nicer skin** — keep what the app
+- [x] **D3. How much the look-and-feel changes.** _(SETTLED IN PRACTICE — "same
+      features, nicer skin" is what was built; recorded 2026-07-27.)_
+      My recommendation was: **same features, much nicer skin** — keep what the app
       does, rebuild how it looks (clean, mobile-first, calmer). _Trade-off:_ resisting
       the urge to add new features here keeps Phase 2 finishable; new ideas go on a
       Phase 3 list. We can do a quick visual mockup first so you approve the look
       before I build it.
+      _What actually happened: a mockup was approved (see the two-path home hub
+      decision, journal 0033), and the build followed the "nicer skin, same
+      features" line — the coffee palette, mobile-first shell and bottom tab bar
+      came from that mockup. This box was never formally ticked; it is ticked now
+      to match reality. Two things did grow beyond a pure re-skin, deliberately
+      and with your say-so: grinder-specific grind guidance and brewer-as-gear._
 
 ---
 
@@ -105,16 +123,17 @@ answers from your real data, proven without opening the app (live API calls
 
 The point: the screens people actually use, rebuilt to feel like a real product.
 
-- [~] **B1. Set up the React (Next.js) project and put it on Vercel.** Get a live
-  web address showing a real (if empty) BrewMatch as the foundation to build on.
-  _Built 2026-06-25: Next.js (App Router) + TypeScript + Tailwind v4 app at
-  `apps/web/`. Coffee-palette design system ported from the approved mockup;
-  mobile-first shell with a working bottom tab bar (Diagnose / Recipes /
-  Coffees / History). Diagnose home is built out; the other three are honest
-  "coming next" shells. `npm run build` is clean (lint + types pass; all 4
-  routes prerender). Screenshots verified against the mockup. REMAINING: the
-  Vercel deploy itself needs your Vercel login — see `apps/web/README.md`
-  § "Deploying to Vercel" (import repo, set Root Directory = `apps/web`)._
+- [x] **B1. Set up the React (Next.js) project and put it on Vercel.** Get a live
+      web address showing a real (if empty) BrewMatch as the foundation to build on.
+      _Built 2026-06-25: Next.js (App Router) + TypeScript + Tailwind v4 app at
+      `apps/web/`. Coffee-palette design system ported from the approved mockup;
+      mobile-first shell with a working bottom tab bar. `npm run build` is clean
+      (lint + types pass). Screenshots verified against the mockup._
+      _**Deploy done** (recorded 2026-07-27): the site is live at
+      `https://brewmatch-sepia.vercel.app` — evidenced by the brain's CORS allow-list
+      naming that exact origin (`api/main.py:118`), which only works against a real
+      deployed site. The tab bar now carries five tabs (Home / Recipes / Coffees /
+      History / Profile), not the original four._
 - [x] **B2. Connect the front-end to the brain (Goal A).** When someone taps
       something, the screen asks the Python brain and shows the answer — smoothly,
       no full-page reload.
@@ -127,9 +146,28 @@ The point: the screens people actually use, rebuilt to feel like a real product.
       deploy-breaking `.gitignore` `lib/` rule that hid the client from git; see
       `04-validate/b2-diagnose-wire.md`. API-key-on-writes deferred to B3 (no
       write endpoints wired yet)._
-- [ ] **B3. Build the core screens** with the agreed look (D3): home/diagnosis,
+- [x] **B3. Build the core screens** with the agreed look (D3): home/diagnosis,
       recommendation/recipe view, log-a-brew, your coffees/bags, history + "what
-      it's learned." - [ ] **B3-grinder. Grinder-specific grind guidance (USER WANTS — every
+      it's learned."
+      _Done — verified 2026-07-27 by reading the code, not the filenames. Every
+      screen is real and wired to the brain:_
+  - _Home (`app/page.tsx`) — the two-path hub ("get a recipe" / "fix a cup"),
+    per journal 0033._
+  - _Diagnose (`components/DiagnoseFlags.tsx`, 158 lines) — all five taste
+    flags, POSTs to `/diagnose`._
+  - _Recipes (`components/RecipesFlow.tsx`, 707 lines) — bean entry, ranked
+    recipes, recipe card with running water totals and clock-format times,
+    editable dose that rescales, source trust labels
+    (champion / barista / enthusiast)._
+  - _Coffees (`components/CoffeesFlow.tsx`, 588 lines) — add, edit and finish
+    bags, with the "≈N brews left" running-low estimate._
+  - _Log a brew (`components/LogBrew.tsx`, 194 lines) — thumbs, score, taste
+    flags, notes._
+  - _History (`components/HistoryFlow.tsx`, 247 lines) — past brews, the
+    learning phase in plain language, and "learned from N brews"._
+  - _Profile (`components/ProfileFlow.tsx`, 349 lines) — your grinder, your
+    brewers, brew stats._
+- [x] **B3-grinder. Grinder-specific grind guidance (USER WANTS — every
       grinder model differs).** Add a "pick your grinder" step (setup or
       profile) covering the 9 grinders in `src/grinder_catalog.py`
       (Comandante C40, Timemore C2/C3, Kingrinder K6, 1Zpresso K-Max/J-Max,
@@ -139,7 +177,13 @@ The point: the screens people actually use, rebuilt to feel like a real product.
       brain keeps the catalog and exposes the translation over its web
       service (single source of truth — do NOT copy the table into the
       front-end). Depends on recipe-aware diagnosis (a real grind number to
-      translate).\_
+      translate).
+      _Done 2026-06-26 (`5194230`), then rebuilt 2026-07-08 (`086bc08`) on real
+      measured microns plus an on-device "your usual setting" baseline
+      (`lib/grinderCalibration.ts`) — because a fixed chart can't be trusted
+      across grinder variants, so advice is anchored to one reading the user
+      gives from their own dial. Python↔TypeScript translation parity is now
+      guarded by tests (`93654b2`)._
 
 **Goal B is done when:** the new app is live at a real web address, looks like a
 real product, and talks to your brain.
@@ -150,12 +194,35 @@ real product, and talks to your brain.
 
 The point: people sign in securely, and it's ready for future sharing/community.
 
-- [ ] **C1. Turn on Supabase's built-in login** (email + "sign in with Google").
-- [ ] **C2. Wire the new screens to it** so each person sees only their own
-      coffees, brews, and learning.
+- [x] **C1. Turn on Supabase's built-in login** — _done for email; Google
+      sign-in NOT built (recorded 2026-07-27)._
+      _What shipped (`23017e4`): a Sign in screen (`components/SignInFlow.tsx`)
+      with three ways in — create an account with email + password, sign in with
+      email + password, or a "magic link" emailed to you (no password at all).
+      Supabase handles the accounts._
+      _Honest gap: **"sign in with Google" was never built**, and there is no
+      explicit "forgot my password" flow — the magic link covers the same need
+      (you can always get in via email without your password), but it is not the
+      same thing as a password reset. Both are small additions if you want them;
+      neither blocks anything today._
+- [x] **C2. Wire the new screens to it** so each person sees only their own
+      coffees, brews, and learning. _(done — `ba513b0`, `efaecce`)_
+      _The brain now checks the login token on every per-person request
+      (`api/main.py:173` `resolve_user`): a token that doesn't match the account
+      being asked for is refused, and an account can't be read without one.
+      Before you sign in, the app still works — each device gets its own private
+      anonymous id (`lib/identity.ts`), so you can use BrewMatch without an
+      account and your data is still saved._
+      _Known loose end: brews logged anonymously on a device are **not yet moved
+      onto your account when you sign in** — `lib/identity.ts` deliberately keeps
+      the device id so a future migration can find them, but that migration
+      ("Goal C step 3" in the code comment) was never built. In practice: sign in
+      before you start logging brews, or that history stays under the device._
 
 **Goal C is done when:** a new person can sign up, log in, and their data is
 private to them — with password reset and the rest handled for you.
+_Substantially met via email + magic link; Google sign-in, an explicit password
+reset, and the anonymous→account history migration are the named gaps._
 
 ---
 
@@ -164,13 +231,37 @@ private to them — with password reset and the rest handled for you.
 The point: a checklist so the new app does **everything** the current one does
 before we retire the old one.
 
-- [ ] **D-parity. Feature-for-feature check:** diagnosis flow, recommendations,
-      recipe card (running water total, clock-format times), log + rate a brew,
-      editable dose that rescales the recipe, your coffees/bags + "running low,"
-      personalization phase + "learned from N brews," brew history, trust badge on
-      sources. Each one re-checked working in the new app.
+- [~] **D-parity. Feature-for-feature check:** diagnosis flow, recommendations,
+  recipe card (running water total, clock-format times), log + rate a brew,
+  editable dose that rescales the recipe, your coffees/bags + "running low,"
+  personalization phase + "learned from N brews," brew history, trust badge on
+  sources. Each one re-checked working in the new app.
 
-**Goal D is done when:** every feature you have today works in the new app.
+  > **⚠ A parity check was run on 2026-07-05 and its record was lost.**
+  > Commit `2309012` says "Found via the Goal D parity red-team; see
+  > `workspaces/BrewMatch/04-validate/d-parity.md`" — **that file was never
+  > committed and does not exist**, on disk or anywhere in git history. So we
+  > know a parity pass happened and found at least two real regressions (the
+  > Diagnose screen had lost its recipe-awareness, and the "too harsh" taste
+  > flag was missing entirely — both fixed in that commit), but **we cannot know
+  > what else it found**. Anything it flagged and didn't fix is invisible.
+  >
+  > Disposition: the parity check MUST be re-run from scratch and its findings
+  > committed this time. Treat the 2026-07-05 pass as unrecoverable, not as
+  > coverage.
+
+  _Desk-check done during the 2026-07-27 reconciliation (reading code, not
+  running the app) — every item on the list above has a real implementation:
+  running water totals + clock format (`lib/recipe.ts`
+  `poursWithRunningTotal`/`clockFormat`), dose rescale (`rescaleToDose`),
+  running-low (`CoffeesFlow.tsx:554`, "≈N brews left"), learning phase +
+  brew count (`HistoryFlow.tsx:108`), source tier labels
+  (`RecipesFlow.tsx:56`). This is evidence the features EXIST; it is **not**
+  evidence they behave correctly against the live app, which is what the
+  re-run must establish._
+
+**Goal D is done when:** every feature you have today works in the new app,
+**and** the check that proves it is written down and committed.
 
 ---
 
@@ -213,6 +304,33 @@ the brain) and an empty Goal B (live React shell) come first and are quick; the
 bulk of the work is Goal B's screens + Goal D's parity; login (C) slots in
 alongside; launch (E) is last. We'd tackle it in a few focused build passes, each
 ending with something you can see and click.
+
+---
+
+## What's actually left in Phase 2 (post-reconciliation, 2026-07-27)
+
+Goals A, B and C are built and live. What remains:
+
+1. **Re-run the Goal D parity check and commit the record.** The 2026-07-05 pass
+   is unrecoverable (see the warning under D-parity). This is the real remaining
+   work and the gate before switchover.
+2. **Goal E — switchover.** Run old and new side by side, then retire Streamlit.
+3. **Named Goal C gaps, all optional:** "sign in with Google", an explicit
+   password reset, and moving anonymous device history onto an account at
+   sign-in.
+
+Known accepted issue, not a Phase 2 task: the brain sleeps after ~15 minutes idle
+on Render's free tier, so the first visit after a quiet spell waits ~50 seconds.
+A scheduled wake-up ping was tried and removed on 2026-07-15 (`4403a11`,
+`0fbe934`) — GitHub throttled the 10-minute schedule to roughly hourly, so it
+woke an already-asleep service instead of preventing sleep, and occasionally
+timed out mid-wake and raised false alarms. The reliable fix is Render's paid
+Starter tier; until then this is accepted behaviour.
+
+Work that shipped inside Phase 2 but was never in this plan (recorded here so the
+plan matches history): brewer-as-gear (its own todo, now complete), the
+grinder-calibration rebuild on real microns, bag editing with form-level size
+validation, and a Vitest test harness for the website.
 
 ---
 

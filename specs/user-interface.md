@@ -5,10 +5,19 @@
 > see. The current front-end is the React/Next app on Vercel, specified in
 > [`web-frontend.md`](./web-frontend.md).
 >
-> This document stays accurate for the Streamlit app and stays in the repo for
-> two reasons: the Streamlit app is still running as the fallback, and it is the
-> reference for the Phase 2 Goal D feature-parity check — "does the new app do
-> everything this one does?" It is retired when Goal E completes.
+> This document stays accurate for the Streamlit app and stays in the repo
+> because it is the reference for the Phase 2 Goal D feature-parity check —
+> "does the new app do everything this one does?" It is retired when Goal E
+> completes.
+>
+> **Deployment status: unknown.** The Streamlit app has not been formally
+> retired — `app.py` still launches it and `streamlit==1.57.0` +
+> `streamlit-cookies-manager` are still pinned in `requirements.txt` — but
+> whether the Streamlit Community Cloud deployment (set up 2026-05-12, journal 0019) is still live cannot be determined from this repo. Check the Streamlit
+> Cloud dashboard before assuming a running fallback exists.
+>
+> Note that Goal D does **not** require a running Streamlit app: this spec plus
+> the source under `src/app/` is a sufficient reference for the parity check.
 >
 > Do not extend this spec with new features. New UI truth goes in
 > `web-frontend.md`.

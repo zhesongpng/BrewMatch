@@ -269,13 +269,31 @@ before we retire the old one.
 
 The point: switch over without breaking anything or losing data.
 
+> **Reality check (2026-07-27): the switchover has largely already happened in
+> practice.** The React app is what you use; nobody is being "pointed to" the new
+> app because it is already the app. E1 and E2 were written when the Streamlit
+> app was the live one — that framing is now out of date.
+>
+> **Streamlit's deployment status is unverified.** It has not been formally
+> retired: `app.py` still launches it and `streamlit==1.57.0` +
+> `streamlit-cookies-manager` are still pinned in `requirements.txt`. But whether
+> the Streamlit Community Cloud deployment (journal 0019) is still live cannot be
+> determined from the repo — only the Streamlit Cloud dashboard can confirm.
+> **Check that before treating a fallback as available.**
+
 - [ ] **E1. Run old and new side by side briefly** (same Supabase data) so you can
-      compare before committing.
+      compare before committing. _Likely moot — see the reality check above. If
+      the Streamlit deployment is already down, this step is unachievable and
+      should be dropped rather than pretended._
 - [ ] **E2. Point people to the new app; keep the old one as a fallback** for a
-      short window, then retire it.
+      short window, then retire it. _The first half is effectively done. What
+      genuinely remains is the tidy-up: confirm the Streamlit Cloud deployment is
+      off, then drop `app.py`, the Streamlit dependencies from
+      `requirements.txt` / `pyproject.toml`, and `.streamlit/`._
 
 **Goal E is done when:** the new app is the real BrewMatch, your data carried
-over untouched, and the old Streamlit app can be turned off.
+over untouched, and the old Streamlit app is genuinely turned off — deployment
+down and its dependencies removed from the repo, not merely unused.
 
 ---
 

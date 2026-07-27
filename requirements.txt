@@ -2,7 +2,14 @@
 # suite (verified from the working .venv on 2026-07-13). Render rebuilds install
 # THIS file; unpinned (>=) deps let each rebuild pull untested newest versions,
 # which is what silently broke the brain deploy. Bump deliberately, not by drift.
-streamlit==1.57.0
+# Streamlit and its supporting packages were removed 2026-07-27 when the old
+# Streamlit app was sunset — the brain only ever runs `uvicorn api.main:app` and
+# never imports them. Removed: streamlit, streamlit-cookies-manager, altair
+# (charts on the old evaluation/history pages), bcrypt (the old password login;
+# accounts are Supabase now). Verified by import trace: Streamlit is imported
+# only by src/app/app.py and src/app/pages/*, and the brain imports only
+# src/app/db.py + src/app/utils.py, which are clean. src/app/__init__.py is
+# empty, so importing them cannot pull the old app in.
 lightgbm==4.6.0
 optuna==4.8.0
 rank-bm25==0.2.2
@@ -11,13 +18,9 @@ rank-bm25==0.2.2
 scikit-learn==1.8.0
 pandas==3.0.2
 numpy==2.2.6
-shap==0.51.0
 joblib==1.5.3
 python-dotenv==1.2.2
 openai==2.36.0
-bcrypt==5.0.0
-streamlit-cookies-manager==0.2.0
-altair==6.1.0
 # PostgreSQL driver for permanent hosted storage (Supabase)
 psycopg2-binary==2.9.12
 # FastAPI brain service (api/main.py) — required by the Render web service.
@@ -30,13 +33,14 @@ starlette==0.52.1
 # api/auth.py as `import jwt`. [crypto] adds the cryptography backend for the
 # asymmetric (JWKS) signing path; HS256 shared-secret needs no extra backend.
 PyJWT[crypto]==2.13.0
-# numba/llvmlite compile from source when no matching manylinux wheel exists;
-# newer releases are the other leading suspect for the failed rebuild (missing
-# wheel or OOM while compiling on Render's 512 MB instance). Pin them explicitly
-# even though they are transitive (via shap) so Render always draws known-good
-# wheels. pydantic is FastAPI's validation core — pin to avoid v2 minor drift.
-numba==0.61.2
-llvmlite==0.44.0
+# shap, numba and llvmlite were removed 2026-07-27: a repo-wide grep for
+# `import shap` / `import numba` / `import llvmlite` returns ZERO hits, so shap
+# was never used, and numba+llvmlite were pinned here only because they are
+# shap's transitive dependencies. They were also the packages that compile from
+# source when no manylinux wheel matches — the leading suspect for the earlier
+# failed rebuild (missing wheel, or OOM while compiling on the 512 MB instance).
+# Removing them removes that whole build-risk class.
+# pydantic is FastAPI's validation core — pin to avoid v2 minor drift.
 pydantic==2.12.5
 # NOTE: chromadb + sentence-transformers (and the PyTorch they pull in) are
 # intentionally omitted. The deployed brain runs in lite mode (BREWMATCH_LITE

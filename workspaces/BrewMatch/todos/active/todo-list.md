@@ -10,10 +10,15 @@ Last updated: 2026-07-27 (reconciled against actual repo state)
 pipeline, web app, evaluation, polish) are all complete. Their finalized
 records live in `todos/completed/`. The app is built, tested, and deployed.
 
-_Test count: last recorded at **761 passing** on 2026-06-25 (Phase 2 Goal A1).
-Not re-verified during the 2026-07-27 reconciliation — no Python test
-environment was installed in that session. This line previously claimed 646,
-which was already two counts out of date._
+_Test count: **823 passing, 0 failed, 0 warnings** — verified 2026-07-27 by
+running `.venv/bin/python -m pytest -q`. Earlier claims in this file (646, then 761) were both stale._
+
+**Fresh-checkout prerequisite:** the suite needs the synthetic dataset, which is
+generated and gitignored (`data/synthetic/*.csv`). On a clean clone, 10 tests in
+`tests/unit/test_evaluate_pipeline.py` fail with a bare `FileNotFoundError` until
+you run `python -m src.data_generator.generator` (documented at `README.md:62`;
+seeded with 42, so it is reproducible). Worth knowing before concluding the suite
+is broken._
 
 We are now in a **new chapter with a bigger goal: grow BrewMatch into a real
 product** — reliable enough for daily use, nice enough to
